@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'stratos';
+  src: url('../public/fonts/Stratos-Regular.otf');
+}
+
+@font-face {
+  font-family: 'stratos-light';
+  src: url('../public/fonts/Stratos-Light.otf');
+}
+
+@font-face {
+  font-family: 'stratos-extrabold';
+  src: url('../public/fonts/Stratos-ExtraBold.otf');
+}
+
+.bread-container {
+  @apply font-stratos-light;
+  flex-direction: row !important;
+  list-style: none;
+  overflow: hidden;
+  font: 12px;
+}
+.bread-container li {
+  float: left;
+}
+
+.bread-container li a {
+  @apply relative float-left capitalize text-primary after:content-['|'];
+}
+
+.bread-container li:last-child a {
+  @apply cursor-default font-extrabold text-primary-accent after:content-[''];
+}
