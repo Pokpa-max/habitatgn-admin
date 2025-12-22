@@ -50,7 +50,7 @@ function HouseDetail() {
         title={house?.offerType?.value}
         price={house?.price}
         partNumber={house?.partNumber}
-        adress={house?.adress}
+        address={house?.address}
       />
       <p className="py-5 text-2xl text-cyan-500">Details Images du Logement</p>
       <InsideHouseCard houseInsides={house?.houseInsides} />

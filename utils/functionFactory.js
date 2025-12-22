@@ -29,14 +29,21 @@ export const houseConstructorUpdateOffline = ({
   zone,
   commodite,
   offerType,
-
+  area,
+  furnishing,
+  housingDeposit,
+  isFurnished,
+  isPurchaseMode,
+  rentalDeposit,
+  rentalStatus,
+  reservationDetails,
 
   isAvailable,
 
 }) => ({
-  adress: {
-    zone: zone.value,
-    section: section,
+  address: {
+    commune: zone && zone.value ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 } : (zone || null),
+    section: section && section.value ? { label: section.label, value: section.value } : (section || null),
     long: Number(long),
     lat: Number(lat),
   },
@@ -47,6 +54,15 @@ export const houseConstructorUpdateOffline = ({
   offerType: offerType,
   phoneNumber: phoneNumber,
   partNumber: partNumber,
+  bedrooms: Number(partNumber) || 0,
+  area: area || 0,
+  furnishing: furnishing && furnishing.value ? { label: furnishing.label, value: furnishing.value } : null,
+  housingDeposit: Number(housingDeposit) || 0,
+  isFurnished: typeof isFurnished === 'boolean' ? isFurnished : Boolean(furnishing && furnishing.value && !String(furnishing.value).toLowerCase().includes('non')),
+  isPurchaseMode: Boolean(isPurchaseMode),
+  rentalDeposit: Number(rentalDeposit) || 0,
+  rentalStatus: rentalStatus || '',
+  reservationDetails: reservationDetails || null,
   price: price,
   surface: surface,
   isAvailable: isAvailable,
@@ -74,26 +90,42 @@ export const houseConstructorUpdate = ({
   zone,
   commodite,
   offerType,
-
+  area,
+  furnishing,
+  housingDeposit,
+  isFurnished,
+  isPurchaseMode,
+  rentalDeposit,
+  rentalStatus,
+  reservationDetails,
   isAvailable,
 
 }) => ({
   description: description,
-  commodite: commodite,
+  commodites: commodite ? (typeof commodite === 'string' ? [commodite] : commodite.value ? [commodite.value] : [commodite]) : [],
   adVance: adVance,
-  houseType: houseType,
-  offerType: offerType,
+  houseType: houseType && houseType.value ? houseType : houseType,
+  offerType: offerType && offerType.value ? offerType : offerType,
   phoneNumber: phoneNumber,
   partNumber: partNumber,
+  bedrooms: Number(partNumber) || 0,
+  area: area || 0,
+  furnishing: furnishing && furnishing.value ? { label: furnishing.label, value: furnishing.value } : null,
+  housingDeposit: Number(housingDeposit) || 0,
+  isFurnished: typeof isFurnished === 'boolean' ? isFurnished : Boolean(furnishing && furnishing.value && !String(furnishing.value).toLowerCase().includes('non')),
+  isPurchaseMode: Boolean(isPurchaseMode),
+  rentalDeposit: Number(rentalDeposit) || 0,
+  rentalStatus: rentalStatus || '',
+  reservationDetails: reservationDetails || null,
   price: price,
   surface: surface,
   imageUrl: imageUrl,
   houseInsides: houseInsides,
   isAvailable: isAvailable,
-  "adress.zone": zone.value,
-  "adress.section": section,
-  "adress.long": Number(long),
-  "adress.lat": Number(lat),
+  "address.zone": zone && zone.value ? zone.value : null,
+  "address.section": section && section.value ? section.value : section,
+  "address.long": Number(long),
+  "address.lat": Number(lat),
   updatedAt: serverTimestamp(),
 })
 
@@ -157,41 +189,70 @@ export const housesConstructorCreate = ({
   description,
   long,
   lat,
-  partNumber = "",
+  partNumber = 0,
   houseInsides,
   surface,
   zone,
-  commodite = "",
+  commodite = [],
   offerType,
   isAvailable,
-  userId
+  userId,
+  area = 0,
+  furnishing,
+  town,
+  housingDeposit = 0,
+  isFurnished = false,
+  isPurchaseMode = false,
+  rentalDeposit = 0,
+  rentalStatus = '',
+  reservationDetails = null,
+}) => {
+  // Normalize select objects (SimpleSelect returns { label, value })
+  const commune = zone && zone.label && zone.value ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 } : zone || null
+  const quartier = section && section.label && section.value ? { label: section.label, value: section.value } : section || null
+  const townObj = town && town.label && town.value ? { label: town.label, value: town.value } : { label: 'Conakry', value: 'conakry' }
 
-}) => ({
+  return {
+    phoneNumber,
+    isAvailable: typeof isAvailable === 'boolean' ? isAvailable : true,
+    // Address object matching existing Firestore structure
+    address: {
+      commune: commune,
+      town: townObj,
+      zone: quartier ? quartier.value : '',
+      lat: Number(lat) || 0,
+      long: Number(long) || 0,
+    },
 
-  phoneNumber,
-  isAvailable,
-  adress: {
-    zone: zone.value,
-    section: section.value,
-    long: Number(long),
-    lat: Number(lat),
-  },
+    // Top-level convenience fields
+    zone: quartier ? quartier.value : '',
+    area: Number(area) || 0,
+    bedrooms: Number(partNumber) || 0,
 
-  offerType: offerType,
-  surface: surface,
-  price: price,
-  commodite: commodite,
-  partNumber: partNumber,
-  imageUrl: imageUrl,
-  description: description,
-  houseType: houseType,
-  adVance: adVance,
-  houseInsides: houseInsides,
-  likes: [],
-  userId: userId,
-  createdAt: serverTimestamp(),
-  updatedAt: serverTimestamp(),
-})
+    offerType: offerType && offerType.value ? { label: offerType.label, value: offerType.value } : offerType,
+    surface: surface,
+    price: Number(price) || 0,
+    commodites: Array.isArray(commodite) ? commodite : commodite ? [commodite] : [],
+    partNumber: partNumber,
+    imageUrl: imageUrl,
+    description: description,
+    furnishing: furnishing && furnishing.value ? { label: furnishing.label, value: furnishing.value } : null,
+    isFurnished: typeof isFurnished === 'boolean' ? isFurnished : Boolean(furnishing && furnishing.value && !String(furnishing.value).toLowerCase().includes('non')),
+    houseType: houseType && houseType.value ? { label: houseType.label, value: houseType.value } : houseType,
+    adVance: adVance,
+    houseInsides: houseInsides,
+    housingDeposit: Number(housingDeposit) || 0,
+    rentalDeposit: Number(rentalDeposit) || 0,
+    rentalStatus: rentalStatus || '',
+    reservationDetails: reservationDetails || null,
+    isPurchaseMode: Boolean(isPurchaseMode),
+    type: 'house',
+    likes: [],
+    userId: userId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  }
+}
 
 
 export const sliderConstructorCreate = (data, edit) => {
@@ -414,7 +475,7 @@ export const autoFillHouseForm = (reset, setValue, house) => {
     adVance,
     houseType,
     description,
-    adress,
+    address,
     partNumber,
     houseInsides,
     surface,
@@ -424,6 +485,8 @@ export const autoFillHouseForm = (reset, setValue, house) => {
 
   } = house
 
+  const addr = address || house.adress || {}
+
   setValue('description', description)
   setValue('price', price)
   setValue('adVance', adVance)
@@ -432,17 +495,40 @@ export const autoFillHouseForm = (reset, setValue, house) => {
   setValue('offerType', { value: offerType?.value, label: offerType?.value })
   setValue('phoneNumber', phoneNumber)
   setValue('surface', surface)
-  setValue('commodite', { value: commodite?.value, label: commodite?.value })
-  setValue('houseType', { value: houseType?.value, label: houseType?.value })
-  setValue('section', { value: adress?.section, label: adress?.section })
-  setValue('long', Number(adress?.long))
-  setValue('lat', Number(adress?.lat))
-  setValue('zone', { value: adress?.zone, label: adress?.zone })
+  // Commodities: form expects single select `commodite` but stored data is `commodites` array
+  const firstCommod = house?.commodites?.[0] || (commodite && commodite.value) || commodite
+  setValue('commodite', firstCommod ? { value: firstCommod, label: firstCommod } : undefined)
+  setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
+
+  // Bedrooms / area / furnishing
+  setValue('partNumber', partNumber)
+  setValue('bedrooms', (house?.bedrooms ?? Number(partNumber)) || 0)
+  setValue('area', house?.area ?? 0)
+  setValue('furnishing', house?.furnishing ? { value: house.furnishing.value, label: house.furnishing.label } : undefined)
+
+  // Address fields (support legacy `adress` and new `address`)
+  setValue('section', addr?.section ? { value: addr.section.value || addr.section, label: addr.section.label || addr.section } : undefined)
+  setValue('long', Number(addr?.long))
+  setValue('lat', Number(addr?.lat))
+  setValue('zone', addr?.commune ? { value: addr?.commune.value || addr?.zone, label: addr?.commune.label || addr?.zone } : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)
   setValue('isAvailable', isAvailable)
   setValue('imageUrl', imageUrl)
   setValue('houseInsides', houseInsides)
 
+  // Financial / reservation fields
+  setValue('housingDeposit', house?.housingDeposit ?? 0)
+  setValue('rentalDeposit', house?.rentalDeposit ?? 0)
+  setValue('rentalStatus', house?.rentalStatus ?? '')
+  setValue('reservationDetails', house?.reservationDetails ?? null)
+
+  // Furnishing / booleans
+  setValue('isFurnished', typeof house?.isFurnished === 'boolean' ? house.isFurnished : Boolean(house?.furnishing))
+  setValue('isPurchaseMode', typeof house?.isPurchaseMode === 'boolean' ? house.isPurchaseMode : false)
+
+  // Town (if present)
+  setValue('town', house?.address?.town ? { value: house.address.town.value, label: house.address.town.label } : undefined)
 }
+
 
 
 

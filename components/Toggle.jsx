@@ -1,6 +1,6 @@
 import { Switch } from '@headlessui/react'
 import { useEffect, useState } from 'react'
-import { Controller } from 'react-hook-form'
+import { Controller, useFormContext } from 'react-hook-form'
 import ConfirmModal from './ConfirmModal'
 
 function classNames(...classes) {
@@ -17,11 +17,50 @@ export default function Toggle({
   const [openWarning, setOpenWarning] = useState(false) // modal state for active restaurant warning
   const [value, setValue] = useState(null)
 
+  const methods = useFormContext()
+  const controlToUse = control || methods?.control
+
   useEffect(() => {
     if (value !== null) {
       setOpenWarning(true)
     }
   }, [value])
+
+  if (!controlToUse) {
+    // Fallback: render a non-controlled switch
+    return (
+      <Switch.Group as="div" className="flex items-center justify-between">
+        <span className="flex flex-grow flex-col">
+          <Switch.Label
+            as="span"
+            className="text-sm font-medium text-gray-900 "
+            passive
+          >
+            {title}
+          </Switch.Label>
+          <Switch.Description as="span" className="text-sm text-gray-500">
+            {description}
+          </Switch.Description>
+        </span>
+        <Switch
+          checked={false}
+          onChange={() => {}}
+          className={classNames(
+            'bg-gray-200',
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2'
+          )}
+        >
+          <span
+            aria-hidden="true"
+            className={classNames(
+              'translate-x-0',
+              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+            )}
+          />
+        </Switch>
+      </Switch.Group>
+    )
+  }
 
   return (
     <>
@@ -56,7 +95,7 @@ export default function Toggle({
           </Switch.Description>
         </span>
         <Controller
-          control={control}
+          control={controlToUse}
           name={name}
           defaultValue={false}
           render={({ field }) => {

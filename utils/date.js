@@ -4,29 +4,37 @@ import fetcher from "./fetcher";
 import { format, formatDistance, differenceInCalendarDays } from 'date-fns'
 
 export const firebaseDateFormat = (date, formatString = 'PP') => {
-  if (!date) return
-  let convertedDate = date
-
-  if (typeof date === 'number') {
-    convertedDate = firebaseDateFormatWithoutFormat(
-      Timestamp.fromDate(new Date(date))
-    )
-  } else {
-    convertedDate = firebaseDateToTimestamp(date)
+  const convertedDate = firebaseDateToJsDate(date)
+  if (!convertedDate) return ''
+  try {
+    return format(convertedDate, formatString, { locale: fr })
+  } catch (e) {
+    console.error('firebaseDateFormat error:', e, { date, convertedDate })
+    return ''
   }
-
-  return format(convertedDate, formatString, { locale: fr })
 }
 
 export const timeSince = (firebaseDate) => {
-  const date = firebaseDateToTimestamp(firebaseDate)
-  return formatDistance(date, new Date(), { addSuffix: true, locale: fr })
+  const date = firebaseDateToJsDate(firebaseDate)
+  if (!date) return ''
+  try {
+    return formatDistance(date, new Date(), { addSuffix: true, locale: fr })
+  } catch (e) {
+    console.error('timeSince error:', e, { firebaseDate, date })
+    return ''
+  }
 }
 
 export const timeBetween = (firebaseDateStart, firebaseDateEnd) => {
-  const dateStart = firebaseDateToTimestamp(firebaseDateStart)
-  const dateEnd = firebaseDateToTimestamp(firebaseDateEnd)
-  return differenceInCalendarDays(dateEnd, dateStart)
+  const dateStart = firebaseDateToJsDate(firebaseDateStart)
+  const dateEnd = firebaseDateToJsDate(firebaseDateEnd)
+  if (!dateStart || !dateEnd) return 0
+  try {
+    return differenceInCalendarDays(dateEnd, dateStart)
+  } catch (e) {
+    console.error('timeBetween error:', e, { firebaseDateStart, firebaseDateEnd })
+    return 0
+  }
 }
 
 
@@ -85,8 +93,43 @@ export const firebaseDateHour = (data) => {
 
 
 export const firebaseDateToJsDate = (firebaseDate) => {
-  return new Date(firebaseDate.seconds * 1000)
+  if (!firebaseDate) return null
+
+  // Already a native Date
+  if (firebaseDate instanceof Date) return firebaseDate
+
+  // Firestore Timestamp instance
+  if (firebaseDate && typeof firebaseDate.toDate === 'function') {
+    try {
+      const dt = firebaseDate.toDate()
+      if (dt instanceof Date && !isNaN(dt.getTime())) return dt
+    } catch (e) {
+      // fallthrough
+    }
+  }
+
+  // Firestore-like plain object with _seconds or seconds
+  const seconds = firebaseDate?._seconds ?? firebaseDate?.seconds
+  const nanoseconds = firebaseDate?._nanoseconds ?? firebaseDate?.nanoseconds
+  if (typeof seconds === 'number') {
+    const ms = seconds * 1000 + Math.floor((nanoseconds || 0) / 1e6)
+    const dt = new Date(ms)
+    if (!isNaN(dt.getTime())) return dt
+  }
+
+  // Numeric value (could be seconds or milliseconds)
+  if (typeof firebaseDate === 'number') {
+    const dt = new Date(firebaseDate > 1e12 ? firebaseDate : firebaseDate * 1000)
+    if (!isNaN(dt.getTime())) return dt
+  }
+
+  // String parse
+  const parsed = new Date(firebaseDate)
+  if (!isNaN(parsed.getTime())) return parsed
+
+  // Fallback
+  return null
 }
 
 export const firebaseDateFormatWithoutFormat = (date) =>
-  firebaseDateToTimestamp(date)
+  firebaseDateToJsDate(date)

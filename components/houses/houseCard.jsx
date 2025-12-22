@@ -6,7 +6,7 @@ function HouseCard({
   description,
   price,
   partNumber,
-  adress,
+  address,
 }) {
   return (
     <div class="p-10">
@@ -27,8 +27,12 @@ function HouseCard({
 
             <div className="mb-10 flex items-center justify-between">
               <div>
-                <p className="mb-2 text-gray-600">Commune:{'Matam'}</p>
-                <p className="text-gray-600">Quartier:{adress?.section}</p>
+                <p className="mb-2 text-gray-600">
+                  Commune: {address?.commune?.label || '—'}
+                </p>
+                <p className="text-gray-600">
+                  Quartier: {address?.section?.label || address?.zone || '—'}
+                </p>
               </div>
               <div>
                 <p className="mb-1 text-gray-500">

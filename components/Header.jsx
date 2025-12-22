@@ -1,17 +1,26 @@
 import Breadcrumbs from 'nextjs-breadcrumbs'
 import { RiArrowLeftLine } from 'react-icons/ri'
+import { useColors } from '../contexts/ColorContext'
 
 export default function Header({ title }) {
+  const colors = useColors()
+
   return (
     <div className="py-5">
       <div>
         <nav className="sm:hidden" aria-label="Back">
           <a
             href="#"
-            className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700"
+            className="flex items-center text-sm font-medium transition-colors"
+            style={{
+              color: colors.gray500,
+            }}
+            onMouseEnter={(e) => (e.target.style.color = colors.gray700)}
+            onMouseLeave={(e) => (e.target.style.color = colors.gray500)}
           >
             <RiArrowLeftLine
-              className="flex-shrink-0 w-5 h-5 mr-1 -ml-1 text-gray-400"
+              className="mr-1 -ml-1 h-5 w-5 flex-shrink-0"
+              style={{ color: colors.gray400 }}
               aria-hidden="true"
             />
             Retour
@@ -20,6 +29,36 @@ export default function Header({ title }) {
         <nav className="hidden sm:flex" aria-label="Breadcrumb">
           <ol role="list" className="flex items-center space-x-4">
             <div className="flex flex-row">
+              <style>{`
+                .bread-container {
+                  display: flex;
+                  align-items: center;
+                  gap: 1rem;
+                }
+
+                .bread-container a {
+                  color: ${colors.gray600};
+                  text-decoration: none;
+                  font-size: 0.875rem;
+                  transition: all 0.3s ease;
+                  cursor: pointer;
+                }
+
+                .bread-container a:hover {
+                  color: ${colors.primary};
+                }
+
+                .bread-container span {
+                  color: ${colors.gray400};
+                  font-size: 0.875rem;
+                }
+
+                .bread-container .active {
+                  color: ${colors.primary};
+                  font-weight: 600;
+                  cursor: default;
+                }
+              `}</style>
               <Breadcrumbs
                 containerClassName="bread-container"
                 transformLabel={(title) => title}
@@ -30,25 +69,14 @@ export default function Header({ title }) {
         </nav>
       </div>
       <div className="mt-2 md:flex md:items-center md:justify-between">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl">
+        <div className="min-w-0 flex-1">
+          <h2
+            className="text-2xl font-bold leading-7 sm:truncate sm:text-3xl"
+            style={{ color: colors.gray900 }}
+          >
             {title}
           </h2>
         </div>
-        {/* <div className="flex flex-shrink-0 mt-4 md:mt-0 md:ml-4">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 ml-3 text-sm font-medium text-white border border-transparent shadow-sm bg-primary hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            Publish
-          </button>
-        </div> */}
       </div>
     </div>
   )

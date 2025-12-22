@@ -44,6 +44,16 @@ export const commodites = [
 
 ]
 
+export const furnishingOptions = [
+  { label: 'non-meublé', value: 'non-meublé' },
+  { label: 'meublé', value: 'meublé' },
+  { label: 'semi-meublé', value: 'semi-meublé' },
+]
+
+export const townOptions = [
+  { label: 'Conakry', value: 'conakry' }
+]
+
 
 
 

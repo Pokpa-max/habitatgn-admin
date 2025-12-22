@@ -1,14 +1,13 @@
 import React, { useState } from 'react'
 import { columnsHouse } from './_dataTable'
-
 import {
   RiFileEditLine,
   RiProfileLine,
   RiSearchLine,
   RiDeleteRow,
+  RiAddLine,
 } from 'react-icons/ri'
 import { useRouter } from 'next/router'
-
 import HouseFormDrawer from './HouseFormDrawer'
 import { OrderSkleton } from '../Orders/OrdersList'
 import PaginationButton from '../Orders/PaginationButton'
@@ -17,6 +16,7 @@ import { desableHouseToFirestore } from '../../utils/functionFactory'
 import { notify } from '../../utils/toast'
 import ConfirmModal from '../ConfirmModal'
 import { deleteHouse } from '../../lib/services/houses'
+import { useColors } from '../../contexts/ColorContext'
 
 function HousesList({
   data,
@@ -49,223 +49,384 @@ function HousesTable({
   isLoading,
   isLoadingP,
 }) {
+  const colors = useColors()
   const [selectedHouse, setSelectedHouse] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [openModal, setOpenModal] = useState(false)
   const [openWarning, setOpenWarning] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const router = useRouter()
   data = data || {}
 
   const { houses, lastElement } = data
 
-  return isLoading ? (
-    <OrderSkleton />
-  ) : (
-    <div className="">
-      <ConfirmModal
-        confirmFunction={async () => {
-          await deleteHouse(selectedHouse).then(() => {
-            const update = () => {
-              const housesCopy = JSON.parse(JSON.stringify(houses))
-              const newHouses = housesCopy.filter((house) => {
-                return house.id != selectedHouse.id
-              })
+  const filteredHouses = newhouses?.filter((house) => {
+    if (!searchTerm) return true
 
-              setData({ houses: newHouses, lastElement })
-            }
-            update()
-            notify('Action effectuée avec succès', 'success')
-          })
+    const searchLower = searchTerm.toLowerCase()
 
-          setOpenWarning(false)
-        }}
-        cancelFuction={() => {}}
-        title="Suppression de logement"
-        description={
-          "Etes vous sur de supprimer cette annonce ? L'action est irreversible"
-        }
-        open={openWarning}
-        setOpen={setOpenWarning}
-      />
-      <DesableConfirmModal
-        desable={!selectedHouse?.isAvailable}
-        title="Voulez-vous effectuer cette action"
-        confirmFunction={async () => {
-          await desableHouseToFirestore(
-            selectedHouse.id,
-            !selectedHouse?.isAvailable
-          )
-          const update = () => {
-            const houseUpdated = houses.map((user) => {
-              const newUser = { ...user }
+    const commune = house.address?.commune?.label?.toLowerCase() || ''
+    const town = house.address?.town?.label?.toLowerCase() || ''
+    const description = house.description?.toLowerCase() || ''
+    const houseType = house.houseType?.label?.toLowerCase() || ''
+    const phoneNumber = house.phoneNumber?.toLowerCase() || ''
 
-              if (user.id == selectedHouse.id) {
-                newUser.isAvailable = !selectedHouse?.isAvailable
-              }
-              return newUser
-            })
+    return (
+      commune.includes(searchLower) ||
+      town.includes(searchLower) ||
+      description.includes(searchLower) ||
+      houseType.includes(searchLower) ||
+      phoneNumber.includes(searchLower)
+    )
+  })
 
-            setData({ houses: houseUpdated, lastElement })
+  return (
+    <>
+      <style>{`
+        @keyframes slideIn {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
           }
-          update()
-          notify('Action effectuée avec succès', 'success')
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
 
-          setOpenModal(false)
-        }}
-        open={openModal}
-        setOpen={setOpenModal}
-      />
-      <HouseFormDrawer
-        data={data}
-        setData={setData}
-        house={selectedHouse}
-        open={openDrawer}
-        setOpen={setOpenDrawer}
-      />
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <div className="flex flex-1 items-center ">
-            <div className="w-full max-w-lg lg:max-w-xs">
-              <label htmlFor="search" className="sr-only">
-                Search
-              </label>
+        .table-row {
+          animation: slideIn 0.3s ease-out;
+          transition: all 0.3s ease;
+        }
+
+        .table-row:hover {
+          background-color: ${colors.gray50};
+        }
+
+        .action-btn {
+          transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+          transform: scale(1.1);
+        }
+
+        .search-input {
+          transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+          border-color: ${colors.primary};
+          box-shadow: 0 0 0 3px ${colors.primaryVeryLight};
+        }
+
+        .badge-active {
+          background-color: #D1FAE5;
+          color: #065F46;
+          border: 1px solid #6EE7B7;
+        }
+
+        .badge-inactive {
+          background-color: #FEE2E2;
+          color: #991B1B;
+          border: 1px solid #FCA5A5;
+        }
+
+        .table-header {
+          background: linear-gradient(90deg, ${colors.gray50} 0%, ${colors.gray100} 100%);
+        }
+      `}</style>
+
+      {isLoading ? (
+        <OrderSkleton />
+      ) : (
+        <div>
+          {/* Modals */}
+          <ConfirmModal
+            confirmFunction={async () => {
+              await deleteHouse(selectedHouse).then(() => {
+                const update = () => {
+                  const housesCopy = JSON.parse(JSON.stringify(houses))
+                  const newHouses = housesCopy.filter((house) => {
+                    return house.id != selectedHouse.id
+                  })
+                  setData({ houses: newHouses, lastElement })
+                }
+                update()
+                notify('Maison supprimée avec succès', 'success')
+              })
+              setOpenWarning(false)
+            }}
+            cancelFuction={() => {}}
+            title="Suppression de logement"
+            description={
+              'Êtes-vous sûr de supprimer cette annonce ? Cette action est irréversible.'
+            }
+            open={openWarning}
+            setOpen={setOpenWarning}
+          />
+
+          <DesableConfirmModal
+            desable={!selectedHouse?.isAvailable}
+            title="Voulez-vous effectuer cette action"
+            confirmFunction={async () => {
+              await desableHouseToFirestore(
+                selectedHouse.id,
+                !selectedHouse?.isAvailable
+              )
+              const update = () => {
+                const houseUpdated = houses.map((user) => {
+                  const newUser = { ...user }
+                  if (user.id == selectedHouse.id) {
+                    newUser.isAvailable = !selectedHouse?.isAvailable
+                  }
+                  return newUser
+                })
+                setData({ houses: houseUpdated, lastElement })
+              }
+              update()
+              notify('Action effectuée avec succès', 'success')
+              setOpenModal(false)
+            }}
+            open={openModal}
+            setOpen={setOpenModal}
+          />
+
+          <HouseFormDrawer
+            data={data}
+            setData={setData}
+            house={selectedHouse}
+            open={openDrawer}
+            setOpen={setOpenDrawer}
+          />
+
+          {/* Header Section */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* Search Bar */}
+            <div className="flex-1">
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <RiSearchLine
-                    className="h-5 w-5 text-gray-400"
-                    aria-hidden="true"
-                  />
-                </div>
+                <RiSearchLine
+                  className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
+                  style={{ color: colors.gray400 }}
+                />
                 <input
                   id="search"
                   name="search"
-                  className="block w-full rounded-sm border border-gray-300 bg-white py-2 pl-10 pr-3 leading-5 placeholder-gray-500 focus:border-primary-500 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 sm:text-sm"
-                  placeholder="Rechercher un logement"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-sm font-medium"
+                  style={{
+                    borderColor: colors.gray200,
+                    color: colors.gray900,
+                  }}
+                  placeholder="Rechercher un logement..."
                   type="search"
                 />
               </div>
             </div>
+
+            {/* Add Button */}
+            <button
+              onClick={() => {
+                setOpenDrawer(true)
+                setSelectedHouse(null)
+              }}
+              type="button"
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold text-white transition-all hover:shadow-lg"
+              style={{
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)'
+              }}
+            >
+              <RiAddLine className="h-5 w-5" />
+              Ajouter un logement
+            </button>
           </div>
-        </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-          <button
-            onClick={() => {
-              setOpenDrawer(true)
-              setSelectedHouse(null)
-            }}
-            type="button"
-            className="focus:ring-bg-cyan-500 inline-flex items-center justify-center rounded-sm border border-transparent bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto"
+
+          {/* Table Section */}
+          <div
+            className="overflow-hidden rounded-xl shadow-md"
+            style={{ borderColor: colors.gray200 }}
           >
-            Ajouter un logement
-          </button>
-        </div>
-      </div>
-      <div className="mt-8 flex flex-col">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden ring-1 ring-black ring-opacity-5 md:rounded-sm">
-              <table className="min-w-full table-auto divide-y divide-gray-300 text-left">
-                <thead className="bg-gray-50">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                {/* Table Header */}
+                <thead className="table-header">
                   <tr>
                     {columnsHouse.map((column, index) => (
                       <th
                         key={index}
                         scope="col"
-                        className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold uppercase text-slate-500 sm:pl-6"
+                        className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider"
+                        style={{ color: colors.gray700 }}
                       >
                         {column.Header}
                       </th>
                     ))}
-                    <th></th>
                     <th
                       scope="col"
-                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold uppercase text-slate-500 sm:pl-6"
+                      className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider"
+                      style={{ color: colors.gray700 }}
                     >
-                      <span className="sr-only">Modifier</span>
+                      Statut
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider"
+                      style={{ color: colors.gray700 }}
+                    >
+                      Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {newhouses?.map((row, index) => (
-                    <tr key={index}>
-                      {columnsHouse.map((column, index) => {
-                        const cell = row[column.accessor]
-                        const element = column.Cell?.(cell) ?? cell
-                        return <td key={index}>{element}</td>
-                      })}
-                      <td className="relative flex space-x-2 whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <button
-                          onClick={() => {
-                            setSelectedHouse(row)
-                            setOpenDrawer(true)
-                          }}
-                          type="button"
-                          className="text-black-900 inline-flex items-center rounded-full border border-transparent bg-gray-200 p-3 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                        >
-                          <RiFileEditLine
-                            className="h-4 w-4"
-                            aria-hidden="true"
-                          />
-                        </button>
-                        <button
-                          onClick={() => {
-                            router?.push(`${router.pathname}/${row.id}`)
-                          }}
-                          type="button"
-                          className="text-black-900 inline-flex items-center rounded-full border border-transparent bg-gray-200 p-3 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                        >
-                          <RiProfileLine
-                            className="h-4 w-4 "
-                            aria-hidden="true"
-                          />
-                        </button>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => {
-                            setSelectedHouse(row)
-                            setOpenModal(true)
-                          }}
-                        >
-                          {row.isAvailable ? (
-                            <p className=" mr-2 rounded bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500 text-green-800 dark:bg-green-200 dark:text-green-900">
-                              Activer{' '}
-                            </p>
-                          ) : (
-                            <p className="  mr-2  rounded bg-red-100 px-2.5 py-0.5 text-sm font-medium text-gray-500 text-red-800 dark:bg-red-200 dark:text-red-900">
-                              Desactiver
-                            </p>
-                          )}
-                        </button>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => {
-                            setSelectedHouse(row)
-                            setOpenWarning(true)
-                          }}
-                          type="button"
-                          className="inline-flex items-center rounded-full border border-transparent bg-red-500 p-3 text-white shadow-sm hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                        >
-                          <RiDeleteRow className="h-4 w-4" aria-hidden="true" />
-                        </button>
+
+                {/* Table Body */}
+                <tbody
+                  className="divide-y"
+                  style={{ borderColor: colors.gray200 }}
+                >
+                  {filteredHouses && filteredHouses.length > 0 ? (
+                    filteredHouses.map((row, index) => (
+                      <tr
+                        key={index}
+                        className="table-row"
+                        style={{ backgroundColor: colors.white }}
+                      >
+                        {columnsHouse.map((column, idx) => {
+                          const cell = row[column.accessor]
+                          const element = column.Cell?.(cell) ?? cell
+                          return (
+                            <td
+                              key={idx}
+                              className="px-6 py-4 text-sm"
+                              style={{ color: colors.gray700 }}
+                            >
+                              {element}
+                            </td>
+                          )
+                        })}
+
+                        {/* Status Badge */}
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => {
+                              setSelectedHouse(row)
+                              setOpenModal(true)
+                            }}
+                            className="badge-active cursor-pointer rounded-full px-3 py-1 text-xs font-semibold transition-all hover:shadow-md"
+                            style={
+                              row.isAvailable
+                                ? {
+                                    backgroundColor: '#D1FAE5',
+                                    color: '#065F46',
+                                    border: `1px solid #6EE7B7`,
+                                  }
+                                : {
+                                    backgroundColor: '#FEE2E2',
+                                    color: '#991B1B',
+                                    border: `1px solid #FCA5A5`,
+                                  }
+                            }
+                          >
+                            {row.isAvailable ? 'Disponible' : 'Occupé'}
+                          </button>
+                        </td>
+
+                        {/* Action Buttons */}
+                        <td className="px-6 py-4">
+                          <div className="flex gap-2">
+                            {/* Edit Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedHouse(row)
+                                setOpenDrawer(true)
+                              }}
+                              type="button"
+                              className="action-btn inline-flex items-center justify-center rounded-lg p-2 transition-all"
+                              style={{
+                                backgroundColor: colors.primaryVeryLight,
+                                color: colors.primary,
+                              }}
+                              title="Modifier"
+                            >
+                              <RiFileEditLine className="h-4 w-4" />
+                            </button>
+
+                            {/* View Button */}
+                            <button
+                              onClick={() => {
+                                router?.push(`${router.pathname}/${row.id}`)
+                              }}
+                              type="button"
+                              className="action-btn inline-flex items-center justify-center rounded-lg p-2 transition-all"
+                              style={{
+                                backgroundColor: `${colors.primaryLight}20`,
+                                color: colors.primaryLight,
+                              }}
+                              title="Voir détails"
+                            >
+                              <RiProfileLine className="h-4 w-4" />
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedHouse(row)
+                                setOpenWarning(true)
+                              }}
+                              type="button"
+                              className="action-btn inline-flex items-center justify-center rounded-lg p-2 transition-all"
+                              style={{
+                                backgroundColor: '#FEE2E2',
+                                color: colors.error,
+                              }}
+                              title="Supprimer"
+                            >
+                              <RiDeleteRow className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={columnsHouse.length + 2}
+                        className="px-6 py-12 text-center"
+                      >
+                        <p style={{ color: colors.gray500 }}>
+                          Aucune maison trouvée
+                        </p>
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
-          <div>
-            <p className="mt-5 ml-10">{newhouses.length + ' Logements'}</p>
+
+          {/* Footer Stats */}
+          <div className="mt-6 flex items-center justify-between">
+            <p
+              className="text-sm font-semibold"
+              style={{ color: colors.gray700 }}
+            >
+              {filteredHouses?.length || 0} Logement
+              {filteredHouses?.length !== 1 ? 's' : ''}
+            </p>
             {pagination && newhouses.length > 0 && (
               <PaginationButton getmoreData={showMore} />
             )}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }
 
