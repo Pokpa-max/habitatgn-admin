@@ -493,7 +493,8 @@ export const autoFillHouseForm = (reset, setValue, house) => {
   setValue('partNumber', partNumber)
   setValue('surface', surface)
   setValue('offerType', { value: offerType?.value, label: offerType?.value })
-  setValue('phoneNumber', phoneNumber)
+  const displayPhone = phoneNumber ? String(phoneNumber).replace(/^(?:\+224|00224)/, '') : undefined
+  setValue('phoneNumber', displayPhone)
   setValue('surface', surface)
   // Commodities: form expects single select `commodite` but stored data is `commodites` array
   const firstCommod = house?.commodites?.[0] || (commodite && commodite.value) || commodite
