@@ -1,3 +1,4 @@
+// export default HousesList
 import React, { useState } from 'react'
 import { columnsHouse } from './_dataTable'
 import {
@@ -84,57 +85,46 @@ function HousesTable({
   return (
     <>
       <style>{`
-        @keyframes slideIn {
-          0% {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
         .table-row {
-          animation: slideIn 0.3s ease-out;
-          transition: all 0.3s ease;
+          transition: background-color 0.2s ease;
         }
 
         .table-row:hover {
-          background-color: ${colors.gray50};
+          background-color: #f9fafb;
         }
 
         .action-btn {
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
         }
 
         .action-btn:hover {
-          transform: scale(1.1);
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .search-input {
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
         }
 
         .search-input:focus {
-          border-color: ${colors.primary};
-          box-shadow: 0 0 0 3px ${colors.primaryVeryLight};
+          outline: none;
+          border-color: ${colors.primary || '#3b82f6'};
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .badge-active {
-          background-color: #D1FAE5;
-          color: #065F46;
-          border: 1px solid #6EE7B7;
+        .badge-available {
+          background-color: #dcfce7;
+          color: #166534;
         }
 
-        .badge-inactive {
-          background-color: #FEE2E2;
-          color: #991B1B;
-          border: 1px solid #FCA5A5;
+        .badge-occupied {
+          background-color: #fee2e2;
+          color: #991b1b;
         }
 
         .table-header {
-          background: linear-gradient(90deg, ${colors.gray50} 0%, ${colors.gray100} 100%);
+          background-color: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
         }
       `}</style>
 
@@ -208,17 +198,17 @@ function HousesTable({
               <div className="relative">
                 <RiSearchLine
                   className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
-                  style={{ color: colors.gray400 }}
+                  style={{ color: '#9ca3af' }}
                 />
                 <input
                   id="search"
                   name="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input w-full rounded-lg border-2 bg-white py-3 pl-10 pr-4 text-sm font-medium"
+                  className="search-input w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm font-medium"
                   style={{
-                    borderColor: colors.gray200,
-                    color: colors.gray900,
+                    borderColor: '#e5e7eb',
+                    color: '#111827',
                   }}
                   placeholder="Rechercher un logement..."
                   type="search"
@@ -233,27 +223,18 @@ function HousesTable({
                 setSelectedHouse(null)
               }}
               type="button"
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold text-white transition-all hover:shadow-lg"
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-md active:translate-y-px"
               style={{
-                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = 'translateY(0)'
+                backgroundColor: colors.primary || '#3b82f6',
               }}
             >
               <RiAddLine className="h-5 w-5" />
-              Ajouter un logement
+              Ajouter
             </button>
           </div>
 
           {/* Table Section */}
-          <div
-            className="overflow-hidden rounded-xl shadow-md"
-            style={{ borderColor: colors.gray200 }}
-          >
+          <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
               <table className="w-full">
                 {/* Table Header */}
@@ -263,23 +244,20 @@ function HousesTable({
                       <th
                         key={index}
                         scope="col"
-                        className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider"
-                        style={{ color: colors.gray700 }}
+                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
                       >
                         {column.Header}
                       </th>
                     ))}
                     <th
                       scope="col"
-                      className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider"
-                      style={{ color: colors.gray700 }}
+                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
                     >
                       Statut
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider"
-                      style={{ color: colors.gray700 }}
+                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
                     >
                       Actions
                     </th>
@@ -287,25 +265,17 @@ function HousesTable({
                 </thead>
 
                 {/* Table Body */}
-                <tbody
-                  className="divide-y"
-                  style={{ borderColor: colors.gray200 }}
-                >
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {filteredHouses && filteredHouses.length > 0 ? (
                     filteredHouses.map((row, index) => (
-                      <tr
-                        key={index}
-                        className="table-row"
-                        style={{ backgroundColor: colors.white }}
-                      >
+                      <tr key={index} className="table-row">
                         {columnsHouse.map((column, idx) => {
                           const cell = row[column.accessor]
                           const element = column.Cell?.(cell) ?? cell
                           return (
                             <td
                               key={idx}
-                              className="px-6 py-4 text-sm"
-                              style={{ color: colors.gray700 }}
+                              className="px-6 py-4 text-sm text-gray-700"
                             >
                               {element}
                             </td>
@@ -319,20 +289,11 @@ function HousesTable({
                               setSelectedHouse(row)
                               setOpenModal(true)
                             }}
-                            className="badge-active cursor-pointer rounded-full px-3 py-1 text-xs font-semibold transition-all hover:shadow-md"
-                            style={
+                            className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
                               row.isAvailable
-                                ? {
-                                    backgroundColor: '#D1FAE5',
-                                    color: '#065F46',
-                                    border: `1px solid #6EE7B7`,
-                                  }
-                                : {
-                                    backgroundColor: '#FEE2E2',
-                                    color: '#991B1B',
-                                    border: `1px solid #FCA5A5`,
-                                  }
-                            }
+                                ? 'badge-available border-green-300'
+                                : 'badge-occupied border-red-300'
+                            }`}
                           >
                             {row.isAvailable ? 'Disponible' : 'Occupé'}
                           </button>
@@ -340,7 +301,7 @@ function HousesTable({
 
                         {/* Action Buttons */}
                         <td className="px-6 py-4">
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
                             {/* Edit Button */}
                             <button
                               onClick={() => {
@@ -348,14 +309,13 @@ function HousesTable({
                                 setOpenDrawer(true)
                               }}
                               type="button"
-                              className="action-btn inline-flex items-center justify-center rounded-lg p-2 transition-all"
+                              className="action-btn inline-flex items-center justify-center rounded p-2"
                               style={{
-                                backgroundColor: colors.primaryVeryLight,
-                                color: colors.primary,
+                                backgroundColor: colors.primary || '#3b82f6',
                               }}
                               title="Modifier"
                             >
-                              <RiFileEditLine className="h-4 w-4" />
+                              <RiFileEditLine className="h-4 w-4 text-white" />
                             </button>
 
                             {/* View Button */}
@@ -364,14 +324,10 @@ function HousesTable({
                                 router?.push(`${router.pathname}/${row.id}`)
                               }}
                               type="button"
-                              className="action-btn inline-flex items-center justify-center rounded-lg p-2 transition-all"
-                              style={{
-                                backgroundColor: `${colors.primaryLight}20`,
-                                color: colors.primaryLight,
-                              }}
+                              className="action-btn inline-flex items-center justify-center rounded bg-gray-100 p-2"
                               title="Voir détails"
                             >
-                              <RiProfileLine className="h-4 w-4" />
+                              <RiProfileLine className="h-4 w-4 text-gray-700" />
                             </button>
 
                             {/* Delete Button */}
@@ -381,14 +337,10 @@ function HousesTable({
                                 setOpenWarning(true)
                               }}
                               type="button"
-                              className="action-btn inline-flex items-center justify-center rounded-lg p-2 transition-all"
-                              style={{
-                                backgroundColor: '#FEE2E2',
-                                color: colors.error,
-                              }}
+                              className="action-btn inline-flex items-center justify-center rounded bg-red-100 p-2"
                               title="Supprimer"
                             >
-                              <RiDeleteRow className="h-4 w-4" />
+                              <RiDeleteRow className="h-4 w-4 text-red-600" />
                             </button>
                           </div>
                         </td>
@@ -398,11 +350,9 @@ function HousesTable({
                     <tr>
                       <td
                         colSpan={columnsHouse.length + 2}
-                        className="px-6 py-12 text-center"
+                        className="px-6 py-12 text-center text-sm text-gray-500"
                       >
-                        <p style={{ color: colors.gray500 }}>
-                          Aucune maison trouvée
-                        </p>
+                        Aucune maison trouvée
                       </td>
                     </tr>
                   )}
@@ -413,10 +363,7 @@ function HousesTable({
 
           {/* Footer Stats */}
           <div className="mt-6 flex items-center justify-between">
-            <p
-              className="text-sm font-semibold"
-              style={{ color: colors.gray700 }}
-            >
+            <p className="text-sm font-semibold text-gray-700">
               {filteredHouses?.length || 0} Logement
               {filteredHouses?.length !== 1 ? 's' : ''}
             </p>
