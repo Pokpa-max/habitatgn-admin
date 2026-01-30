@@ -4,18 +4,13 @@ import { RiImage2Fill } from 'react-icons/ri'
 import { notify } from '../../utils/toast'
 import DrawerForm from '../DrawerForm'
 import Loader from '../Loader'
-
-import {
-  autoFillAdvertisingForm,
-  autoFillCommercialForm,
-} from '../../utils/functionFactory'
-import { collection, getDocs } from 'firebase/firestore'
-import { db } from '@/lib/firebase/client_config'
+import { useColors } from '../../contexts/ColorContext'
+import { autoFillAdvertisingForm } from '../../utils/functionFactory'
 import { addAdvertising, editCommercial } from '../../lib/services/advertising'
-// import { editCommercial } from '../../lib/services/marketing'
 
 function AdvertisingFormDrawer({ commercial, open, setOpen }) {
   const [loading, setLoading] = useState(false)
+  const colors = useColors()
 
   const {
     handleSubmit,
@@ -75,21 +70,34 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
         footerButtons={
           <>
             {loading ? (
-              <div className="ml-4 inline-flex w-[22.5rem] justify-center border border-transparent bg-gray-300 px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2">
+              <div
+                className="ml-4 inline-flex w-[22.5rem] justify-center border border-transparent px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2"
+                style={{ backgroundColor: colors.primary }}
+              >
                 <Loader />
               </div>
             ) : (
               <>
                 <button
                   type="button"
-                  className="border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  className="border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{ focusRingColor: colors.primary }}
                   onClick={() => setOpen(false)}
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="ml-4 inline-flex justify-center border border-transparent bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  className="ml-4 inline-flex justify-center border border-transparent px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{
+                    backgroundColor: colors.primary,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.opacity = '0.9'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.opacity = '1'
+                  }}
                 >
                   Enregistrer
                 </button>
@@ -115,8 +123,9 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                       required: 'Champs requis',
                     })}
                     id="title"
-                    className="block w-full flex-1 border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
+                    className="block w-full flex-1 rounded border border-gray-300 focus:border-gray-300 focus:ring-2 focus:ring-offset-0 sm:text-sm"
                     placeholder="Titre du commercial"
+                    style={{ focusRingColor: colors.primary }}
                   />
                   <p className="pt-1 font-stratos-light text-xs text-red-600">
                     {errors?.title?.message}
@@ -137,8 +146,9 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                       required: 'Champs requis',
                     })}
                     id="slogan"
-                    className="block w-full flex-1 border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
+                    className="block w-full flex-1 rounded border border-gray-300 focus:border-gray-300 focus:ring-2 focus:ring-offset-0 sm:text-sm"
                     placeholder="Petit slogan"
+                    style={{ focusRingColor: colors.primary }}
                   />
                   <p className="pt-1 font-stratos-light text-xs text-red-600">
                     {errors?.slogan?.message}
@@ -170,7 +180,17 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                     <div className="flex text-sm text-gray-600">
                       <label
                         htmlFor="file-upload"
-                        className="relative cursor-pointer rounded-sm bg-white font-medium text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 hover:text-primary-500"
+                        className="relative cursor-pointer rounded-sm bg-white font-medium focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2"
+                        style={{
+                          color: colors.primary,
+                          focusRingColor: colors.primary,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.opacity = '0.8'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.opacity = '1'
+                        }}
                       >
                         <span>Charger image</span>
                         <input
