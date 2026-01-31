@@ -8,6 +8,7 @@ import DesableConfirmModal from '../DesableConfirm'
 import { desableUser, desableUserFirestore } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
 import CreateUserDrawer from './CreateUserDrawer'
+import {  useColors } from '../../contexts/ColorContext'
 
 function UsersList({
   data,
@@ -46,6 +47,7 @@ function UserTable({
   isLoadingP,
   title,
 }) {
+  const color = useColors()
   const [openModal, setOpenModal] = useState(false)
   const [selectUser, setSlectUser] = useState(false)
   const [openDrawer, setOpenDrawer] = useState(false)
@@ -134,7 +136,11 @@ function UserTable({
             </div>
             <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
               {title == 'Managers' ? (
-                <button
+                  <button
+                    style={{
+                      backgroundColor: color.primary,
+                     
+                    }}
                   onClick={() => {
                     setOpenDrawer(true)
                     // setSelectedHouse(null)
@@ -142,7 +148,7 @@ function UserTable({
                   type="button"
                   className="focus:ring-bg-cyan-500 mb-20 inline-flex items-center justify-center rounded-sm border border-transparent bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto"
                 >
-                  Ajouter un manager
+                  Ajouter un managerss
                 </button>
               ) : (
                 ''
