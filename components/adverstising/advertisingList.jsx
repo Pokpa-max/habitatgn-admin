@@ -7,6 +7,7 @@ import {
   RiFileCopy2Line,
   RiSearchLine,
   RiAddLine,
+  RiFileEditLine,
 } from 'react-icons/ri'
 import ConfirmModal from '../ConfirmModal'
 import { getAdvertising, deleteAdvertising } from '@/lib/services/marketing'
@@ -174,11 +175,14 @@ function CommercialsTable({
                             setOpenDrawer(true)
                           }}
                           type="button"
-                          className="inline-flex items-center justify-center rounded-lg bg-blue-50 p-2 text-blue-600 transition-colors duration-200 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          className="inline-flex items-center justify-center rounded p-2 transition-all hover:shadow-md active:translate-y-px"
+                          style={{
+                            backgroundColor: colors.primary || '#3b82f6',
+                          }}
                           title="Modifier"
                         >
-                          <RiFileCopy2Line
-                            className="h-4 w-4"
+                          <RiFileEditLine
+                            className="h-4 w-4 text-white"
                             aria-hidden="true"
                           />
                         </button>
