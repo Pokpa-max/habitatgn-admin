@@ -88,7 +88,7 @@ function Houses() {
         : query(
             housesRef,
             orderBy('createdAt', 'desc'),
-            where('type', '==', AuthUser.id),
+            where('userId', '==', AuthUser.id),
             startAfter(lastElement),
             limit(HITS_PER_PAGE)
           )

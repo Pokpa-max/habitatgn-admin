@@ -49,7 +49,7 @@ export const houseConstructorUpdateOffline = ({
   },
   description: description,
   commodite: commodite,
-  adVance: adVance,
+  adVance: Number(adVance) || 0,
   houseType: houseType,
   offerType: offerType,
   phoneNumber: phoneNumber,
@@ -103,7 +103,7 @@ export const houseConstructorUpdate = ({
 }) => ({
   description: description,
   commodites: commodite ? (typeof commodite === 'string' ? [commodite] : commodite.value ? [commodite.value] : [commodite]) : [],
-  adVance: adVance,
+  adVance: Number(adVance) || 0,
   houseType: houseType && houseType.value ? houseType : houseType,
   offerType: offerType && offerType.value ? offerType : offerType,
   phoneNumber: phoneNumber,
@@ -194,6 +194,7 @@ export const housesConstructorCreate = ({
   surface,
   zone,
   commodite = [],
+  commodites,
   offerType,
   isAvailable,
   userId,
@@ -212,6 +213,10 @@ export const housesConstructorCreate = ({
   const quartier = section && section.label && section.value ? { label: section.label, value: section.value } : section || null
   const townObj = town && town.label && town.value ? { label: town.label, value: town.value } : { label: 'Conakry', value: 'conakry' }
 
+  // Handle commodities (form sends 'commodites', legacy might send 'commodite')
+  const finalCommodities = commodites || commodite || [];
+  const processedCommodities = Array.isArray(finalCommodities) ? finalCommodities : finalCommodities ? [finalCommodities] : [];
+
   return {
     phoneNumber,
     isAvailable: typeof isAvailable === 'boolean' ? isAvailable : true,
@@ -219,6 +224,8 @@ export const housesConstructorCreate = ({
     address: {
       commune: commune,
       town: townObj,
+      // Fix: save section/quartier correctly so it can be reloaded
+      section: quartier,
       zone: quartier ? quartier.value : '',
       lat: Number(lat) || 0,
       long: Number(long) || 0,
@@ -232,14 +239,15 @@ export const housesConstructorCreate = ({
     offerType: offerType && offerType.value ? { label: offerType.label, value: offerType.value } : offerType,
     surface: surface,
     price: Number(price) || 0,
-    commodites: Array.isArray(commodite) ? commodite : commodite ? [commodite] : [],
+    // Use the correctly processed commodities
+    commodites: processedCommodities,
     partNumber: partNumber,
     imageUrl: imageUrl,
     description: description,
     furnishing: furnishing && furnishing.value ? { label: furnishing.label, value: furnishing.value } : null,
     isFurnished: typeof isFurnished === 'boolean' ? isFurnished : Boolean(furnishing && furnishing.value && !String(furnishing.value).toLowerCase().includes('non')),
     houseType: houseType && houseType.value ? { label: houseType.label, value: houseType.value } : houseType,
-    adVance: adVance,
+    adVance: Number(adVance) || 0,
     houseInsides: houseInsides,
     housingDeposit: Number(housingDeposit) || 0,
     rentalDeposit: Number(rentalDeposit) || 0,

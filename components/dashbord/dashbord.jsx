@@ -26,87 +26,87 @@ function DashboardCard() {
   })
 
   useEffect(() => {
-    const houseRef = collection(db, 'houses')
-    const terrainRef = collection(db, 'lands')
-    const dailyRentalRef = collection(db, 'daily_rentals')
-    const userRef = collection(db, 'users')
+    if (AuthUser.id && AuthUser.claims?.userType) {
+        const houseRef = collection(db, 'houses')
+        const terrainRef = collection(db, 'lands')
+        const dailyRentalRef = collection(db, 'daily_rentals')
+        const userRef = collection(db, 'users')
 
-    const fetchData = async () => {
-      try {
-        // Queries based on user role
-        const isManager = AuthUser.claims.userType !== 'admin'
-        const userFilter = isManager ? [where('userId', '==', AuthUser.id)] : []
+        const fetchData = async () => {
+            try {
+                // Queries based on user role
+                const isManager = AuthUser.claims.userType !== 'admin'
+                const userFilter = isManager ? [where('userId', '==', AuthUser.id)] : []
 
-        // Houses
-        const qHouses = query(houseRef, orderBy('createdAt', 'desc'), ...userFilter)
-        // Occupied Houses (isAvailable == false)
-        // Note: For manager, we filter by userId. For admin, we might want to see all occupied? 
-        // Following existing logic in original file: 
-        // Admin: where('type', '==', 'manager') AND where('isAvailable', '==', false) ?? 
-        // Original code had: 
-        // Admin: where('type', '==', 'manager'), where('isAvailable', '==', false)
-        // Manager: where('userId', '==', AuthUser.id), where('isAvailable', '==', false)
-        
-        // I will simplify/standardize to: All items for Admin, User's items for Manager.
-        const qHousesOccupied = query(
-           houseRef, 
-           where('isAvailable', '==', false), 
-           ...userFilter
-        )
+                // Houses
+                const qHouses = query(houseRef, orderBy('createdAt', 'desc'), ...userFilter)
+                const qHousesOccupied = query(
+                    houseRef,
+                    where('isAvailable', '==', false),
+                    ...userFilter
+                )
 
-        // Lands
-        const qLands = query(terrainRef, orderBy('createdAt', 'desc'), ...userFilter)
-        const qLandsOccupied = query(
-          terrainRef,
-          where('isAvailable', '==', false),
-          ...userFilter
-        )
+                // Lands
+                const qLands = query(terrainRef, orderBy('createdAt', 'desc'), ...userFilter)
+                const qLandsOccupied = query(
+                    terrainRef,
+                    where('isAvailable', '==', false),
+                    ...userFilter
+                )
 
-        // Daily Rentals
-        const qDailyRentals = query(dailyRentalRef, orderBy('createdAt', 'desc'), ...userFilter)
-        const qDailyRentalsOccupied = query(
-          dailyRentalRef,
-          where('isAvailable', '==', false),
-          ...userFilter
-        )
+                // Daily Rentals
+                const qDailyRentals = query(dailyRentalRef, orderBy('createdAt', 'desc'), ...userFilter)
+                const qDailyRentalsOccupied = query(
+                    dailyRentalRef,
+                    where('isAvailable', '==', false),
+                    ...userFilter
+                )
 
-        // Users
-        const qUsers = query(userRef, orderBy('createdAt', 'desc'))
+                // Create promise array
+                const promises = [
+                    getDocs(qHouses), getDocs(qHousesOccupied),
+                    getDocs(qLands), getDocs(qLandsOccupied),
+                    getDocs(qDailyRentals), getDocs(qDailyRentalsOccupied),
+                ]
 
-        const [
-          snapHouses, snapHousesOccupied,
-          snapLands, snapLandsOccupied,
-          snapDailyRentals, snapDailyRentalsOccupied,
-          snapUsers
-        ] = await Promise.all([
-          getDocs(qHouses), getDocs(qHousesOccupied),
-          getDocs(qLands), getDocs(qLandsOccupied),
-          getDocs(qDailyRentals), getDocs(qDailyRentalsOccupied),
-          getDocs(qUsers)
-        ])
+                // Add users query only for admin
+                if (!isManager) {
+                    const qUsers = query(userRef, orderBy('createdAt', 'desc'))
+                    promises.push(getDocs(qUsers))
+                }
 
-        setStats({
-          houses: { 
-            total: snapHouses.size, 
-            occupied: snapHousesOccupied.size 
-          },
-          lands: { 
-            total: snapLands.size, 
-            occupied: snapLandsOccupied.size 
-          },
-          dailyRentals: { 
-            total: snapDailyRentals.size, 
-            occupied: snapDailyRentalsOccupied.size 
-          },
-          users: snapUsers.size
-        })
+                const results = await Promise.all(promises)
+                
+                const [
+                    snapHouses, snapHousesOccupied,
+                    snapLands, snapLandsOccupied,
+                    snapDailyRentals, snapDailyRentalsOccupied,
+                ] = results
 
-      } catch (error) {
-        console.error('Erreur lors du chargement des données:', error)
-      }
-    }
+                // Get users result if present
+                const snapUsers = !isManager ? results[6] : null
 
-    if (AuthUser.id) {
+                setStats({
+                    houses: {
+                        total: snapHouses.size,
+                        occupied: snapHousesOccupied.size
+                    },
+                    lands: {
+                        total: snapLands.size,
+                        occupied: snapLandsOccupied.size
+                    },
+                    dailyRentals: {
+                        total: snapDailyRentals.size,
+                        occupied: snapDailyRentalsOccupied.size
+                    },
+                    users: snapUsers ? snapUsers.size : 0
+                })
+
+            } catch (error) {
+                console.error('Erreur lors du chargement des données:', error)
+            }
+        }
+
         fetchData()
     }
   }, [AuthUser.id, AuthUser.claims.userType])
@@ -156,6 +156,15 @@ function DashboardCard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-800">
+            Aperçu {AuthUser.claims?.userType === 'admin' ? 'Global (Admin)' : 'Managérial'}
+          </h2>
+          <span className="text-sm text-gray-500">
+             Bienvenue, {AuthUser.displayName || 'Utilisateur'}
+          </span>
+      </div>
+
       {/* Grille principale */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Card 1: Maisons */}
@@ -185,12 +194,14 @@ function DashboardCard() {
             labelColor="text-red-500"
         />
 
-        {/* Card 4: Total Utilisateurs */}
-        <StatCard
-            icon={Users}
-            label="Utilisateurs"
-            value={stats.users}
-        />
+        {/* Card 4: Total Utilisateurs - Display only for admin */}
+        {AuthUser.claims?.userType === 'admin' && (
+            <StatCard
+                icon={Users}
+                label="Utilisateurs"
+                value={stats.users}
+            />
+        )}
         
         {/* Card 5: Total Disponibles (Global) */}
         <StatCard
