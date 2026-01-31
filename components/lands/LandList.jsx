@@ -1,6 +1,5 @@
-// export default HousesList
 import React, { useState } from 'react'
-import { columnsHouse } from './_dataTable'
+import { columnsLand } from './_dataTable'
 import {
   RiFileEditLine,
   RiProfileLine,
@@ -9,29 +8,29 @@ import {
   RiAddLine,
 } from 'react-icons/ri'
 import { useRouter } from 'next/router'
-import HouseFormDrawer from './HouseFormDrawer'
+import LandFormDrawer from './LandFormDrawer'
 import { OrderSkleton } from '../Orders/OrdersList'
 import PaginationButton from '../Orders/PaginationButton'
 import DesableConfirmModal from '../DesableConfirm'
-import { desableHouseToFirestore } from '../../utils/functionFactory'
+import { desableLandToFirestore } from '../../utils/functionFactory'
 import { notify } from '../../utils/toast'
 import ConfirmModal from '../ConfirmModal'
-import { deleteHouse } from '../../lib/services/houses'
+import { deleteLand } from '../../lib/services/lands'
 import { useColors } from '../../contexts/ColorContext'
 
-function HousesList({
+function LandList({
   data,
   setData,
-  houses,
+  lands,
   showMore,
   pagination,
   isLoading,
   isLoadingP,
 }) {
   return (
-    <HousesTable
+    <LandsTable
       isLoading={isLoading}
-      newhouses={houses}
+      items={lands}
       isLoadingP={isLoadingP}
       showMore={showMore}
       data={data}
@@ -41,17 +40,17 @@ function HousesList({
   )
 }
 
-function HousesTable({
+function LandsTable({
   data,
   setData,
-  newhouses,
+  items,
   showMore,
   pagination,
   isLoading,
   isLoadingP,
 }) {
   const colors = useColors()
-  const [selectedHouse, setSelectedHouse] = useState(null)
+  const [selectedItem, setSelectedItem] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [openModal, setOpenModal] = useState(false)
   const [openWarning, setOpenWarning] = useState(false)
@@ -60,18 +59,18 @@ function HousesTable({
   const router = useRouter()
   data = data || {}
 
-  const { houses, lastElement } = data
+  const { lands, lastElement } = data
 
-  const filteredHouses = newhouses?.filter((house) => {
+  const filteredItems = items?.filter((item) => {
     if (!searchTerm) return true
 
     const searchLower = searchTerm.toLowerCase()
 
-    const commune = house.address?.commune?.label?.toLowerCase() || ''
-    const town = house.address?.town?.label?.toLowerCase() || ''
-    const description = house.description?.toLowerCase() || ''
-    const houseType = house.houseType?.label?.toLowerCase() || ''
-    const phoneNumber = house.phoneNumber?.toLowerCase() || ''
+    const commune = item.address?.commune?.label?.toLowerCase() || ''
+    const town = item.address?.town?.label?.toLowerCase() || ''
+    const description = item.description?.toLowerCase() || ''
+    const houseType = item.houseType?.label?.toLowerCase() || ''
+    const phoneNumber = item.phoneNumber?.toLowerCase() || ''
 
     return (
       commune.includes(searchLower) ||
@@ -135,21 +134,21 @@ function HousesTable({
           {/* Modals */}
           <ConfirmModal
             confirmFunction={async () => {
-              await deleteHouse(selectedHouse).then(() => {
+              await deleteLand(selectedItem).then(() => {
                 const update = () => {
-                  const housesCopy = JSON.parse(JSON.stringify(houses))
-                  const newHouses = housesCopy.filter((house) => {
-                    return house.id != selectedHouse.id
+                  const itemsCopy = JSON.parse(JSON.stringify(lands))
+                  const newItems = itemsCopy.filter((i) => {
+                    return i.id != selectedItem.id
                   })
-                  setData({ houses: newHouses, lastElement })
+                  setData({ lands: newItems, lastElement })
                 }
                 update()
-                notify('Maison supprimée avec succès', 'success')
+                notify('Terrain supprimé avec succès', 'success')
               })
               setOpenWarning(false)
             }}
             cancelFuction={() => {}}
-            title="Suppression de logement"
+            title="Suppression"
             description={
               'Êtes-vous sûr de supprimer cette annonce ? Cette action est irréversible.'
             }
@@ -158,22 +157,22 @@ function HousesTable({
           />
 
           <DesableConfirmModal
-            desable={!selectedHouse?.isAvailable}
+            desable={!selectedItem?.isAvailable}
             title="Voulez-vous effectuer cette action"
             confirmFunction={async () => {
-              await desableHouseToFirestore(
-                selectedHouse.id,
-                !selectedHouse?.isAvailable
+              await desableLandToFirestore(
+                selectedItem.id,
+                !selectedItem?.isAvailable
               )
               const update = () => {
-                const houseUpdated = houses.map((user) => {
-                  const newUser = { ...user }
-                  if (user.id == selectedHouse.id) {
-                    newUser.isAvailable = !selectedHouse?.isAvailable
+                const updatedItems = lands.map((item) => {
+                  const newItem = { ...item }
+                  if (item.id == selectedItem.id) {
+                    newItem.isAvailable = !selectedItem?.isAvailable
                   }
-                  return newUser
+                  return newItem
                 })
-                setData({ houses: houseUpdated, lastElement })
+                setData({ lands: updatedItems, lastElement })
               }
               update()
               notify('Action effectuée avec succès', 'success')
@@ -183,10 +182,10 @@ function HousesTable({
             setOpen={setOpenModal}
           />
 
-          <HouseFormDrawer
+          <LandFormDrawer
             data={data}
             setData={setData}
-            house={selectedHouse}
+            land={selectedItem}
             open={openDrawer}
             setOpen={setOpenDrawer}
           />
@@ -210,7 +209,7 @@ function HousesTable({
                     borderColor: '#e5e7eb',
                     color: '#111827',
                   }}
-                  placeholder="Rechercher un logement..."
+                  placeholder="Rechercher..."
                   type="search"
                 />
               </div>
@@ -220,12 +219,12 @@ function HousesTable({
             <button
               onClick={() => {
                 setOpenDrawer(true)
-                setSelectedHouse(null)
+                setSelectedItem(null)
               }}
               type="button"
               className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-md active:translate-y-px"
               style={{
-                backgroundColor: colors.primary ,
+                backgroundColor: colors.primary || '#3b82f6',
               }}
             >
               <RiAddLine className="h-5 w-5" />
@@ -240,7 +239,7 @@ function HousesTable({
                 {/* Table Header */}
                 <thead className="table-header">
                   <tr>
-                    {columnsHouse.map((column, index) => (
+                    {columnsLand.map((column, index) => (
                       <th
                         key={index}
                         scope="col"
@@ -266,10 +265,10 @@ function HousesTable({
 
                 {/* Table Body */}
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredHouses && filteredHouses.length > 0 ? (
-                    filteredHouses.map((row, index) => (
+                  {filteredItems && filteredItems.length > 0 ? (
+                    filteredItems.map((row, index) => (
                       <tr key={index} className="table-row">
-                        {columnsHouse.map((column, idx) => {
+                        {columnsLand.map((column, idx) => {
                           const cell = row[column.accessor]
                           const element = column.Cell?.(cell) ?? cell
                           return (
@@ -286,7 +285,7 @@ function HousesTable({
                         <td className="px-6 py-4">
                           <button
                             onClick={() => {
-                              setSelectedHouse(row)
+                              setSelectedItem(row)
                               setOpenModal(true)
                             }}
                             className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
@@ -305,7 +304,7 @@ function HousesTable({
                             {/* Edit Button */}
                             <button
                               onClick={() => {
-                                setSelectedHouse(row)
+                                setSelectedItem(row)
                                 setOpenDrawer(true)
                               }}
                               type="button"
@@ -333,7 +332,7 @@ function HousesTable({
                             {/* Delete Button */}
                             <button
                               onClick={() => {
-                                setSelectedHouse(row)
+                                setSelectedItem(row)
                                 setOpenWarning(true)
                               }}
                               type="button"
@@ -349,10 +348,10 @@ function HousesTable({
                   ) : (
                     <tr>
                       <td
-                        colSpan={columnsHouse.length + 2}
+                        colSpan={columnsLand.length + 2}
                         className="px-6 py-12 text-center text-sm text-gray-500"
                       >
-                        Aucune maison trouvée
+                        Aucun terrain trouvé
                       </td>
                     </tr>
                   )}
@@ -364,10 +363,10 @@ function HousesTable({
           {/* Footer Stats */}
           <div className="mt-6 flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-700">
-              {filteredHouses?.length || 0} Logement
-              {filteredHouses?.length !== 1 ? 's' : ''}
+              {filteredItems?.length || 0} Terrain
+              {filteredItems?.length !== 1 ? 's' : ''}
             </p>
-            {pagination && newhouses.length > 0 && (
+            {pagination && items.length > 0 && (
               <PaginationButton getmoreData={showMore} />
             )}
           </div>
@@ -377,4 +376,4 @@ function HousesTable({
   )
 }
 
-export default HousesList
+export default LandList

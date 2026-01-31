@@ -10,7 +10,7 @@ import {
 
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
-
+import { useColors } from '../../contexts/ColorContext'
 import Link from 'next/link'
 import ManagersPage from '../../components/Users/Managers/ManagersPage'
 import CustomersPage from '../../components/Users/Customers/CustomersPage'
@@ -20,6 +20,7 @@ function classNames(...classes) {
 }
 
 function Users() {
+  const colors = useColors()
   const router = useRouter()
   const currentPath = router.query.route
 
@@ -96,7 +97,7 @@ function Users() {
 }
 
 const UsersPage = () => (
-  <Page name="Users | ConaLoge">
+  <Page name="Users | HabitatGN">
     <Users />
   </Page>
 )

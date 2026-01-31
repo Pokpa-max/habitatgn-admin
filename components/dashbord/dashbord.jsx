@@ -12,15 +12,18 @@ import {
   Landmark,
   Calendar,
 } from 'lucide-react'
+import DashboardOccupancyGraph from './DashboardOccupancyGraph'
 
 function DashboardCard() {
   const colors = useColors()
   const AuthUser = useAuthUser()
-  const [totalHouses, setTotalHouse] = useState()
-  const [totalAvailable, setTotalAvailable] = useState()
-  const [totalTerrains, setTotalTerrains] = useState()
-  const [totalDailyRentals, setTotalDailyRentals] = useState()
-  const [users, setUsers] = useState()
+  
+  const [stats, setStats] = useState({
+    houses: { total: 0, occupied: 0 },
+    lands: { total: 0, occupied: 0 },
+    dailyRentals: { total: 0, occupied: 0 },
+    users: 0
+  })
 
   useEffect(() => {
     const houseRef = collection(db, 'houses')
@@ -29,76 +32,96 @@ function DashboardCard() {
     const userRef = collection(db, 'users')
 
     const fetchData = async () => {
-      const q =
-        AuthUser.claims.userType == 'admin'
-          ? query(houseRef, orderBy('createdAt', 'desc'))
-          : query(
-              houseRef,
-              where('userId', '==', AuthUser.id),
-              orderBy('createdAt', 'desc')
-            )
-
-      const qry =
-        AuthUser.claims.userType == 'admin'
-          ? query(
-              houseRef,
-              where('type', '==', 'manager'),
-              where('isAvailable', '==', false),
-              orderBy('createdAt', 'desc')
-            )
-          : query(
-              houseRef,
-              where('userId', '==', AuthUser.id),
-              where('isAvailable', '==', false),
-              orderBy('createdAt', 'desc')
-            )
-
-      const terrainQuery =
-        AuthUser.claims.userType == 'admin'
-          ? query(terrainRef, orderBy('createdAt', 'desc'))
-          : query(
-              terrainRef,
-              where('userId', '==', AuthUser.id),
-              orderBy('createdAt', 'desc')
-            )
-
-      const dailyRentalQuery =
-        AuthUser.claims.userType == 'admin'
-          ? query(dailyRentalRef, orderBy('createdAt', 'desc'))
-          : query(
-              dailyRentalRef,
-              where('userId', '==', AuthUser.id),
-              orderBy('createdAt', 'desc')
-            )
-
-      const qury = query(userRef, orderBy('createdAt', 'desc'))
-
       try {
-        const querySnapshot = await getDocs(q)
-        const querysnapAvailable = await getDocs(qry)
-        const terrainSnapshot = await getDocs(terrainQuery)
-        const dailyRentalSnapshot = await getDocs(dailyRentalQuery)
-        const queryUser = await getDocs(qury)
+        // Queries based on user role
+        const isManager = AuthUser.claims.userType !== 'admin'
+        const userFilter = isManager ? [where('userId', '==', AuthUser.id)] : []
 
-        setTotalHouse(parseDocsData(querySnapshot))
-        setTotalAvailable(parseDocsData(querysnapAvailable))
-        setTotalTerrains(parseDocsData(terrainSnapshot))
-        setTotalDailyRentals(parseDocsData(dailyRentalSnapshot))
-        setUsers(parseDocsData(queryUser))
+        // Houses
+        const qHouses = query(houseRef, orderBy('createdAt', 'desc'), ...userFilter)
+        // Occupied Houses (isAvailable == false)
+        // Note: For manager, we filter by userId. For admin, we might want to see all occupied? 
+        // Following existing logic in original file: 
+        // Admin: where('type', '==', 'manager') AND where('isAvailable', '==', false) ?? 
+        // Original code had: 
+        // Admin: where('type', '==', 'manager'), where('isAvailable', '==', false)
+        // Manager: where('userId', '==', AuthUser.id), where('isAvailable', '==', false)
+        
+        // I will simplify/standardize to: All items for Admin, User's items for Manager.
+        const qHousesOccupied = query(
+           houseRef, 
+           where('isAvailable', '==', false), 
+           ...userFilter
+        )
+
+        // Lands
+        const qLands = query(terrainRef, orderBy('createdAt', 'desc'), ...userFilter)
+        const qLandsOccupied = query(
+          terrainRef,
+          where('isAvailable', '==', false),
+          ...userFilter
+        )
+
+        // Daily Rentals
+        const qDailyRentals = query(dailyRentalRef, orderBy('createdAt', 'desc'), ...userFilter)
+        const qDailyRentalsOccupied = query(
+          dailyRentalRef,
+          where('isAvailable', '==', false),
+          ...userFilter
+        )
+
+        // Users
+        const qUsers = query(userRef, orderBy('createdAt', 'desc'))
+
+        const [
+          snapHouses, snapHousesOccupied,
+          snapLands, snapLandsOccupied,
+          snapDailyRentals, snapDailyRentalsOccupied,
+          snapUsers
+        ] = await Promise.all([
+          getDocs(qHouses), getDocs(qHousesOccupied),
+          getDocs(qLands), getDocs(qLandsOccupied),
+          getDocs(qDailyRentals), getDocs(qDailyRentalsOccupied),
+          getDocs(qUsers)
+        ])
+
+        setStats({
+          houses: { 
+            total: snapHouses.size, 
+            occupied: snapHousesOccupied.size 
+          },
+          lands: { 
+            total: snapLands.size, 
+            occupied: snapLandsOccupied.size 
+          },
+          dailyRentals: { 
+            total: snapDailyRentals.size, 
+            occupied: snapDailyRentalsOccupied.size 
+          },
+          users: snapUsers.size
+        })
+
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error)
       }
     }
 
-    fetchData()
-  }, [AuthUser.id])
+    if (AuthUser.id) {
+        fetchData()
+    }
+  }, [AuthUser.id, AuthUser.claims.userType])
 
-  const StatCard = ({ icon: Icon, label, value }) => (
-    <div className="group rounded-lg border border-gray-200 bg-white p-6 transition-all duration-200 hover:border-gray-300 hover:shadow-sm">
+  const StatCard = ({ icon: Icon, label, value, subValue, labelColor }) => (
+    <div className="group h-full flex flex-col justify-between rounded-lg border border-gray-200 bg-white p-6 transition-all duration-200 hover:border-gray-300 hover:shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-500">{label}</p>
           <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
+          {subValue && (
+             <p className={`mt-2 text-sm font-medium ${labelColor || 'text-gray-500'}`}>
+               {subValue}
+             </p>
+          )}
         </div>
         <div
           className="flex h-10 w-10 items-center justify-center rounded-md"
@@ -110,66 +133,94 @@ function DashboardCard() {
     </div>
   )
 
+  const graphData = [
+    {
+      name: 'Maisons',
+      Total: stats.houses.total,
+      Occupé: stats.houses.occupied,
+      Disponible: stats.houses.total - stats.houses.occupied,
+    },
+    {
+      name: 'Terrains',
+      Total: stats.lands.total,
+      Occupé: stats.lands.occupied,
+      Disponible: stats.lands.total - stats.lands.occupied,
+    },
+    {
+      name: 'Locations',
+      Total: stats.dailyRentals.total,
+      Occupé: stats.dailyRentals.occupied,
+      Disponible: stats.dailyRentals.total - stats.dailyRentals.occupied,
+    },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Grille principale */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {/* Card 1: Total Maisons */}
-        <div className="xl:col-span-2">
-          <StatCard
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Card 1: Maisons */}
+        <StatCard
             icon={Home}
-            label="Total Maisons"
-            value={totalHouses?.length || 0}
-          />
-        </div>
+            label="Maisons"
+            value={stats.houses.total}
+            subValue={`${stats.houses.occupied} Occupée(s)`}
+            labelColor="text-red-500"
+        />
 
-        {/* Card 2: Disponibles */}
-        <div className="xl:col-span-2">
-          <StatCard
-            icon={CheckCircle2}
-            label="Disponibles"
-            value={(totalHouses?.length || 0) - (totalAvailable?.length || 0)}
-          />
-        </div>
-
-        {/* Card 3: Occupés (Admin only) */}
-        {AuthUser.claims.userType == 'admin' && (
-          <div className="xl:col-span-2">
-            <StatCard
-              icon={Zap}
-              label="Occupés"
-              value={totalAvailable?.length || 0}
-            />
-          </div>
-        )}
-
-        {/* Card 4: Total Terrains */}
-        <div className="xl:col-span-2">
-          <StatCard
+        {/* Card 2: Terrains */}
+        <StatCard
             icon={Landmark}
-            label="Total Terrains"
-            value={totalTerrains?.length || 0}
-          />
-        </div>
+            label="Terrains"
+            value={stats.lands.total}
+            subValue={`${stats.lands.occupied} Occupé(s)`}
+            labelColor="text-red-500"
+        />
 
-        {/* Card 5: Locations Journalières */}
-        <div className="xl:col-span-2">
-          <StatCard
+        {/* Card 3: Locations Journalières */}
+        <StatCard
             icon={Calendar}
-            label="Locations Journalières"
-            value={totalDailyRentals?.length || 0}
-          />
-        </div>
+            label="Locations Jr."
+            value={stats.dailyRentals.total}
+            subValue={`${stats.dailyRentals.occupied} Occupée(s)`}
+            labelColor="text-red-500"
+        />
 
-        {/* Card 6: Total Utilisateurs */}
-        <div className="xl:col-span-2">
-          <StatCard
+        {/* Card 4: Total Utilisateurs */}
+        <StatCard
             icon={Users}
-            label="Total Utilisateurs"
-            value={users?.length || 0}
-          />
-        </div>
+            label="Utilisateurs"
+            value={stats.users}
+        />
+        
+        {/* Card 5: Total Disponibles (Global) */}
+        <StatCard
+            icon={CheckCircle2}
+            label="Total Disponibles"
+            value={
+                (stats.houses.total - stats.houses.occupied) +
+                (stats.lands.total - stats.lands.occupied) +
+                (stats.dailyRentals.total - stats.dailyRentals.occupied)
+            }
+         
+            labelColor="text-green-600"
+        />
+
+         {/* Card 6: Total Occupés (Global) */}
+         <StatCard
+            icon={Zap}
+            label="Total Occupés"
+            value={
+                stats.houses.occupied +
+                stats.lands.occupied +
+                stats.dailyRentals.occupied
+            }
+           
+             labelColor="text-red-600"
+        />
       </div>
+
+      {/* Graphique */}
+      <DashboardOccupancyGraph data={graphData} />
     </div>
   )
 }

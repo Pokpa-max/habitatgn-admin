@@ -8,8 +8,9 @@ import { notify } from '../../utils/toast'
 import { quartier, userRole, zones } from '../../_data'
 import DrawerForm from '../DrawerForm'
 import SimpleSelect from '../SimpleSelect'
-
+import { useColors } from '../../contexts/ColorContext'
 export default function CreateUserDrawer({ open, setOpen }) {
+  const colors = useColors()
   const [loading, setLoading] = useState(false)
 
   const {
@@ -60,10 +61,13 @@ export default function CreateUserDrawer({ open, setOpen }) {
                 Annuler
               </button>
               <button
+                style={{
+                  backgroundColor: colors.primary,
+                }}
                 type="submit"
                 className="ml-4 inline-flex justify-center border border-transparent bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
-                Creer un compte
+                Creer le compte
               </button>
             </>
           </>
@@ -287,42 +291,6 @@ export default function CreateUserDrawer({ open, setOpen }) {
                 </p>
               </div>
             </div>
-
-            {/* <h1 className="text-cyan-500">Information Agence</h1>
-            <div className="grid grid-cols-9 gap-6 border-t pt-3">
-              <div className="col-span-12 sm:col-span-3">
-                <label
-                  htmlFor="rccm"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  RCCM
-                </label>
-
-                <input
-                  type="text"
-                  {...register('rccm', {})}
-                  id="rccm"
-                  placeholder="Numero de registre"
-                  className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-                />
-              </div>
-              <div className="col-span-12 sm:col-span-3">
-                <label
-                  htmlFor="nif"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  NIF
-                </label>
-
-                <input
-                  type="text"
-                  {...register('nif')}
-                  id="nif"
-                  placeholder="votre NIF"
-                  className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-                />
-              </div>
-            </div> */}
           </div>
         </div>
       </DrawerForm>

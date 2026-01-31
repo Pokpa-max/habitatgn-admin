@@ -28,6 +28,18 @@ const navigation = [
     claims: ['admin', 'manager'],
   },
   {
+    name: 'Location Journalière',
+    href: '/daily-rentals',
+    icon: RiStore3Fill,
+    claims: ['admin', 'manager'],
+  },
+  {
+    name: 'Terrains',
+    href: '/lands',
+    icon: RiStore3Fill,
+    claims: ['admin', 'manager'],
+  },
+  {
     name: 'Publicité',
     href: '/advertising',
     icon: RiBookOpenFill,
