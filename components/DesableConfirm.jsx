@@ -165,7 +165,7 @@ function DesableConfirmModal({
                       type="button"
                       className="btn-cancel justify-center rounded-lg px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
                       style={{
-                        focusRingColor: colors.primary || '#3b82f6',
+                        focusRingColor: colors.primary ,
                       }}
                       onClick={() => setOpen(false)}
                       ref={cancelButtonRef}
