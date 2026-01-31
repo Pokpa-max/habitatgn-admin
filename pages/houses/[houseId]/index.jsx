@@ -4,6 +4,7 @@ import { db } from '@/lib/firebase/client_config'
 import React, { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { OrderSkleton } from '../../../components/Orders/OrdersList'
+import GoogleMaps from '@/components/GoogleMaps'
 import {
   AuthAction,
   withAuthUser,
@@ -143,6 +144,22 @@ function HouseDetail() {
                 {house.description || 'Aucune description disponible'}
               </p>
             </div>
+
+            {/* Map */}
+            <div className="mt-6 rounded-xl bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-xl font-semibold text-gray-900">
+                Localisation
+              </h2>
+              <div className="h-80 w-full overflow-hidden rounded-lg">
+                  <GoogleMaps 
+                     lat={house.address?.lat}
+                     lng={house.address?.long}
+                     setLonLat={() => {}} 
+                     icon={selectedImage || house.imageUrl}
+                  />
+              </div>
+            </div>
+
 
             {/* Commodités */}
             {house.commodites && house.commodites.length > 0 && (

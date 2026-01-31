@@ -945,8 +945,9 @@ export const autoFillDailyRentalForm = (reset, setValue, data) => {
   setValue('phoneNumber', displayPhone)
 
   // Amenities
-  const firstAmenity = data?.amenities?.[0] || (amenities && amenities.value) || amenities
-  setValue('amenities', firstAmenity ? { value: firstAmenity, label: firstAmenity } : undefined) // Note: MultiSelect might handle this differently? House uses 'commodite' single select logic mostly in autoFill but 'commodites' array in constructor.
+  // Amenities
+  const validAmenities = Array.isArray(amenities) ? amenities : (amenities ? [amenities] : []);
+  setValue('amenities', validAmenities);
 
   setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
 
