@@ -1,6 +1,8 @@
+
+// export default AdvertisingFormDrawer
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiImage2Fill } from 'react-icons/ri'
+import { RiImage2Fill, RiCloseLine, RiCheckLine } from 'react-icons/ri'
 import { notify } from '../../utils/toast'
 import DrawerForm from '../DrawerForm'
 import Loader from '../Loader'
@@ -11,6 +13,7 @@ import { addAdvertising, editCommercial } from '../../lib/services/advertising'
 function AdvertisingFormDrawer({ commercial, open, setOpen }) {
   const [loading, setLoading] = useState(false)
   const colors = useColors()
+  const [previewUrl, setPreviewUrl] = useState(null)
 
   const {
     handleSubmit,
@@ -27,13 +30,43 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
   })
 
   const formData = watch()
+  const imageUrl = watch('imageUrl')
 
   useEffect(() => {
-    const setFormvalue = () => {
-      autoFillAdvertisingForm(reset, setValue, commercial)
+    if (!open) {
+      setPreviewUrl(null)
+      reset()
+      return
     }
-    setFormvalue()
-  }, [commercial])
+    if (commercial) {
+      setPreviewUrl(commercial?.imageUrl || null)
+    }
+    autoFillAdvertisingForm(reset, setValue, commercial)
+  }, [commercial, open])
+
+  useEffect(() => {
+    let objectUrl = null
+    if (!imageUrl) {
+      setPreviewUrl(commercial?.imageUrl || null)
+      return
+    }
+    if (typeof imageUrl === 'string') {
+      setPreviewUrl(imageUrl)
+      return
+    }
+    const first = imageUrl?.[0]
+    if (!first) {
+      setPreviewUrl(commercial?.imageUrl || null)
+      return
+    }
+    if (typeof first === 'string') {
+      setPreviewUrl(first)
+      return
+    }
+    objectUrl = URL.createObjectURL(first)
+    setPreviewUrl(objectUrl)
+    return () => objectUrl && URL.revokeObjectURL(objectUrl)
+  }, [imageUrl, commercial?.imageUrl])
 
   const onSubmit = async (data) => {
     setLoading(true)
@@ -42,7 +75,7 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
         await editCommercial(
           commercial.id,
           data,
-          formData?.imageUrl?.length > 0,
+          imageUrl?.length > 0,
           commercial.imageUrl,
           commercial.imageUrl1000
         )
@@ -51,7 +84,7 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
       }
 
       setOpen(false)
-      notify('Votre requète s est executée avec succès', 'success')
+      notify('Votre requête s\'est exécutée avec succès', 'success')
     } catch (error) {
       console.log(error)
       notify('Une erreur est survenue', 'error')
@@ -61,18 +94,151 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
 
   return (
     <>
+      <style>{`
+        .form-section {
+          background-color: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 1.5rem;
+        }
+
+        .form-section-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
+          padding-bottom: 1rem;
+          border-bottom: 2px solid #e5e7eb;
+        }
+
+        .section-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+          flex-shrink: 0;
+        }
+
+        .section-icon.advertising {
+          background-color: rgba(168, 85, 247, 0.15);
+          color: #a855f7;
+        }
+
+        .form-section-title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #111827;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          margin: 0;
+        }
+
+        .form-label {
+          display: block;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #1f2937;
+          margin-bottom: 0.4rem;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .form-input {
+          width: 100%;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
+          padding: 0.6rem 0.85rem;
+          font-size: 0.875rem;
+          color: #111827;
+          background-color: #fff;
+          transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+          border-color: ${colors.primary || '#3b82f6'};
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-error {
+          font-size: 0.7rem;
+          color: #dc2626;
+          margin-top: 0.2rem;
+          font-weight: 600;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: repeat(6, 1fr);
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .form-row:last-child {
+          margin-bottom: 0;
+        }
+
+        .form-group {
+          grid-column: span 6;
+        }
+
+        .form-group.col-2 {
+          grid-column: span 2;
+        }
+
+        .form-group.col-3 {
+          grid-column: span 3;
+        }
+
+        @media (max-width: 640px) {
+          .form-group.col-2, .form-group.col-3 {
+            grid-column: span 6;
+          }
+        }
+
+        .image-upload-area {
+          border: 2px dashed #e5e7eb;
+          border-radius: 0.5rem;
+          padding: 1.5rem 1.25rem;
+          text-align: center;
+          background-color: #fff;
+          transition: all 0.2s ease;
+          cursor: pointer;
+        }
+
+        .image-upload-area:hover {
+          border-color: ${colors.primary || '#3b82f6'};
+          background-color: rgba(59, 130, 246, 0.02);
+        }
+
+        .image-preview {
+          position: relative;
+          border-radius: 0.375rem;
+          overflow: hidden;
+          aspect-ratio: 16/9;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+      `}</style>
+
       <DrawerForm
         open={open}
         setOpen={setOpen}
         onSubmit={handleSubmit(onSubmit)}
-        title={'Ajouter une image'}
-        description={'image publicitaire...'}
+        title={commercial ? 'Modifier la publicité' : 'Ajouter une publicité'}
+        description={
+          commercial
+            ? 'Mettez à jour les informations'
+            : 'Remplissez le formulaire'
+        }
         footerButtons={
           <>
             {loading ? (
               <div
-                className="ml-4 inline-flex w-[22.5rem] justify-center border border-transparent px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2"
-                style={{ backgroundColor: colors.primary }}
+                className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: colors.primary || '#3b82f6' }}
               >
                 <Loader />
               </div>
@@ -80,25 +246,17 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
               <>
                 <button
                   type="button"
-                  className="border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{ focusRingColor: colors.primary }}
+                  className="rounded border border-gray-300 bg-white px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                   onClick={() => setOpen(false)}
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="ml-4 inline-flex justify-center border border-transparent px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{
-                    backgroundColor: colors.primary,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.opacity = '0.9'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.opacity = '1'
-                  }}
+                  className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+                  style={{ backgroundColor: colors.primary || '#3b82f6' }}
                 >
+                  <RiCheckLine className="h-4 w-4" />
                   Enregistrer
                 </button>
               </>
@@ -106,113 +264,109 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
           </>
         }
       >
-        <div className="mt-5 md:col-span-2 md:mt-0">
-          <div className="space-y-6 bg-white px-4 py-5 sm:p-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="group col-span-1 sm:col-span-1">
-                <label
-                  htmlFor="title"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Titre
-                </label>
-                <div className="mt-1 ">
-                  <input
-                    type="text"
-                    {...register('title', {
-                      required: 'Champs requis',
-                    })}
-                    id="title"
-                    className="block w-full flex-1 rounded border border-gray-300 focus:border-gray-300 focus:ring-2 focus:ring-offset-0 sm:text-sm"
-                    placeholder="Titre du commercial"
-                    style={{ focusRingColor: colors.primary }}
-                  />
-                  <p className="pt-1 font-stratos-light text-xs text-red-600">
-                    {errors?.title?.message}
-                  </p>
-                </div>
-              </div>
-              <div className="col-span-1 sm:col-span-1">
-                <label
-                  htmlFor="subtitle"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Slogan
-                </label>
-                <div className="mt-1 ">
-                  <input
-                    type="text"
-                    {...register('slogan', {
-                      required: 'Champs requis',
-                    })}
-                    id="slogan"
-                    className="block w-full flex-1 rounded border border-gray-300 focus:border-gray-300 focus:ring-2 focus:ring-offset-0 sm:text-sm"
-                    placeholder="Petit slogan"
-                    style={{ focusRingColor: colors.primary }}
-                  />
-                  <p className="pt-1 font-stratos-light text-xs text-red-600">
-                    {errors?.slogan?.message}
-                  </p>
-                </div>
-              </div>
+        <div className="space-y-5 px-6 py-6 sm:p-8">
+          {/* SECTION: Informations Publicitaires */}
+          <div className="form-section">
+            <div className="form-section-header">
+              <div className="section-icon advertising">📢</div>
+              <h3 className="form-section-title">Informations Publicitaires</h3>
             </div>
 
-            <div className="col-span-1 sm:col-span-2 sm:items-end sm:gap-4 sm:border-t sm:border-gray-200 sm:pt-5">
-              <label
-                htmlFor="cover-photo"
-                className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2"
-              >
-                Image Publicitaire
-              </label>
-              <div className="mt-1 sm:col-span-2 sm:mt-0">
-                <div className="rounded-xs flex max-w-lg justify-center border-2 border-dashed border-gray-300 px-2 pt-5 pb-6">
-                  <div className="space-y-1 text-center">
-                    {formData?.imageUrl?.length > 0 ? (
-                      <img
-                        src={URL.createObjectURL(formData?.imageUrl[0])}
-                        alt="preview"
+            <div className="form-row">
+              <div className="form-group col-3">
+                <label className="form-label">Titre</label>
+                <input
+                  type="text"
+                  {...register('title', {
+                    required: 'Champs requis',
+                  })}
+                  className="form-input"
+                  placeholder="Titre de la publicité"
+                />
+                {errors?.title && (
+                  <span className="form-error">{errors.title.message}</span>
+                )}
+              </div>
+
+              <div className="form-group col-3">
+                <label className="form-label">Slogan</label>
+                <input
+                  type="text"
+                  {...register('slogan', {
+                    required: 'Champs requis',
+                  })}
+                  className="form-input"
+                  placeholder="Petit slogan"
+                />
+                {errors?.slogan && (
+                  <span className="form-error">{errors.slogan.message}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION: Image Publicitaire */}
+          <div className="form-section">
+            <div className="form-section-header">
+              <div className="section-icon advertising">🖼️</div>
+              <h3 className="form-section-title">Image Publicitaire</h3>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group col-3">
+                <label className="form-label">Image</label>
+                <div className="image-upload-area">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="preview"
+                      className="mx-auto h-20 w-20 rounded object-cover"
+                    />
+                  ) : (
+                    <div className="text-3xl">📸</div>
+                  )}
+                  <div className="mt-2 flex justify-center">
+                    <label
+                      htmlFor="file-upload"
+                      className="cursor-pointer rounded px-3 py-1 text-xs font-semibold transition-all"
+                      style={{
+                        color: colors.primary || '#3b82f6',
+                        backgroundColor: `rgba(59, 130, 246, 0.1)`,
+                      }}
+                    >
+                      Charger
+                      <input
+                        id="file-upload"
+                        {...register('imageUrl', {
+                          required:
+                            imageUrl?.length === 0 && !commercial?.imageUrl,
+                        })}
+                        type="file"
+                        className="sr-only"
                       />
-                    ) : commercial ? (
-                      <img src={commercial.imageUrl} alt="preview" />
-                    ) : (
-                      <RiImage2Fill className="mx-auto h-12 w-12 text-gray-400" />
-                    )}
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="file-upload"
-                        className="relative cursor-pointer rounded-sm bg-white font-medium focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2"
-                        style={{
-                          color: colors.primary,
-                          focusRingColor: colors.primary,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.opacity = '0.8'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.opacity = '1'
-                        }}
-                      >
-                        <span>Charger image</span>
-                        <input
-                          id="file-upload"
-                          {...register('imageUrl', {
-                            required:
-                              formData?.imageUrl?.length == 0 &&
-                              !commercial?.imageUrl,
-                          })}
-                          type="file"
-                          className="sr-only"
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
+                    </label>
                   </div>
-                  <p className="pt-1 font-stratos-light text-xs text-red-600">
-                    {errors?.imageUrl && 'veuillez selectionnez une image'}
-                  </p>
+                  <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF</p>
+                </div>
+                {errors?.imageUrl && (
+                  <span className="form-error">Veuillez sélectionner une image</span>
+                )}
+              </div>
+
+              <div className="form-group col-3">
+                <label className="form-label">Aperçu</label>
+                <div className="image-preview">
+                  {previewUrl ? (
+                    <img
+                      src={previewUrl}
+                      alt="preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gray-100">
+                      <RiImage2Fill className="h-8 w-8 text-gray-300" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

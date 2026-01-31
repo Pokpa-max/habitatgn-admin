@@ -1,14 +1,17 @@
-import React from 'react'
+
 import { columnsUser } from './_dataTable'
 import { OrderSkleton } from '../Orders/OrdersList'
 import PaginationButton from '../Orders/PaginationButton'
 import { useState } from 'react'
-import { RiSearchLine } from 'react-icons/ri'
+import {
+  RiSearchLine,
+  RiAddLine,
+} from 'react-icons/ri'
 import DesableConfirmModal from '../DesableConfirm'
 import { desableUser, desableUserFirestore } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
 import CreateUserDrawer from './CreateUserDrawer'
-import {  useColors } from '../../contexts/ColorContext'
+import { useColors } from '../../contexts/ColorContext'
 
 function UsersList({
   data,
@@ -47,185 +50,265 @@ function UserTable({
   isLoadingP,
   title,
 }) {
-  const color = useColors()
+  const colors = useColors()
   const [openModal, setOpenModal] = useState(false)
-  const [selectUser, setSlectUser] = useState(false)
+  const [selectUser, setSelectUser] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+
   data = data || {}
   const { users, lastElement } = data
-  const { managers, lastElement: lasteManager } = data
+  const { managers, lastElement: lastManager } = data
 
-  return isLoading ? (
-    <OrderSkleton />
-  ) : (
-    <div className="">
-      <CreateUserDrawer open={openDrawer} setOpen={setOpenDrawer} />
-      <DesableConfirmModal
-        title="Suspendre le Compte"
-        desable={!selectUser?.isAvailable}
-        confirmFunction={async () => {
-          await desableUser(selectUser.id, !selectUser?.isAvailable).then(
-            async () => {
-              if (title == 'Utilisateurs') {
-                await desableUserFirestore(
-                  selectUser.id,
-                  !selectUser?.isAvailable
-                )
-                const update = () => {
-                  const user = users.map((user) => {
-                    const newUser = { ...user }
+  const filteredUsers = newcustomers?.filter((user) => {
+    if (!searchTerm) return true
 
-                    if (user.id == selectUser.id) {
-                      newUser.isAvailable = !selectUser?.isAvailable
-                    }
-                    return newUser
-                  })
+    const searchLower = searchTerm.toLowerCase()
 
-                  setData({ users: user, lastElement })
+    const firstName = user.firstname?.toLowerCase() || ''
+    const lastName = user.lastname?.toLowerCase() || ''
+    const email = user.email?.toLowerCase() || ''
+    const phoneNumber = user.phoneNumber?.toLowerCase() || ''
+    const agency = user.agence?.toLowerCase() || ''
+
+    return (
+      firstName.includes(searchLower) ||
+      lastName.includes(searchLower) ||
+      email.includes(searchLower) ||
+      phoneNumber.includes(searchLower) ||
+      agency.includes(searchLower)
+    )
+  })
+
+  return (
+    <>
+      <style>{`
+        .table-row {
+          transition: background-color 0.2s ease;
+        }
+
+        .table-row:hover {
+          background-color: #f9fafb;
+        }
+
+        .action-btn {
+          transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-input {
+          transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: ${colors.primary || '#3b82f6'};
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .badge-active {
+          background-color: #dcfce7;
+          color: #166534;
+        }
+
+        .badge-inactive {
+          background-color: #fee2e2;
+          color: #991b1b;
+        }
+
+        .table-header {
+          background-color: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
+        }
+      `}</style>
+
+      {isLoading ? (
+        <OrderSkleton />
+      ) : (
+        <div>
+          {/* Modals */}
+          <DesableConfirmModal
+            title="Suspension du compte"
+            desable={selectUser?.isAvailable}
+            confirmFunction={async () => {
+              try {
+                await desableUser(selectUser.id, !selectUser?.isAvailable)
+                await desableUserFirestore(selectUser.id, !selectUser?.isAvailable)
+
+                if (title === 'Utilisateurs') {
+                  const update = () => {
+                    const usersCopy = users.map((user) => {
+                      const newUser = { ...user }
+                      if (user.id === selectUser.id) {
+                        newUser.isAvailable = !selectUser?.isAvailable
+                      }
+                      return newUser
+                    })
+                    setData({ users: usersCopy, lastElement })
+                  }
+                  update()
+                } else {
+                  const update = () => {
+                    const managersCopy = managers.map((manager) => {
+                      const newManager = { ...manager }
+                      if (manager.id === selectUser.id) {
+                        newManager.isAvailable = !selectUser?.isAvailable
+                      }
+                      return newManager
+                    })
+                    setData({ managers: managersCopy, lastElement: lastManager })
+                  }
+                  update()
                 }
-                update()
-              } else {
-                await desableUserFirestore(
-                  selectUser.id,
-                  !selectUser?.isAvailable
-                )
-                const update = () => {
-                  const user = managers.map((user) => {
-                    const newUser = { ...user }
 
-                    if (user.id == selectUser.id) {
-                      newUser.isAvailable = !selectUser?.isAvailable
-                    }
-                    return newUser
-                  })
-
-                  setData({ managers: user, lasteManager })
-                }
-                update()
+                notify('Action effectuée avec succès', 'success')
+                setOpenModal(false)
+              } catch (error) {
+                notify('Erreur lors de l\'action', 'error')
               }
-            }
-          )
-          notify('Action executée avec succès', 'success')
-          setOpenModal(false)
-        }}
-        open={openModal}
-        setOpen={setOpenModal}
-      />
-      <div className="sm:flex sm:items-center">
-        <div className="sm:flex-auto">
-          <div className="flex flex-1 items-center justify-between ">
-            <div className="w-full max-w-lg lg:max-w-xs">
-              <label htmlFor="search" className="sr-only">
-                Search
-              </label>
+            }}
+            open={openModal}
+            setOpen={setOpenModal}
+          />
+
+          <CreateUserDrawer open={openDrawer} setOpen={setOpenDrawer} />
+
+          {/* Header Section */}
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* Search Bar */}
+            <div className="flex-1">
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <RiSearchLine
-                    className="h-5 w-5 text-gray-400"
-                    aria-hidden="true"
-                  />
-                </div>
+                <RiSearchLine
+                  className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
+                  style={{ color: '#9ca3af' }}
+                />
                 <input
                   id="search"
                   name="search"
-                  className="block w-full rounded-sm border border-gray-300 bg-white py-2 pl-10 pr-3 leading-5 placeholder-gray-500 focus:border-primary-500 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary-500 sm:text-sm"
-                  placeholder="Rechercher un utilisateur..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input w-full rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm font-medium"
+                  style={{
+                    borderColor: '#e5e7eb',
+                    color: '#111827',
+                  }}
+                  placeholder={`Rechercher un ${title === 'Managers' ? 'manager' : 'utilisateur'}...`}
                   type="search"
                 />
               </div>
             </div>
-            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-              {title == 'Managers' ? (
-                  <button
-                    style={{
-                      backgroundColor: color.primary,
-                     
-                    }}
-                  onClick={() => {
-                    setOpenDrawer(true)
-                    // setSelectedHouse(null)
-                  }}
-                  type="button"
-                  className="focus:ring-bg-cyan-500 mb-20 inline-flex items-center justify-center rounded-sm border border-transparent bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-offset-2 sm:w-auto"
-                >
-                  Ajouter un managerss
-                </button>
-              ) : (
-                ''
-              )}
-            </div>
+
+            {/* Add Button */}
+            {title === 'Managers' && (
+              <button
+                onClick={() => {
+                  setOpenDrawer(true)
+                  setSelectUser(null)
+                }}
+                type="button"
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-md active:translate-y-px"
+                style={{
+                  backgroundColor: colors.primary,
+                }}
+              >
+                <RiAddLine className="h-5 w-5" />
+                Ajouter
+              </button>
+            )}
           </div>
-        </div>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none"></div>
-      </div>
-      <div className="mt-8 flex flex-col">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-            <div className="overflow-hidden ring-1 ring-black ring-opacity-5 md:rounded-sm">
-              <table className="min-w-full table-auto divide-y divide-gray-300 text-left">
-                <thead className="bg-gray-50">
+
+          {/* Table Section */}
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                {/* Table Header */}
+                <thead className="table-header">
                   <tr>
                     {columnsUser.map((column, index) => (
                       <th
                         key={index}
                         scope="col"
-                        className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold uppercase text-slate-500 sm:pl-6"
+                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
                       >
                         {column.Header}
                       </th>
                     ))}
                     <th
                       scope="col"
-                      className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold uppercase text-slate-500 sm:pl-6"
+                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
                     >
-                      <span className="sr-only">Modifier</span>
+                      Statut
                     </th>
                   </tr>
                 </thead>
+
+                {/* Table Body */}
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {newcustomers?.map((row, index) => (
-                    <tr key={index}>
-                      {columnsUser.map((column, index) => {
-                        const cell = row[column.accessor]
-                        const element = column.Cell?.(cell, row['id']) ?? cell
-                        return <td key={index}>{element}</td>
-                      })}
-                      <td className="relative flex space-x-2 whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                        <button
-                          onClick={() => {
-                            setSlectUser(row)
-                            setOpenModal(true)
-                          }}
-                        >
-                          {row.isAvailable ? (
-                            <p className=" mr-2 rounded bg-green-100 px-2.5 py-0.5 text-sm font-medium text-gray-800 ">
-                              Activer{' '}
-                            </p>
-                          ) : (
-                            <p className=" mr-2 rounded bg-red-100 px-2.5 py-0.5 text-sm font-medium text-gray-800 ">
-                              Desactiver
-                            </p>
-                          )}
-                        </button>
+                  {filteredUsers && filteredUsers.length > 0 ? (
+                    filteredUsers.map((row, index) => (
+                      <tr key={index} className="table-row">
+                        {columnsUser.map((column, idx) => {
+                          const cell = row[column.accessor]
+                          const element = column.Cell?.(cell, row.id) ?? cell
+                          return (
+                            <td
+                              key={idx}
+                              className="px-6 py-4 text-sm text-gray-700"
+                            >
+                              {element}
+                            </td>
+                          )
+                        })}
+
+                        {/* Status Badge */}
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => {
+                              setSelectUser(row)
+                              setOpenModal(true)
+                            }}
+                            className={`action-btn cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
+                              row.isAvailable
+                                ? 'badge-active border-green-300'
+                                : 'badge-inactive border-red-300'
+                            }`}
+                          >
+                            {row.isAvailable ? 'Actif' : 'Inactif'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={columnsUser.length + 1}
+                        className="px-6 py-12 text-center text-sm text-gray-500"
+                      >
+                        Aucun utilisateur trouvé
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
-            <div>
-              <p className="mt-5">
-                {newcustomers?.length + ' '}
-                {title}
-              </p>
-              {pagination && newcustomers.length > 0 && (
-                <PaginationButton getmoreData={showMore} />
-              )}
-            </div>
+          </div>
+
+          {/* Footer Stats */}
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-sm font-semibold text-gray-700">
+              {filteredUsers?.length || 0} {title}
+            </p>
+            {pagination && filteredUsers.length > 0 && (
+              <PaginationButton getmoreData={showMore} />
+            )}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }
 

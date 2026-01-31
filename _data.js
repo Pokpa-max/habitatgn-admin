@@ -8,6 +8,7 @@ export const zones = [
 ]
 export const userRole = [
   { label: 'manager', value: 'manager' },
+  { label: 'admin', value: 'admin' },
 
 ]
 
