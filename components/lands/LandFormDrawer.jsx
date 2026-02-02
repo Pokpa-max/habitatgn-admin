@@ -5,7 +5,7 @@ import { RiImage2Fill, RiCloseLine, RiCheckLine } from 'react-icons/ri'
 import { client } from '../../lib/algolia'
 import { addLand, editLand } from '../../lib/services/lands'
 import { getCurrentDateOnline } from '../../utils/date'
-import { autoFillLandForm } from '../../utils/functionFactory'
+import { autoFillLandForm } from '../../lib/models/Land'
 import { notify } from '../../utils/toast'
 import {
   zones,
@@ -166,164 +166,7 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
 
   return (
     <>
-      <style>{`
-        .form-section {
-          background-color: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          padding: 1.5rem;
-        }
 
-        .form-section-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1.25rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #e5e7eb;
-        }
-
-        .section-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 0.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-
-        .section-icon.basic {
-          background-color: rgba(59, 130, 246, 0.15);
-          color: ${colors.primary || '#3b82f6'};
-        }
-
-        .section-icon.location {
-          background-color: rgba(16, 185, 129, 0.15);
-          color: #10b981;
-        }
-
-         .section-icon.images {
-          background-color: rgba(168, 85, 247, 0.15);
-          color: #a855f7;
-        }
-
-        .form-section-title {
-          font-size: 0.95rem;
-          font-weight: 700;
-          color: #111827;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-          margin: 0;
-        }
-
-        .form-label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #1f2937;
-          margin-bottom: 0.4rem;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .form-input, .form-select {
-          width: 100%;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.375rem;
-          padding: 0.6rem 0.85rem;
-          font-size: 0.875rem;
-          color: #111827;
-          background-color: #fff;
-          transition: all 0.2s ease;
-        }
-
-        .form-input:focus, .form-select:focus {
-          border-color: ${colors.primary || '#3b82f6'};
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-
-        .form-error {
-          font-size: 0.7rem;
-          color: #dc2626;
-          margin-top: 0.2rem;
-          font-weight: 600;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .form-row:last-child {
-          margin-bottom: 0;
-        }
-
-        .form-group {
-          grid-column: span 6;
-        }
-
-        .form-group.col-2 {
-          grid-column: span 2;
-        }
-
-        .form-group.col-3 {
-          grid-column: span 3;
-        }
-
-        @media (max-width: 640px) {
-          .form-group.col-2, .form-group.col-3 {
-            grid-column: span 6;
-          }
-        }
-
-        .image-upload-area {
-          border: 2px dashed #e5e7eb;
-          border-radius: 0.5rem;
-          padding: 1.5rem 1.25rem;
-          text-align: center;
-          background-color: #fff;
-          transition: all 0.2s ease;
-          cursor: pointer;
-        }
-
-        .image-upload-area:hover {
-          border-color: ${colors.primary || '#3b82f6'};
-          background-color: rgba(59, 130, 246, 0.02);
-        }
-
-        .image-preview {
-          position: relative;
-          border-radius: 0.375rem;
-          overflow: hidden;
-          aspect-ratio: 16/9;
-          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-
-        .image-delete-btn {
-          position: absolute;
-          top: 0.35rem;
-          right: 0.35rem;
-          background-color: rgba(0, 0, 0, 0.6);
-          color: white;
-          border: none;
-          padding: 0.35rem;
-          border-radius: 50%;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .image-delete-btn:hover {
-          background-color: #dc2626;
-        }
-      `}</style>
 
       <DrawerForm
         open={open}
@@ -366,52 +209,55 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           {/* SECTION 1: Informations Basiques */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon basic">📋</div>
-              <h3 className="form-section-title">Informations Basiques</h3>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+            <div className="mb-5 flex items-center gap-3 border-b-2 border-gray-200 pb-4">
+              <div 
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xl"
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: colors.primary || '#3b82f6' }}
+              >📋</div>
+              <h3 className="m-0 text-sm font-bold uppercase tracking-wide text-gray-900">Informations Basiques</h3>
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Superficie (m²)</label>
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6 sm:col-span-3">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Superficie (m²)</label>
                 <input
                   type="number"
                   {...register('area')}
-                  className="form-input"
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                   placeholder="0"
                 />
               </div>
 
-              <div className="form-group col-3">
-                <label className="form-label">Prix Total (GNF)</label>
+              <div className="col-span-6 sm:col-span-3">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Prix Total (GNF)</label>
                 <input
                   type="number"
                   {...register('price')}
-                  className="form-input"
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                   placeholder="0"
                 />
               </div>
             </div>
 
-             <div className="form-row">
-               <div className="form-group col-3">
-                <label className="form-label">Téléphone</label>
+             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+               <div className="col-span-6 sm:col-span-3">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Téléphone</label>
                 <input
                   type="tel"
                   {...register('phoneNumber')}
-                  className="form-input"
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                   placeholder="+224 612345678"
                 />
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Description</label>
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Description</label>
                 <textarea
                   {...register('description')}
-                  className="form-input"
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                   placeholder="Décrivez le terrain..."
                   rows="2"
                 />
@@ -420,15 +266,15 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
           </div>
 
           {/* SECTION 2: Localisation */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon location">📍</div>
-              <h3 className="form-section-title">Localisation</h3>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+            <div className="mb-5 flex items-center gap-3 border-b-2 border-gray-200 pb-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-100/15 text-xl text-green-500">📍</div>
+              <h3 className="m-0 text-sm font-bold uppercase tracking-wide text-gray-900">Localisation</h3>
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-2">
-                <label className="form-label">Commune</label>
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Commune</label>
                 <SimpleSelect
                   required="Requis"
                   creatable
@@ -436,25 +282,27 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
                   control={control}
                   options={zones}
                   placeholder="Sélectionner"
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                 />
                 {errors?.zone && (
-                  <span className="form-error">{errors.zone.message}</span>
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.zone.message}</span>
                 )}
               </div>
               
-              <div className="form-group col-2">
-                <label className="form-label">Ville</label>
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Ville</label>
                 <SimpleSelect
                   creatable
                   name="town"
                   control={control}
                   options={townOptions}
                   placeholder="Sélectionner"
+                   className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                 />
               </div>
 
-              <div className="form-group col-2">
-                <label className="form-label">Quartier</label>
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Quartier</label>
                 <SimpleSelect
                   required="Requis"
                   creatable
@@ -462,38 +310,39 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
                   control={control}
                   options={towns[zone?.value] || []}
                   placeholder="Sélectionner"
+                   className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                 />
                 {errors?.section && (
-                  <span className="form-error">{errors.section.message}</span>
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.section.message}</span>
                 )}
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-2">
-                <label className="form-label">Longitude</label>
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Longitude</label>
                 <input
                   disabled
                   type="text"
                   {...register('long')}
-                  className="form-input bg-gray-50"
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 transition-all"
                   placeholder="Auto"
                 />
               </div>
-              <div className="form-group col-2">
-                 <label className="form-label">Latitude</label>
+              <div className="col-span-6 sm:col-span-2">
+                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Latitude</label>
                 <input
                   disabled
                   type="text"
                   {...register('lat')}
-                  className="form-input bg-gray-50"
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 transition-all"
                   placeholder="Auto"
                 />
               </div>
             </div>
-             <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Carte Localisation</label>
+             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Carte Localisation</label>
                 <GoogleMaps
                   lat={land?.address?.lat}
                   lng={land?.address?.long}
@@ -504,16 +353,16 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
           </div>
 
           {/* SECTION 3: Images */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon images">🖼️</div>
-              <h3 className="form-section-title">Images</h3>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+            <div className="mb-5 flex items-center gap-3 border-b-2 border-gray-200 pb-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-pink-100/15 text-xl text-pink-500">🖼️</div>
+              <h3 className="m-0 text-sm font-bold uppercase tracking-wide text-gray-900">Images</h3>
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Image Principale</label>
-                <div className="image-upload-area">
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6 sm:col-span-3">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Image Principale</label>
+                <div className="cursor-pointer rounded-lg border-2 border-dashed border-gray-200 bg-white px-5 py-6 text-center transition-all hover:border-blue-500 hover:bg-blue-500/5">
                   {previewUrl ? (
                     <img
                       src={previewUrl}
@@ -545,15 +394,15 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
                 </div>
               </div>
 
-              <div className="form-group col-3">
-                <label className="form-label">Autres Images</label>
+              <div className="col-span-6 sm:col-span-3">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Autres Images</label>
                 <input
                   type="file"
                   name="images"
                   onChange={onSelectFile}
                   multiple
                   accept="image/png,image/jpeg,image/webp"
-                  className="form-input text-xs"
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-xs text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Sélectionnez plusieurs images
@@ -562,12 +411,12 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
             </div>
 
             {images && images.length > 0 && (
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Aperçu des Images</label>
+              <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+                <div className="col-span-6">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Aperçu des Images</label>
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
                     {images.map((image, index) => (
-                      <div key={image + index} className="image-preview">
+                      <div key={image + index} className="relative aspect-video overflow-hidden rounded-md shadow-sm">
                         <img
                           src={image}
                           alt="interior"
@@ -575,7 +424,7 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
                         />
                         <button
                           type="button"
-                          className="image-delete-btn"
+                          className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-none bg-black/60 text-white transition-all hover:bg-red-600"
                           onClick={() =>
                             setImages(images.filter((e) => e !== image))
                           }
