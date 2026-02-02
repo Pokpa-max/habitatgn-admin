@@ -505,8 +505,9 @@ export const autoFillHouseForm = (reset, setValue, house) => {
   setValue('phoneNumber', displayPhone)
   setValue('surface', surface)
   // Commodities: form expects single select `commodite` but stored data is `commodites` array
-  const firstCommod = house?.commodites?.[0] || (commodite && commodite.value) || commodite
-  setValue('commodite', firstCommod ? { value: firstCommod, label: firstCommod } : undefined)
+  // Commodities: form using MultiSelect expects an array of strings
+  const commodityList = house?.commodites || (Array.isArray(commodite) ? commodite : commodite ? [commodite] : [])
+  setValue('commodites', commodityList)
   setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
 
   // Bedrooms / area / furnishing
@@ -882,6 +883,9 @@ export const landConstructorCreate = ({
     address: {
       commune: commune,
       town: townObj,
+      // Fix: save section/quartier correctly so it can be reloaded
+      section: quartier,
+      zone: quartier ? quartier.value : '',
       lat: Number(lat) || 0,
       long: Number(long) || 0,
     },
@@ -960,7 +964,12 @@ export const autoFillDailyRentalForm = (reset, setValue, data) => {
   setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
 
   // Address fields
-  setValue('section', addr?.section ? { value: addr.section.value || addr.section, label: addr.section.label || addr.section } : undefined)
+  // Address fields
+  const sectionValue = addr?.section
+    ? (addr.section.value || addr.section)
+    : (typeof addr?.zone === 'string' ? addr.zone : undefined)
+
+  setValue('section', sectionValue ? { value: sectionValue, label: sectionValue } : undefined)
   setValue('long', Number(addr?.long))
   setValue('lat', Number(addr?.lat))
   setValue('zone', addr?.commune ? { value: addr?.commune.value || addr?.zone, label: addr?.commune.label || addr?.zone } : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)
@@ -1008,7 +1017,11 @@ export const autoFillLandForm = (reset, setValue, data) => {
   setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
 
   // Address fields
-  setValue('section', addr?.section ? { value: addr.section.value || addr.section, label: addr.section.label || addr.section } : undefined)
+  const sectionValue = addr?.section
+    ? (addr.section.value || addr.section)
+    : (typeof addr?.zone === 'string' ? addr.zone : undefined)
+
+  setValue('section', sectionValue ? { value: sectionValue, label: sectionValue } : undefined)
   setValue('long', Number(addr?.long))
   setValue('lat', Number(addr?.lat))
   setValue('zone', addr?.commune ? { value: addr?.commune.value || addr?.zone, label: addr?.commune.label || addr?.zone } : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)

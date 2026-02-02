@@ -133,7 +133,7 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
       const dataFormated = { seconds }
 
       if (dailyRental) {
-        const dataR = await editDailyRental(dailyRental, data, imagefiles)
+        const dataR = await editDailyRental(dailyRental, data, imagefiles, AuthUser?.id)
         const itemsCopy = JSON.parse(JSON.stringify(dailyRentals || []))
         const updatedAt = await getCurrentDateOnline()
         const newItems = itemsCopy.map((res) =>
