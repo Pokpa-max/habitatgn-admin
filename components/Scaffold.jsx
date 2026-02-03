@@ -202,7 +202,11 @@ export default function Scaffold({ children, title, subNav }) {
                 <div className="logo-section flex h-20 items-center rounded-b-2xl px-4">
                   <div>
                     <h1 className="text-2xl font-black">HabitatGN</h1>
-                    <p className="text-xs font-semibold opacity-90">Admin</p>
+                    <p className="text-xs font-semibold opacity-90">
+                      {AuthUser.claims?.userType === 'admin'
+                        ? 'Admin'
+                        : 'Manager'}
+                    </p>
                   </div>
                 </div>
 
@@ -306,7 +310,9 @@ export default function Scaffold({ children, title, subNav }) {
                   className="text-xs font-semibold"
                   style={{ color: colors.white, opacity: 0.9 }}
                 >
-                  Portail Admin
+                  {AuthUser.claims?.userType === 'admin'
+                    ? 'Portail Admin'
+                    : 'Portail Manager'}
                 </p>
               </div>
             </div>

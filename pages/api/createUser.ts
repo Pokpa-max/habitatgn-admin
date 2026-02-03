@@ -12,19 +12,21 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    const { email, name, passWord } = req.body
+    const { email, name, passWord, type } = req.body
     const data = req.body
 
     const userRecord = await createUserAuth(email, passWord, name)
 
-    await setCustomUserClaims(userRecord.uid, 'manager')
+    const userType = type === 'admin' ? 'admin' : 'manager'
+
+    await setCustomUserClaims(userRecord.uid, userType)
     const { uid } = userRecord
     const batch = dbAdmin.batch()
 
     batch.set(dbAdmin.collection('users').doc(uid), {
       email,
       name,
-      type: 'manager',
+      type: userType,
       passWord,
       createdAt: FieldValue.serverTimestamp(),
     })
