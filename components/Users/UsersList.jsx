@@ -175,7 +175,22 @@ function UserTable({
             setOpen={setOpenModal}
           />
 
-          <CreateUserDrawer open={openDrawer} setOpen={setOpenDrawer} />
+          <CreateUserDrawer
+            open={openDrawer}
+            setOpen={setOpenDrawer}
+            onCreate={(newUser) => {
+              // Determine if we need to update managers list or generic users list based on title
+              // The logic below assumes 'managers' and 'users' arrays exist in data
+              // We'll update both or valid one.
+              if (title === 'Managers') {
+                 const newManagers = [newUser, ...(managers || [])]
+                 setData({ ...data, managers: newManagers })
+              } else {
+                 const newUsers = [newUser, ...(users || [])]
+                 setData({ ...data, users: newUsers })
+              }
+            }}
+          />
 
           {/* Header Section */}
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

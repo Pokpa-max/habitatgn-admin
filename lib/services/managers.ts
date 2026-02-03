@@ -30,11 +30,31 @@ export const createAccount = async (data) => {
 
   const { firstname, lastname, passWord } = data
   const name = `${firstname} ${lastname}`
+  /* 
+    The API returns { uid: '...' } confirmed by previous step.
+    We construct the object to return to the UI.
+  */
   const response = await fetchWithPost('/api/createUser', {
     email: data.email,
     name,
     passWord: passWord,
+    phoneNumber: data.phoneNumber,
+    agence: data.agence,
+    type: data.userRole?.value // Assuming userRole is a select object
   })
 
   if (response.code == 0) throw new Error()
+
+  return {
+    id: response.uid,
+    email: data.email,
+    name,
+    firstname,
+    lastname,
+    phoneNumber: data.phoneNumber,
+    agence: data.agence,
+    type: data.userRole?.value || 'manager',
+    isAvailable: true, // Default
+    createdAt: new Date(), // Approximation for UI
+  }
 }

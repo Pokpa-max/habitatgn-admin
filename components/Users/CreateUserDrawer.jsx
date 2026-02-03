@@ -310,7 +310,7 @@ import DrawerForm from '../DrawerForm'
 import SimpleSelect from '../SimpleSelect'
 import { useColors } from '../../contexts/ColorContext'
 
-export default function CreateUserDrawer({ open, setOpen }) {
+export default function CreateUserDrawer({ open, setOpen, ...props }) {
   const colors = useColors()
   const [loading, setLoading] = useState(false)
 
@@ -334,12 +334,16 @@ export default function CreateUserDrawer({ open, setOpen }) {
   const CreatedAccountSubmit = async (data) => {
     setLoading(true)
     try {
-      await createAccount(data)
+      const newUser = await createAccount(data)
       notify('Compte créé avec succès', 'success')
       reset()
       setOpen(false)
+      if (props.onCreate) {
+        props.onCreate(newUser)
+      }
     } catch (error) {
-      notify('Ce compte existe déjà', 'error')
+      notify('Ce compte existe déjà ou une erreur est survenue', 'error')
+      console.error(error)
     }
     setLoading(false)
   }

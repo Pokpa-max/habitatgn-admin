@@ -156,15 +156,6 @@ function DashboardCard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-800">
-            Aperçu {AuthUser.claims?.userType === 'admin' ? 'Global (Admin)' : 'Managérial'}
-          </h2>
-          <span className="text-sm text-gray-500">
-             Bienvenue, {AuthUser.displayName || 'Utilisateur'}
-          </span>
-      </div>
-
       {/* Grille principale */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Card 1: Maisons */}

@@ -29,6 +29,8 @@ export default async function handler(
       type: userType,
       passWord,
       createdAt: FieldValue.serverTimestamp(),
+      phoneNumber: req.body.phoneNumber,
+      agence: req.body.agence,
     })
 
     await batch.commit()
@@ -36,7 +38,7 @@ export default async function handler(
 
     // await sendEmail(email, name)
 
-    res.status(200).json({ code: 1, message: 'users create successfully' })
+    res.status(200).json({ code: 1, message: 'users create successfully', uid })
   } catch (error) {
     console.log('🤬🤬🤬🤬🤬🤬🤬🤬🤬🤬error', error)
     res.status(500).json({ code: 0, message: 'une erreur est survenu' })

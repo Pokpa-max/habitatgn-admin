@@ -1,10 +1,12 @@
 import { RiUserLine } from 'react-icons/ri'
 import { firebaseDateFormat } from '../../utils/date'
+import { useColors } from '../../contexts/ColorContext'
 export const columnsUser = [
   {
     Header: 'Profile',
     accessor: 'image_url',
     Cell: (data) => {
+      const colors = useColors()
       const imageProfil = data ?? ''
       return (
         <div className="flex items-center justify-center space-x-2 whitespace-nowrap px-3 text-sm font-light text-gray-500">
@@ -19,9 +21,14 @@ export const columnsUser = [
               />
             </div>
           ) : (
-            <div className="rounded-full border border-gray-500">
-              <RiUserLine className="h-10 w-10 rounded-full p-2 " />
-            </div>
+           
+            <div
+  className="rounded-full p-1"
+  style={{ backgroundColor: colors.primary }}
+>
+  <RiUserLine className="h-10 w-10 p-2 text-white" />
+</div>
+
           )}
         </div>
       )
@@ -65,19 +72,5 @@ export const columnsUser = [
       )
     },
   },
-  // {
-  //   Header: 'Etat',
-  //   accessor: 'desabled',
-  //   Cell: (data) => {
-  //     console.log('voir etat', data)
-  //       <div className="">
-  //         {data ? (
-  //           <p className=" text-xs font-semibold text-red-800 ">Inactif</p>
-  //         ) : (
-  //           <p className="mr-2  text-sm font-semibold text-green-800 ">Actif</p>
-  //         )}
-  //       </div>
-  //     )
-  //   },
-  // },
+ 
 ]
