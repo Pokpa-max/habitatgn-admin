@@ -307,7 +307,7 @@ function HousesTable({
                           return (
                             <td
                               key={idx}
-                              className="px-4 py-2 text-xs text-gray-700" 
+                              className="px-6 py-4 text-sm text-gray-700"
                             >
                               {element}
                             </td>
@@ -315,13 +315,13 @@ function HousesTable({
                         })}
 
                         {/* Status Badge */}
-                        <td className="px-4 py-2">
+                        <td className="px-6 py-4">
                           <button
                             onClick={() => {
                               setSelectedHouse(row)
                               setOpenModal(true)
                             }}
-                            className={`cursor-pointer rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-all hover:shadow-sm ${
+                            className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
                               row.isAvailable
                                 ? 'badge-available border-green-300'
                                 : 'badge-occupied border-red-300'
@@ -332,7 +332,7 @@ function HousesTable({
                         </td>
 
                         {/* Action Buttons */}
-                        <td className="px-4 py-2">
+                        <td className="px-6 py-4">
                           <div className="flex gap-1">
                             {/* Edit Button */}
                             <button
