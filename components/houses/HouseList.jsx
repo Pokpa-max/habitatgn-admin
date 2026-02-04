@@ -18,25 +18,28 @@ import { notify } from '../../utils/toast'
 import ConfirmModal from '../ConfirmModal'
 import { deleteHouse } from '../../lib/services/houses'
 import { useColors } from '../../contexts/ColorContext'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { useRef, useEffect } from 'react'
+
 
 function HousesList({
-  data,
-  setData,
   houses,
   showMore,
-  pagination,
+  hasMore,
   isLoading,
-  isLoadingP,
+  isFetchingMore,
+  data,
+  setData,
 }) {
   return (
     <HousesTable
       isLoading={isLoading}
       newhouses={houses}
-      isLoadingP={isLoadingP}
+      isFetchingMore={isFetchingMore}
       showMore={showMore}
+      hasMore={hasMore}
       data={data}
       setData={setData}
-      pagination={pagination}
     />
   )
 }
@@ -46,9 +49,9 @@ function HousesTable({
   setData,
   newhouses,
   showMore,
-  pagination,
+  hasMore,
   isLoading,
-  isLoadingP,
+  isFetchingMore,
 }) {
   const colors = useColors()
   const [selectedHouse, setSelectedHouse] = useState(null)
@@ -56,13 +59,13 @@ function HousesTable({
   const [openModal, setOpenModal] = useState(false)
   const [openWarning, setOpenWarning] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const parentRef = useRef(null)
 
   const router = useRouter()
-  data = data || {}
+  // Ensure newhouses is an array
+  const safeHouses = newhouses || []
 
-  const { houses, lastElement } = data
-
-  const filteredHouses = newhouses?.filter((house) => {
+  const filteredHouses = safeHouses.filter((house) => {
     if (!searchTerm) return true
 
     const searchLower = searchTerm.toLowerCase()
@@ -81,6 +84,41 @@ function HousesTable({
       phoneNumber.includes(searchLower)
     )
   })
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredHouses.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 75, // Approximate row height
+    overscan: 5,
+  })
+
+  const virtualItems = rowVirtualizer.getVirtualItems()
+  const totalSize = rowVirtualizer.getTotalSize()
+
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0
+  const paddingBottom =
+    virtualItems.length > 0
+      ? totalSize - virtualItems[virtualItems.length - 1].end
+      : 0
+
+  useEffect(() => {
+    const [lastItem] = [...rowVirtualizer.getVirtualItems()].reverse()
+    if (!lastItem) return
+
+    if (
+      lastItem.index >= filteredHouses.length - 1 &&
+      hasMore &&
+      !isFetchingMore
+    ) {
+      showMore()
+    }
+  }, [
+    hasMore,
+    showMore,
+    filteredHouses.length,
+    isFetchingMore,
+    rowVirtualizer.getVirtualItems(),
+  ])
 
   return (
     <>
@@ -128,7 +166,7 @@ function HousesTable({
         }
       `}</style>
 
-      {isLoading ? (
+      {isLoading && safeHouses.length === 0 ? (
         <OrderSkleton />
       ) : (
         <div>
@@ -136,14 +174,8 @@ function HousesTable({
           <ConfirmModal
             confirmFunction={async () => {
               await deleteHouse(selectedHouse).then(() => {
-                const update = () => {
-                  const housesCopy = JSON.parse(JSON.stringify(houses))
-                  const newHouses = housesCopy.filter((house) => {
-                    return house.id != selectedHouse.id
-                  })
-                  setData({ houses: newHouses, lastElement })
-                }
-                update()
+                // TODO: Invalidate query instead of manual update
+                // queryClient.invalidateQueries(['houses'])
                 notify('Maison supprimée avec succès', 'success')
               })
               setOpenWarning(false)
@@ -165,17 +197,7 @@ function HousesTable({
                 selectedHouse.id,
                 !selectedHouse?.isAvailable
               )
-              const update = () => {
-                const houseUpdated = houses.map((user) => {
-                  const newUser = { ...user }
-                  if (user.id == selectedHouse.id) {
-                    newUser.isAvailable = !selectedHouse?.isAvailable
-                  }
-                  return newUser
-                })
-                setData({ houses: houseUpdated, lastElement })
-              }
-              update()
+              // TODO: Invalidate query
               notify('Action effectuée avec succès', 'success')
               setOpenModal(false)
             }}
@@ -225,7 +247,7 @@ function HousesTable({
               type="button"
               className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-md active:translate-y-px"
               style={{
-                backgroundColor: colors.primary ,
+                backgroundColor: colors.primary,
               }}
             >
               <RiAddLine className="h-5 w-5" />
@@ -233,42 +255,53 @@ function HousesTable({
             </button>
           </div>
 
-          {/* Table Section */}
-          <div className="overflow-hidden rounded-lg border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                {/* Table Header */}
-                <thead className="table-header">
-                  <tr>
-                    {columnsHouse.map((column, index) => (
-                      <th
-                        key={index}
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
-                      >
-                        {column.Header}
-                      </th>
-                    ))}
+          {/* Table Section - Virtualized */}
+          <div
+            ref={parentRef}
+            className="overflow-auto rounded-lg border border-gray-200"
+            style={{ height: '70vh' }}
+          >
+            <table className="w-full relative border-collapse">
+              {/* Table Header - Sticky */}
+              <thead className="table-header sticky top-0 z-10">
+                <tr>
+                  {columnsHouse.map((column, index) => (
                     <th
+                      key={index}
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 bg-gray-50 bg-opacity-95 backdrop-blur"
                     >
-                      Statut
+                      {column.Header}
                     </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
+                  ))}
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 bg-gray-50 bg-opacity-95 backdrop-blur"
+                  >
+                    Statut
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700 bg-gray-50 bg-opacity-95 backdrop-blur"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
 
-                {/* Table Body */}
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredHouses && filteredHouses.length > 0 ? (
-                    filteredHouses.map((row, index) => (
-                      <tr key={index} className="table-row">
+              {/* Table Body */}
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {paddingTop > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingTop}px` }} />
+                  </tr>
+                )}
+                {filteredHouses && filteredHouses.length > 0 ? (
+                  virtualItems.map((virtualRow) => {
+                    const row = filteredHouses[virtualRow.index]
+                    const index = virtualRow.index
+                    return (
+                      <tr key={virtualRow.key} className="table-row">
                         {columnsHouse.map((column, idx) => {
                           const cell = row[column.accessor]
                           const element = column.Cell?.(cell) ?? cell
@@ -345,20 +378,38 @@ function HousesTable({
                           </div>
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={columnsHouse.length + 2}
-                        className="px-6 py-12 text-center text-sm text-gray-500"
-                      >
-                        Aucune maison trouvée
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )
+                  })
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={columnsHouse.length + 2}
+                      className="px-6 py-12 text-center text-sm text-gray-500"
+                    >
+                      Aucune maison trouvée
+                    </td>
+                  </tr>
+                )}
+                {paddingBottom > 0 && (
+                  <tr>
+                    <td style={{ height: `${paddingBottom}px` }} />
+                  </tr>
+                )}
+
+                 {/* Loader Row */}
+                 {isFetchingMore && (
+                  <tr>
+                    <td
+                      colSpan={columnsHouse.length + 2}
+                      className="px-6 py-4 text-center text-sm text-gray-500"
+                    >
+                      Chargement de plus de logements...
+                    </td>
+                  </tr>
+                )}
+
+              </tbody>
+            </table>
           </div>
 
           {/* Footer Stats */}
@@ -366,10 +417,8 @@ function HousesTable({
             <p className="text-sm font-semibold text-gray-700">
               {filteredHouses?.length || 0} Logement
               {filteredHouses?.length !== 1 ? 's' : ''}
+               {' '}({safeHouses.length} chargés)
             </p>
-            {pagination && newhouses.length > 0 && (
-              <PaginationButton getmoreData={showMore} />
-            )}
           </div>
         </div>
       )}

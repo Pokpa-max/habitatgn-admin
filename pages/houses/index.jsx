@@ -11,121 +11,38 @@ import {
   withAuthUser,
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  startAfter,
-  where,
-} from 'firebase/firestore'
-import { useEffect } from 'react'
-import { useState } from 'react'
-import { HITS_PER_PAGE } from '../../lib/constants'
+
 import HousesList from '../../components/houses/HouseList'
+import { useInfiniteHouses } from '../../lib/hooks/useHouses'
 
 function Houses() {
   const AuthUser = useAuthUser()
-  const [data, setData] = useState(null)
+  
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteHouses(AuthUser?.claims?.userType, AuthUser?.id)
 
-  const [pagination, setPagination] = useState({
-    page: 0,
-    nbHits: 0,
-    showPagination: true,
-  })
-  const [isLoadingP, setIsLoadingP] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const houses = data?.pages.flatMap((page) => page.houses) || []
 
-  // information id
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const housesRef = collection(db, 'houses')
-      setIsLoading(true)
-      // const q = query(
-      //   housesRef,
-      //   orderBy('createdAt', 'desc'),
-      //   limit(HITS_PER_PAGE)
-      // )
-      const q =
-        AuthUser.claims.userType == 'manager'
-          ? query(
-              housesRef,
-              orderBy('createdAt', 'desc'),
-              where('userId', '==', AuthUser.id),
-              limit(HITS_PER_PAGE)
-            )
-          : query(housesRef, orderBy('createdAt', 'desc'), limit(HITS_PER_PAGE))
-
-      const querySnapshot = await getDocs(q)
-      const houses = parseDocsData(querySnapshot)
-      setData({
-        houses,
-        lastElement: querySnapshot.docs[querySnapshot.docs.length - 1],
-      })
-      setIsLoading(false)
-    }
-    fetchData()
-  }, [])
-  const housesToShow = data?.houses ?? []
-
-  const showMoreFirestore = async () => {
-    const housesRef = collection(db, 'houses')
-    setIsLoadingP(true)
-    const lastElement = data.lastElement
-
-    const q =
-      AuthUser.claims.userType == 'admin'
-        ? query(
-            housesRef,
-            orderBy('createdAt', 'desc'),
-            startAfter(lastElement),
-            limit(HITS_PER_PAGE)
-          )
-        : query(
-            housesRef,
-            orderBy('createdAt', 'desc'),
-            where('userId', '==', AuthUser.id),
-            startAfter(lastElement),
-            limit(HITS_PER_PAGE)
-          )
-
-    // const q =
-    //   AuthUser.claims.userType == 'manager'
-    //     ? query(
-    //         housesRef,
-    //         orderBy('createdAt', 'desc'),
-    //         where('userId', '==', AuthUser.id),
-    //         startAfter(lastElement),
-    //         limit(HITS_PER_PAGE)
-    //       )
-    //     : query(housesRef, orderBy('createdAt', 'desc'), limit(HITS_PER_PAGE))
-    const querySnapshot = await getDocs(q)
-    const houses = parseDocsData(querySnapshot)
-    const nextData = {
-      houses: [...data.houses, ...houses],
-      lastElement: querySnapshot.docs[querySnapshot.docs.length - 1],
-    }
-
-    setPagination({ ...pagination, showPagination: houses.length > 0 })
-
-    setData(nextData)
-    setIsLoadingP(false)
-  }
   return (
     <Scaffold>
       <Header title={'Logement'} />
       <HousesList
-        data={data}
-        setData={setData}
-        houses={housesToShow}
-        showMore={showMoreFirestore}
-        pagination={pagination.showPagination}
+        houses={houses}
+        showMore={fetchNextPage}
+        hasMore={hasNextPage}
         isLoading={isLoading}
-        isLoadingP={isLoadingP}
+        isFetchingMore={isFetchingNextPage}
+        // Passing data/setData is no longer the React Query way, 
+        // but keeping it null/noop for now until we refactor HousesList
+        data={{ houses }} 
+        setData={() => {}} 
+        pagination={hasNextPage}
+        isLoadingP={isFetchingNextPage}
       />
     </Scaffold>
   )
