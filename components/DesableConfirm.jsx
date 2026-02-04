@@ -131,7 +131,7 @@ function DesableConfirmModal({
                         </Dialog.Title>
                         <p className="modal-description mt-2">
                           {`Voulez-vous ${
-                            desable ? 'Activer' : 'Désactiver'
+                            desable ? 'Désactiver' : 'Activer'
                           } ce compte ?`}
                         </p>
                       </div>
@@ -144,20 +144,20 @@ function DesableConfirmModal({
                       type="button"
                       className="btn-confirm justify-center rounded-lg border border-transparent px-5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
                       style={{
-                        backgroundColor: desable ? colors.primary : '#dc2626' ,
-                        focusRingColor: desable ? colors.primary : '#dc2626' ,
+                        backgroundColor: desable ? '#dc2626' : colors.primary ,
+                        focusRingColor: desable ? '#dc2626' : colors.primary ,
                       }}
                       onClick={() => confirmFunction()}
                     >
                       {desable ? (
                         <>
-                          <RiCloseLine className="h-4 w-4" />
-                          Activer
+                          <RiFolderWarningLine className="h-4 w-4" />
+                          Désactiver
                         </>
                       ) : (
                         <>
                           <RiCheckLine className="h-4 w-4" />
-                          Désactiver
+                          Activer
                         </>
                       )}
                     </button>
