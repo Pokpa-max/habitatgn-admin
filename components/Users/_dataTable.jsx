@@ -38,6 +38,39 @@ export const columnsUser = [
     ),
   },
   {
+    Header: 'Rôle',
+    accessor: 'type',
+    Cell: (data) => {
+      let label = data
+      let colorClass = 'bg-gray-100 text-gray-800'
+
+      switch (data) {
+        case 'admin':
+          label = 'Administrateur'
+          colorClass = 'bg-purple-100 text-purple-800'
+          break
+        case 'manager':
+          label = 'Manager'
+          colorClass = 'bg-green-100 text-green-800'
+          break
+        case 'customer':
+          label = 'Client'
+          colorClass = 'bg-blue-100 text-blue-800'
+          break
+        default:
+          label = data || 'Inconnu'
+      }
+
+      return (
+        <span
+          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${colorClass}`}
+        >
+          {label}
+        </span>
+      )
+    },
+  },
+  {
     Header: 'Email',
     accessor: 'email',
     Cell: (data) => (

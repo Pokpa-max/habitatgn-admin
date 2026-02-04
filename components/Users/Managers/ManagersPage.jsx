@@ -34,7 +34,7 @@ function ManagersPage() {
       setIsLoading(true)
       const q = query(
         managerRef,
-        where('type', '==', 'manager'),
+        where('type', 'in', ['manager', 'admin']),
         orderBy('createdAt', 'desc'),
         limit(HITS_PER_PAGE)
       )
@@ -58,7 +58,7 @@ function ManagersPage() {
 
     const q = query(
       customerRef,
-      where('type', '==', 'manager'),
+      where('type', 'in', ['manager', 'admin']),
       orderBy('createdAt', 'desc'),
       startAfter(lastElement),
       limit(HITS_PER_PAGE)
