@@ -32,15 +32,42 @@ function SignIn() {
   const [apiError, setApiError] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
 
+  const translateError = (error) => {
+    // If it's a known API error with a message property (like our custom disable error)
+    if (error.message && !error.code) return error.message
+
+    switch (error.code) {
+      case 'auth/user-not-found':
+        return 'Aucun utilisateur trouvé avec cet email.'
+      case 'auth/wrong-password':
+        return 'Mot de passe incorrect.'
+      case 'auth/invalid-email':
+        return "L'adresse email est invalide."
+      case 'auth/user-disabled':
+        return 'Ce compte a été désactivé.'
+      case 'auth/too-many-requests':
+        return 'Trop de tentatives. Veuillez réessayer plus tard.'
+      case 'auth/network-request-failed':
+        return 'Erreur réseau. Vérifiez votre connexion.'
+      default:
+        // Fallback for custom errors thrown as Error objects
+        if (error.message === 'Firebase: Error (auth/user-not-found).')
+            return 'Aucun utilisateur trouvé avec cet email.'
+        if (error.message === 'Firebase: Error (auth/wrong-password).')
+            return 'Mot de passe incorrect.'
+            
+        return error.message || 'Une erreur est survenue lors de la connexion.'
+    }
+  }
+
   const onSubmit = async (data) => {
     setLoading(true)
     setApiError(null)
     try {
       await signin(data.email, data.password)
     } catch (error) {
-      setApiError(
-        error instanceof Error ? error.message : 'Une erreur est survenue'
-      )
+      const errorMessage = translateError(error)
+      setApiError(errorMessage)
       console.log(error)
       setLoading(false)
     }

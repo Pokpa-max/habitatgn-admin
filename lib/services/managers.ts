@@ -47,6 +47,7 @@ export const createAccount = async (data) => {
 
   return {
     id: response.uid,
+    uid: response.uid,
     email: data.email,
     name,
     firstname,
@@ -54,7 +55,9 @@ export const createAccount = async (data) => {
     phoneNumber: data.phoneNumber,
     agence: data.agence,
     type: data.userRole?.value || 'manager',
-    isAvailable: true, // Default
+    image_url: '',
+    isAvailable: true,
+    provider: 'email',
     createdAt: new Date(), // Approximation for UI
   }
 }

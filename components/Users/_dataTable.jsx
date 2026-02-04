@@ -3,6 +3,25 @@ import { firebaseDateFormat } from '../../utils/date'
 
 
 export const columnsUser = [
+  {
+    Header: 'Profil',
+    accessor: 'image_url',
+    Cell: (data) => (
+      <div className="flex items-center justify-center">
+        {data ? (
+          <img
+            src={data}
+            alt="Profil"
+            className="h-10 w-10 rounded-full object-cover shadow-sm"
+          />
+        ) : (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <RiUserLine className="h-6 w-6" />
+          </div>
+        )}
+      </div>
+    ),
+  },
 
   {
     Header: 'Nom',

@@ -301,7 +301,7 @@ import { useAuthUser } from 'next-firebase-auth'
 import React from 'react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiCheckLine } from 'react-icons/ri'
+import { RiCheckLine, RiEyeLine, RiEyeOffLine } from 'react-icons/ri'
 import Loader from '../Loader'
 import { createAccount } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
@@ -313,6 +313,7 @@ import { useColors } from '../../contexts/ColorContext'
 export default function CreateUserDrawer({ open, setOpen, ...props }) {
   const colors = useColors()
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     handleSubmit,
@@ -629,14 +630,27 @@ export default function CreateUserDrawer({ open, setOpen, ...props }) {
 
               <div className="form-group col-2">
                 <label className="form-label">Mot de Passe</label>
-                <input
-                  type="password"
-                  {...register('passWord', {
-                    required: 'Champs requis',
-                  })}
-                  className="form-input"
-                  placeholder="Mot de passe"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    {...register('passWord', {
+                      required: 'Champs requis',
+                    })}
+                    className="form-input pr-10"
+                    placeholder="Mot de passe"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <RiEyeOffLine className="h-5 w-5" />
+                    ) : (
+                      <RiEyeLine className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 {errors?.passWord && (
                   <span className="form-error">{errors.passWord.message}</span>
                 )}
