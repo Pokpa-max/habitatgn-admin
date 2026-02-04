@@ -20,6 +20,7 @@ import { deleteHouse } from '../../lib/services/houses'
 import { useColors } from '../../contexts/ColorContext'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useRef, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
 
 function HousesList({
@@ -54,6 +55,7 @@ function HousesTable({
   isFetchingMore,
 }) {
   const colors = useColors()
+  const queryClient = useQueryClient()
   const [selectedHouse, setSelectedHouse] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [openModal, setOpenModal] = useState(false)
@@ -189,16 +191,22 @@ function HousesTable({
             setOpen={setOpenWarning}
           />
 
+
+
+
+  // ... inside return ...
+
           <DesableConfirmModal
             desable={!selectedHouse?.isAvailable}
-            title="Voulez-vous effectuer cette action"
+            title={!selectedHouse?.isAvailable ? "Mettre en occupation" : "Mettre en disponibilité"}
+            message={`Voulez-vous marquer ce logement comme ${!selectedHouse?.isAvailable ? 'occupé' : 'disponible'} ?`}
             confirmFunction={async () => {
               await desableHouseToFirestore(
                 selectedHouse.id,
                 !selectedHouse?.isAvailable
               )
-              // TODO: Invalidate query
-              notify('Action effectuée avec succès', 'success')
+              await queryClient.invalidateQueries(['houses']) // FIX: Refresh list
+              notify('Statut mis à jour avec succès', 'success')
               setOpenModal(false)
             }}
             open={openModal}
