@@ -8,7 +8,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from 'recharts'
 import { useColors } from '../../contexts/ColorContext'
 
@@ -17,7 +16,7 @@ const DashboardOccupancyGraph = ({ data }) => {
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <h3 className="mb-6 text-lg font-semibold text-gray-900">
-        Statistiques d'Occupation
+        Statistiques d'Occupation par categorie
       </h3>
       <div className="h-80 w-full">
         <ResponsiveContainer width="100%" height="100%">

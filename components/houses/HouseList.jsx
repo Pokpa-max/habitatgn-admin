@@ -197,9 +197,9 @@ function HousesTable({
   // ... inside return ...
 
           <DesableConfirmModal
-            desable={!selectedHouse?.isAvailable}
-            title={!selectedHouse?.isAvailable ? "Mettre en occupation" : "Mettre en disponibilité"}
-            message={`Voulez-vous marquer ce logement comme ${!selectedHouse?.isAvailable ? 'occupé' : 'disponible'} ?`}
+            desable={selectedHouse?.isAvailable}
+            title={selectedHouse?.isAvailable ? "Mettre en occupation" : "Mettre en disponibilité"}
+            message={`Voulez-vous marquer ce logement comme ${selectedHouse?.isAvailable ? 'occupé' : 'disponible'} ?`}
             confirmFunction={async () => {
               await desableHouseToFirestore(
                 selectedHouse.id,

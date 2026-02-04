@@ -7,105 +7,37 @@ import {
   withAuthUser,
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
-import {
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  startAfter,
-  where,
-} from 'firebase/firestore'
-import { useEffect, useState } from 'react'
-import { db } from '@/lib/firebase/client_config'
-import { HITS_PER_PAGE } from '../../lib/constants'
-import { parseDocsData } from '@/utils/firebase/firestore'
 import LandList from '../../components/lands/LandList'
+import { useInfiniteLands } from '../../lib/hooks/useLands'
+import { useState, useMemo } from 'react'
 
 function Lands() {
   const AuthUser = useAuthUser()
-  const [data, setData] = useState(null)
+  const [dataLocal, setDataLocal] = useState(null)
 
-  const [pagination, setPagination] = useState({
-    page: 0,
-    nbHits: 0,
-    showPagination: true,
-  })
-  const [isLoadingP, setIsLoadingP] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteLands(AuthUser?.claims?.userType, AuthUser?.id)
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const itemsRef = collection(db, 'lands')
-      setIsLoading(true)
-      const q =
-        AuthUser.claims.userType == 'manager'
-          ? query(
-              itemsRef,
-              orderBy('createdAt', 'desc'),
-              where('userId', '==', AuthUser.id),
-              limit(HITS_PER_PAGE)
-            )
-          : query(itemsRef, orderBy('createdAt', 'desc'), limit(HITS_PER_PAGE))
-
-      const querySnapshot = await getDocs(q)
-      const items = parseDocsData(querySnapshot)
-      setData({
-        lands: items,
-        lastElement: querySnapshot.docs[querySnapshot.docs.length - 1],
-      })
-      setIsLoading(false)
-    }
-    fetchData()
-  }, [])
-
-  const itemsToShow = data?.lands ?? []
-
-  const showMoreFirestore = async () => {
-    const itemsRef = collection(db, 'lands')
-    setIsLoadingP(true)
-    const lastElement = data.lastElement
-
-    const q =
-      AuthUser.claims.userType == 'admin'
-        ? query(
-            itemsRef,
-            orderBy('createdAt', 'desc'),
-            startAfter(lastElement),
-            limit(HITS_PER_PAGE)
-          )
-        : query(
-            itemsRef,
-            orderBy('createdAt', 'desc'),
-            where('userId', '==', AuthUser.id),
-            startAfter(lastElement),
-            limit(HITS_PER_PAGE)
-          )
-
-    const querySnapshot = await getDocs(q)
-    const items = parseDocsData(querySnapshot)
-    const nextData = {
-      lands: [...data.lands, ...items],
-      lastElement: querySnapshot.docs[querySnapshot.docs.length - 1],
-    }
-
-    setPagination({ ...pagination, showPagination: items.length > 0 })
-
-    setData(nextData)
-    setIsLoadingP(false)
-  }
+  const lands = useMemo(() => {
+    return data?.pages.flatMap((page) => page.lands) || []
+  }, [data])
 
   return (
     <Scaffold>
       <Header title={'Terrains'} />
       <LandList
-        data={data}
-        setData={setData}
-        lands={itemsToShow}
-        showMore={showMoreFirestore}
-        pagination={pagination.showPagination}
+        data={dataLocal}
+        setData={setDataLocal}
+        lands={lands}
+        showMore={fetchNextPage}
+        hasMore={hasNextPage}
         isLoading={isLoading}
-        isLoadingP={isLoadingP}
+        isFetchingMore={isFetchingNextPage}
       />
     </Scaffold>
   )

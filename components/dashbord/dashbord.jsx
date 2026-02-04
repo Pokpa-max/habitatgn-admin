@@ -13,6 +13,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import DashboardOccupancyGraph from './DashboardOccupancyGraph'
+import DashboardOccupancyCircularGraph from './DashboardOccupancyCircularGraph'
 
 function DashboardCard() {
   const colors = useColors()
@@ -222,7 +223,9 @@ function DashboardCard() {
       </div>
 
       {/* Graphique */}
-      <DashboardOccupancyGraph data={graphData} />
+      <DashboardOccupancyCircularGraph data={graphData} />
+       <DashboardOccupancyGraph data={graphData} />
+
     </div>
   )
 }
