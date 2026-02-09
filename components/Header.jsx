@@ -53,10 +53,14 @@ export default function Header({ title }) {
                   font-size: 0.875rem;
                 }
 
-                .bread-container .active {
-                  color: ${colors.primary};
+                .bread-container li:last-child {
+                  color: ${colors.gray900 || '#000000'};
                   font-weight: 600;
                   cursor: default;
+                }
+                .bread-container li:last-child a {
+                  color: ${colors.gray900 || '#000000'};
+                  pointer-events: none;
                 }
               `}</style>
               <Breadcrumbs
