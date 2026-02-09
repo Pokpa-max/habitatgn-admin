@@ -190,13 +190,7 @@ function HousesTable({
             open={openWarning}
             setOpen={setOpenWarning}
           />
-
-
-
-
-  // ... inside return ...
-
-          <DesableConfirmModal
+       <DesableConfirmModal
             desable={selectedHouse?.isAvailable}
             title={selectedHouse?.isAvailable ? "Mettre en occupation" : "Mettre en disponibilité"}
             message={`Voulez-vous marquer ce logement comme ${selectedHouse?.isAvailable ? 'occupé' : 'disponible'} ?`}

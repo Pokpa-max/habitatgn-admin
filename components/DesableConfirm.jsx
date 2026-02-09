@@ -10,6 +10,7 @@ function DesableConfirmModal({
   setOpen,
   confirmFunction,
   desable,
+  message,
 }) {
   const cancelButtonRef = useRef(null)
   const colors = useColors()
@@ -130,7 +131,7 @@ function DesableConfirmModal({
                           {title}
                         </Dialog.Title>
                         <p className="modal-description mt-2">
-                          {`Voulez-vous ${
+                          {message || `Voulez-vous ${
                             desable ? 'Désactiver' : 'Activer'
                           } ce compte ?`}
                         </p>

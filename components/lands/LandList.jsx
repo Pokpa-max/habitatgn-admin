@@ -17,6 +17,7 @@ import { notify } from '../../utils/toast'
 import ConfirmModal from '../ConfirmModal'
 import { deleteLand } from '../../lib/services/lands'
 import { useColors } from '../../contexts/ColorContext'
+import { useQueryClient } from '@tanstack/react-query'
 
 function LandList({
   data,
@@ -50,6 +51,7 @@ function LandsTable({
   isLoadingP,
 }) {
   const colors = useColors()
+  const queryClient = useQueryClient()
   const [selectedItem, setSelectedItem] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [openModal, setOpenModal] = useState(false)
@@ -157,24 +159,15 @@ function LandsTable({
           />
 
           <DesableConfirmModal
-            desable={!selectedItem?.isAvailable}
-            title="Voulez-vous effectuer cette action"
+            desable={selectedItem?.isAvailable}
+            title={selectedItem?.isAvailable ? "Mettre en occupation" : "Mettre en disponibilité"}
+            message={`Voulez-vous marquer ce terrain comme ${selectedItem?.isAvailable ? 'occupé' : 'disponible'} ?`}
             confirmFunction={async () => {
               await desableLandToFirestore(
                 selectedItem.id,
                 !selectedItem?.isAvailable
               )
-              const update = () => {
-                const updatedItems = lands.map((item) => {
-                  const newItem = { ...item }
-                  if (item.id == selectedItem.id) {
-                    newItem.isAvailable = !selectedItem?.isAvailable
-                  }
-                  return newItem
-                })
-                setData({ lands: updatedItems, lastElement })
-              }
-              update()
+              await queryClient.invalidateQueries(['lands'])
               notify('Action effectuée avec succès', 'success')
               setOpenModal(false)
             }}

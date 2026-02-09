@@ -157,8 +157,9 @@ function DailyRentalsTable({
           />
 
           <DesableConfirmModal
-            desable={!selectedItem?.isAvailable}
-            title="Voulez-vous effectuer cette action"
+            desable={selectedItem?.isAvailable}
+            title={selectedItem?.isAvailable ? "Mettre en occupation" : "Mettre en disponibilité"}
+            message={`Voulez-vous marquer cette location comme ${selectedItem?.isAvailable ? 'occupée' : 'disponible'} ?`}
             confirmFunction={async () => {
               await desableDailyRentalToFirestore(
                 selectedItem.id,
