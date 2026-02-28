@@ -8,11 +8,9 @@ import { getCurrentDateOnline } from '../../utils/date'
 import { autoFillDailyRentalForm } from '../../utils/functionFactory'
 import { notify } from '../../utils/toast'
 import {
-  zones,
-  towns,
+  CONAKRY_COMMUNES,
   houseType,
   commodites,
-  townOptions,
 } from '../../_data'
 import { useColors } from '../../contexts/ColorContext'
 import DrawerForm from '../DrawerForm'
@@ -572,7 +570,7 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
                   creatable
                   name="zone"
                   control={control}
-                  options={zones}
+                  options={CONAKRY_COMMUNES}
                   placeholder="Sélectionner"
                 />
                 {errors?.zone && (
@@ -580,26 +578,23 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
                 )}
               </div>
 
-               <div className="form-group col-2">
+              <div className="form-group col-2">
                 <label className="form-label">Ville</label>
-                <SimpleSelect
-                  creatable
-                  name="town"
-                  control={control}
-                  options={townOptions}
-                  placeholder="Sélectionner"
+                <input
+                  type="text"
+                  {...register('town')}
+                  className="form-input"
+                  placeholder="Ex: Conakry"
                 />
               </div>
 
               <div className="form-group col-2">
                 <label className="form-label">Quartier</label>
-                <SimpleSelect
-                  required="Requis"
-                  creatable
-                  name="section"
-                  control={control}
-                  options={towns[zone?.value] || []}
-                  placeholder="Sélectionner"
+                <input
+                  type="text"
+                  {...register('section', { required: 'Requis' })}
+                  className="form-input"
+                  placeholder="Ex: Kipé, Madina..."
                 />
                 {errors?.section && (
                   <span className="form-error">{errors.section.message}</span>

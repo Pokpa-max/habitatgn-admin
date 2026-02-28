@@ -8,9 +8,7 @@ import { getCurrentDateOnline } from '../../utils/date'
 import { autoFillLandForm } from '../../lib/models/Land'
 import { notify } from '../../utils/toast'
 import {
-  zones,
-  towns,
-  townOptions,
+  CONAKRY_COMMUNES,
 } from '../../_data'
 import { useColors } from '../../contexts/ColorContext'
 import DrawerForm from '../DrawerForm'
@@ -280,7 +278,7 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
                   creatable
                   name="zone"
                   control={control}
-                  options={zones}
+                  options={CONAKRY_COMMUNES}
                   placeholder="Sélectionner"
                   className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                 />
@@ -288,29 +286,24 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
                   <span className="mt-1 text-xs font-semibold text-red-600">{errors.zone.message}</span>
                 )}
               </div>
-              
+
               <div className="col-span-6 sm:col-span-2">
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Ville</label>
-                <SimpleSelect
-                  creatable
-                  name="town"
-                  control={control}
-                  options={townOptions}
-                  placeholder="Sélectionner"
-                   className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                <input
+                  type="text"
+                  {...register('town')}
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                  placeholder="Ex: Conakry"
                 />
               </div>
 
               <div className="col-span-6 sm:col-span-2">
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Quartier</label>
-                <SimpleSelect
-                  required="Requis"
-                  creatable
-                  name="section"
-                  control={control}
-                  options={towns[zone?.value] || []}
-                  placeholder="Sélectionner"
-                   className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                <input
+                  type="text"
+                  {...register('section', { required: 'Requis' })}
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                  placeholder="Ex: Kipé, Madina..."
                 />
                 {errors?.section && (
                   <span className="mt-1 text-xs font-semibold text-red-600">{errors.section.message}</span>

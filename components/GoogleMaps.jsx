@@ -1,22 +1,24 @@
 import React, { useState } from 'react'
-import { GoogleMap, LoadScriptNext, MarkerF } from '@react-google-maps/api'
+import { GoogleMap, LoadScriptNext, MarkerF, InfoWindowF } from '@react-google-maps/api'
 
 const center = {
   lat: 9.550543829083447,
   lng: -13.656484042509089,
 }
 
-function MapInner({ position, onMapClick, icon }) {
+function MapInner({ position, onMapClick, icon, height = '320px', infoContent }) {
+  const [showInfo, setShowInfo] = useState(true)
+
   const getIcon = () => {
     if (!icon) return 'images/pin.png'
-    
+
     if (typeof window !== 'undefined' && window.google && window.google.maps) {
       return {
         url: icon,
         scaledSize: new window.google.maps.Size(50, 50),
       }
     }
-    
+
     return icon
   }
 
@@ -25,19 +27,28 @@ function MapInner({ position, onMapClick, icon }) {
       clickableIcons={false}
       mapContainerStyle={{
         width: '100%',
-        height: '200px',
+        height: height,
         border: '2px solid black',
       }}
       onClick={onMapClick}
       center={position || center}
       zoom={13}
     >
-      <MarkerF icon={getIcon()} position={position} />
+      <MarkerF
+        icon={getIcon()}
+        position={position}
+        onClick={() => infoContent && setShowInfo(true)}
+      />
+      {showInfo && infoContent && position && (
+        <InfoWindowF position={position} onCloseClick={() => setShowInfo(false)}>
+          {infoContent}
+        </InfoWindowF>
+      )}
     </GoogleMap>
   )
 }
 
-function GoogleMaps({ setLonLat, lng, lat, icon, readOnly }) {
+function GoogleMaps({ setLonLat, lng, lat, icon, readOnly, height, infoContent }) {
   const [position, setposition] = useState(lng ? { lng, lat } : null)
 
   const onMapClick = (e) => {
@@ -51,7 +62,7 @@ function GoogleMaps({ setLonLat, lng, lat, icon, readOnly }) {
 
   return (
     <LoadScriptNext googleMapsApiKey="AIzaSyA0-O8o7phDIFY72L50o3mF1o336fE5p7s">
-      <MapInner position={position} onMapClick={onMapClick} icon={icon} />
+      <MapInner position={position} onMapClick={onMapClick} icon={icon} height={height} infoContent={infoContent} />
     </LoadScriptNext>
   )
 }

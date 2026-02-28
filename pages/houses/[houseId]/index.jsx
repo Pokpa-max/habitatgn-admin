@@ -35,10 +35,11 @@ function HouseDetail() {
     }
   }, [houseId])
 
-  const formatPrice = (price) => {
+  const formatPrice = (price, currency = 'GNF') => {
+    const curr = ['GNF', 'USD', 'EUR'].includes(currency) ? currency : 'GNF'
     return new Intl.NumberFormat('fr-GN', {
       style: 'currency',
-      currency: 'GNF',
+      currency: curr,
       minimumFractionDigits: 0,
     }).format(price)
   }
@@ -91,7 +92,11 @@ function HouseDetail() {
             {house.houseType?.label || 'Logement'}
           </h1>
           <p className="mt-2 text-gray-600">
-            {house.address?.zone}, {house.address?.commune?.label}
+            {[
+              house.address?.section?.label ?? house.address?.section,
+              house.address?.commune?.label || house.address?.zone,
+              house.address?.town?.label ?? house.address?.town,
+            ].filter(v => v && typeof v === 'string').join(', ')}
           </p>
         </div>
 
@@ -150,12 +155,31 @@ function HouseDetail() {
               <h2 className="mb-4 text-xl font-semibold text-gray-900">
                 Localisation
               </h2>
-              <div className="h-80 w-full overflow-hidden rounded-lg">
-                  <GoogleMaps 
+              <div className="w-full overflow-hidden rounded-lg">
+                  <GoogleMaps
                      lat={house.address?.lat}
                      lng={house.address?.long}
-                     setLonLat={() => {}} 
-                     icon={selectedImage || house.imageUrl}
+                     readOnly={true}
+                     height="320px"
+                     infoContent={
+                       <div style={{ padding: '6px 8px', maxWidth: '220px' }}>
+                         <p style={{ fontWeight: '700', fontSize: '14px', marginBottom: '4px' }}>
+                           {house.houseType?.label || 'Logement'}
+                         </p>
+                         <p style={{ color: '#0891b2', fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+                           {formatPrice(house.price, house.currency)}
+                           <span style={{ fontSize: '11px', color: '#888', fontWeight: '400', marginLeft: '4px' }}>
+                             {house.offerType?.value === 'buy' ? '' : '/ mois'}
+                           </span>
+                         </p>
+                         <p style={{ color: '#555', fontSize: '12px' }}>
+                           {[
+                             house.address?.section?.label ?? house.address?.section,
+                             house.address?.commune?.label || house.address?.zone,
+                           ].filter(v => v && typeof v === 'string').join(', ')}
+                         </p>
+                       </div>
+                     }
                   />
               </div>
             </div>
@@ -201,10 +225,10 @@ function HouseDetail() {
                   {house.offerType?.label}
                 </p>
                 <p className="text-4xl font-bold text-cyan-600">
-                  {formatPrice(house.price)}
+                  {formatPrice(house.price, house.currency)}
                 </p>
                 <p className="mt-1 text-sm text-gray-500">
-                  {house.isPurchaseMode ? 'Prix de vente' : 'Par mois'}
+                  {house.offerType?.value === 'buy' ? 'Prix de vente' : house.offerType?.value === 'bail' ? 'Bail' : 'Par mois'}
                 </p>
               </div>
 
@@ -223,21 +247,32 @@ function HouseDetail() {
                   </div>
                 )}
 
-                {house.area > 0 && (
+                {house.bathrooms > 0 && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Surface</span>
+                    <span className="text-gray-600">Salles de bain</span>
                     <span className="font-semibold text-gray-900">
-                      {house.area} m²
+                      {house.bathrooms}
                     </span>
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Meublé</span>
-                  <span className="font-semibold text-gray-900">
-                    {house.isFurnished ? 'Oui' : 'Non'}
-                  </span>
-                </div>
+                {house.floor > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Étage</span>
+                    <span className="font-semibold text-gray-900">
+                      {house.floor}
+                    </span>
+                  </div>
+                )}
+
+                {house.surface > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Surface</span>
+                    <span className="font-semibold text-gray-900">
+                      {house.surface} m²
+                    </span>
+                  </div>
+                )}
 
                 {house.furnishing && (
                   <div className="flex items-center justify-between">
@@ -250,35 +285,26 @@ function HouseDetail() {
               </div>
 
               {/* Cautions */}
-              {!house.isPurchaseMode && (
+              {house.offerType?.value !== 'buy' && (
                 <div className="mt-6 space-y-4 border-t border-gray-200 pt-6">
                   <h3 className="mb-4 font-semibold text-gray-900">
                     Conditions de location
                   </h3>
 
-                  {house.rentalDeposit > 0 && (
+                  {house.deposit > 0 && (
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Caution locative</span>
+                      <span className="text-gray-600">Caution</span>
                       <span className="font-semibold text-gray-900">
-                        {house.rentalDeposit} mois
+                        {formatPrice(house.deposit, house.currency)}
                       </span>
                     </div>
                   )}
 
-                  {house.housingDeposit > 0 && (
+                  {house.advanceMonths > 0 && (
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">Avance</span>
                       <span className="font-semibold text-gray-900">
-                        {house.housingDeposit} mois
-                      </span>
-                    </div>
-                  )}
-
-                  {house.rentalStatus && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Statut requis</span>
-                      <span className="font-semibold text-gray-900">
-                        {house.rentalStatus}
+                        {house.advanceMonths} mois
                       </span>
                     </div>
                   )}

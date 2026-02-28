@@ -8,13 +8,12 @@ import { getCurrentDateOnline } from '../../utils/date'
 import { autoFillHouseForm } from '../../utils/functionFactory'
 import { notify } from '../../utils/toast'
 import {
-  zones,
-  towns,
+  CONAKRY_COMMUNES,
   houseType,
   offerType,
   commodites,
   furnishingOptions,
-  townOptions,
+  currencyOptions,
 } from '../../_data'
 import { useColors } from '../../contexts/ColorContext'
 import DrawerForm from '../DrawerForm'
@@ -52,12 +51,11 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
     formState: { errors },
   } = useForm({
     mode: 'onBlur',
-    defaultValues: { isSoldOut: false, isAvailable: true },
+    defaultValues: { isAvailable: true, currency: { label: 'GNF', value: 'GNF' } },
     reValidateMode: 'onChange',
     shouldUnregister: false,
   })
 
-  const zone = watch('zone')
   const setLonLat = (lon, lat) => {
     setValue('long', lon)
     setValue('lat', lat)
@@ -380,6 +378,7 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               <h3 className="form-section-title">Informations Basiques</h3>
             </div>
 
+            {/* Ligne 1 : type logement | type offre | ville */}
             <div className="form-row">
               <div className="form-group col-2">
                 <label className="form-label">Type Logement</label>
@@ -412,20 +411,23 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               </div>
 
               <div className="form-group col-2">
-                <label className="form-label">Ville</label>
-                <SimpleSelect
-                  creatable
-                  name="town"
-                  control={control}
-                  options={townOptions}
-                  placeholder="Sélectionner"
+                <label className="form-label">Ville *</label>
+                <input
+                  type="text"
+                  {...register('town', { required: 'Requis' })}
+                  className="form-input"
+                  placeholder="Ex: Conakry"
                 />
+                {errors?.town && (
+                  <span className="form-error">{errors.town.message}</span>
+                )}
               </div>
             </div>
 
+            {/* Ligne 2 : prix | devise | téléphone */}
             <div className="form-row">
               <div className="form-group col-2">
-                <label className="form-label">Prix Mensuel (GNF)</label>
+                <label className="form-label">Prix</label>
                 <input
                   type="number"
                   {...register('price', { required: 'Requis' })}
@@ -438,45 +440,52 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               </div>
 
               <div className="form-group col-2">
-                <label className="form-label">Caution (GNF)</label>
-                <input
-                  type="number"
-                  {...register('housingDeposit')}
-                  className="form-input"
-                  placeholder="0"
+                <label className="form-label">Devise</label>
+                <SimpleSelect
+                  name="currency"
+                  control={control}
+                  options={currencyOptions}
+                  placeholder="GNF"
                 />
               </div>
 
               <div className="form-group col-2">
-                <label className="form-label">Téléphone</label>
+                <label className="form-label">Téléphone *</label>
                 <input
                   type="tel"
-                  {...register('phoneNumber')}
+                  {...register('phoneNumber', { required: 'Requis' })}
                   className="form-input"
                   placeholder="+224 612345678"
                 />
+                {errors?.phoneNumber && (
+                  <span className="form-error">{errors.phoneNumber.message}</span>
+                )}
               </div>
             </div>
 
+            {/* Ligne 3 : caution | mois d'avance | meublé */}
             <div className="form-row">
               <div className="form-group col-2">
-                <label className="form-label">Chambres</label>
+                <label className="form-label">Caution</label>
                 <input
                   type="number"
-                  {...register('bedrooms')}
+                  {...register('deposit')}
                   className="form-input"
                   placeholder="0"
                 />
               </div>
 
               <div className="form-group col-2">
-                <label className="form-label">Surface (m²)</label>
+                <label className="form-label">Mois d'avance *</label>
                 <input
-                  type="text"
-                  {...register('surface')}
+                  type="number"
+                  {...register('advanceMonths', { required: 'Requis' })}
                   className="form-input"
                   placeholder="0"
                 />
+                {errors?.advanceMonths && (
+                  <span className="form-error">{errors.advanceMonths.message}</span>
+                )}
               </div>
 
               <div className="form-group col-2">
@@ -490,14 +499,48 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               </div>
             </div>
 
+            {/* Ligne 4 : chambres | salles de bain | étage */}
+            <div className="form-row">
+              <div className="form-group col-2">
+                <label className="form-label">Chambres</label>
+                <input
+                  type="number"
+                  {...register('bedrooms')}
+                  className="form-input"
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="form-group col-2">
+                <label className="form-label">Salles de bain</label>
+                <input
+                  type="number"
+                  {...register('bathrooms')}
+                  className="form-input"
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="form-group col-2">
+                <label className="form-label">Étage</label>
+                <input
+                  type="number"
+                  {...register('floor')}
+                  className="form-input"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Ligne 5 : surface | commodités */}
             <div className="form-row">
               <div className="form-group col-3">
-                <label className="form-label">Statut Location</label>
+                <label className="form-label">Surface (m²)</label>
                 <input
                   type="text"
-                  {...register('rentalStatus')}
+                  {...register('surface')}
                   className="form-input"
-                  placeholder="Ex: Marié"
+                  placeholder="0"
                 />
               </div>
 
@@ -513,6 +556,7 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               </div>
             </div>
 
+            {/* Ligne 6 : description */}
             <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Description</label>
@@ -537,27 +581,21 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               <div className="form-group col-2">
                 <label className="form-label">Commune</label>
                 <SimpleSelect
-                  required="Requis"
                   creatable
                   name="zone"
                   control={control}
-                  options={zones}
+                  options={CONAKRY_COMMUNES}
                   placeholder="Sélectionner"
                 />
-                {errors?.zone && (
-                  <span className="form-error">{errors.zone.message}</span>
-                )}
               </div>
 
               <div className="form-group col-2">
                 <label className="form-label">Quartier</label>
-                <SimpleSelect
-                  required="Requis"
-                  creatable
-                  name="section"
-                  control={control}
-                  options={towns[zone?.value] || []}
-                  placeholder="Sélectionner"
+                <input
+                  type="text"
+                  {...register('section', { required: 'Requis' })}
+                  className="form-input"
+                  placeholder="Ex: Kipé, Madina..."
                 />
                 {errors?.section && (
                   <span className="form-error">{errors.section.message}</span>
@@ -565,27 +603,33 @@ function HouseFormDrawer({ house, open, setOpen, setData, data }) {
               </div>
 
               <div className="form-group col-2">
-                <label className="form-label">Longitude</label>
+                <label className="form-label">Longitude *</label>
                 <input
-                  disabled
+                  readOnly
                   type="text"
-                  {...register('long')}
-                  className="form-input bg-gray-50"
-                  placeholder="Auto"
+                  {...register('long', { required: 'Sélectionnez un point sur la carte' })}
+                  className="form-input bg-gray-50 cursor-not-allowed"
+                  placeholder="Auto (carte)"
                 />
+                {errors?.long && (
+                  <span className="form-error">{errors.long.message}</span>
+                )}
               </div>
             </div>
 
             <div className="form-row">
               <div className="form-group col-2">
-                <label className="form-label">Latitude</label>
+                <label className="form-label">Latitude *</label>
                 <input
-                  disabled
+                  readOnly
                   type="text"
-                  {...register('lat')}
-                  className="form-input bg-gray-50"
-                  placeholder="Auto"
+                  {...register('lat', { required: 'Sélectionnez un point sur la carte' })}
+                  className="form-input bg-gray-50 cursor-not-allowed"
+                  placeholder="Auto (carte)"
                 />
+                {errors?.lat && (
+                  <span className="form-error">{errors.lat.message}</span>
+                )}
               </div>
 
               <div className="form-group col-4">

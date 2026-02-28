@@ -181,82 +181,66 @@ export const restaurantConstructorUpdateOffline = ({
 
 export const housesConstructorCreate = ({
   price,
+  currency,
+  advanceMonths,
+  deposit,
   phoneNumber,
   section,
   imageUrl,
-  adVance,
   houseType,
   description,
   long,
   lat,
-  partNumber = 0,
+  bedrooms = 0,
+  bathrooms = 0,
+  floor = 0,
   houseInsides,
   surface,
   zone,
-  commodite = [],
-  commodites,
+  commodites = [],
   offerType,
   isAvailable,
   userId,
-  area = 0,
   furnishing,
   town,
-  housingDeposit = 0,
-  isFurnished = false,
-  isPurchaseMode = false,
-  rentalDeposit = 0,
-  rentalStatus = '',
-  reservationDetails = null,
 }) => {
-  // Normalize select objects (SimpleSelect returns { label, value })
-  const commune = zone && zone.label && zone.value ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 } : zone || null
-  const quartier = section && section.label && section.value ? { label: section.label, value: section.value } : section || null
-  const townObj = town && town.label && town.value ? { label: town.label, value: town.value } : { label: 'Conakry', value: 'conakry' }
+  const commune = zone && zone.label && zone.value
+    ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 }
+    : zone || null
+  // section & town sont des strings libres (champs de saisie)
+  const quartier = typeof section === 'string' ? section : (section?.value || section?.label || null)
+  const townStr = typeof town === 'string' ? town : (town?.label || town?.value || 'Conakry')
 
-  // Handle commodities (form sends 'commodites', legacy might send 'commodite')
-  const finalCommodities = commodites || commodite || [];
-  const processedCommodities = Array.isArray(finalCommodities) ? finalCommodities : finalCommodities ? [finalCommodities] : [];
+  const processedCommodities = Array.isArray(commodites) ? commodites : commodites ? [commodites] : []
 
   return {
-    phoneNumber,
-    isAvailable: typeof isAvailable === 'boolean' ? isAvailable : true,
-    // Address object matching existing Firestore structure
+    userId,
+    offerType: offerType?.value ? { label: offerType.label, value: offerType.value } : offerType,
+    houseType: houseType?.value ? { label: houseType.label, value: houseType.value } : houseType,
     address: {
+      town: townStr,
       commune: commune,
-      town: townObj,
-      // Fix: save section/quartier correctly so it can be reloaded
       section: quartier,
-      zone: quartier ? quartier.value : '',
+      zone: commune ? (commune.value || '') : '',
       lat: Number(lat) || 0,
       long: Number(long) || 0,
     },
-
-    // Top-level convenience fields
-    zone: quartier ? quartier.value : '',
-    area: Number(area) || 0,
-    bedrooms: Number(partNumber) || 0,
-
-    offerType: offerType && offerType.value ? { label: offerType.label, value: offerType.value } : offerType,
-    surface: surface,
     price: Number(price) || 0,
-    // Use the correctly processed commodities
+    currency: currency?.value ? currency.value : (currency || 'GNF'),
+    advanceMonths: Number(advanceMonths) || 0,
+    deposit: Number(deposit) || 0,
+    surface: surface,
+    bedrooms: Number(bedrooms) || 0,
+    bathrooms: Number(bathrooms) || 0,
+    floor: Number(floor) || 0,
+    furnishing: furnishing?.value ? { label: furnishing.label, value: furnishing.value } : null,
+    isAvailable: typeof isAvailable === 'boolean' ? isAvailable : true,
     commodites: processedCommodities,
-    partNumber: partNumber,
     imageUrl: imageUrl,
-    description: description,
-    furnishing: furnishing && furnishing.value ? { label: furnishing.label, value: furnishing.value } : null,
-    isFurnished: typeof isFurnished === 'boolean' ? isFurnished : Boolean(furnishing && furnishing.value && !String(furnishing.value).toLowerCase().includes('non')),
-    houseType: houseType && houseType.value ? { label: houseType.label, value: houseType.value } : houseType,
-    adVance: Number(adVance) || 0,
     houseInsides: houseInsides,
-    housingDeposit: Number(housingDeposit) || 0,
-    rentalDeposit: Number(rentalDeposit) || 0,
-    rentalStatus: rentalStatus || '',
-    reservationDetails: reservationDetails || null,
-    isPurchaseMode: Boolean(isPurchaseMode),
-    type: 'house',
+    phoneNumber,
+    description: description,
     likes: [],
-    userId: userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   }
@@ -476,67 +460,55 @@ export const autoFillHouseForm = (reset, setValue, house) => {
     return
   }
 
-  const {
-    price,
-    phoneNumber,
-    imageUrl,
-    adVance,
-    houseType,
-    description,
-    address,
-    partNumber,
-    houseInsides,
-    surface,
-    commodite,
-    offerType,
-    isAvailable,
+  const addr = house.address || house.adress || {}
 
-  } = house
+  setValue('description', house.description)
+  setValue('price', house.price)
+  setValue('currency', house.currency
+    ? { value: house.currency, label: house.currency }
+    : { value: 'GNF', label: 'GNF' })
+  // Support legacy field names (advanceMonths ← adVance, deposit ← housingDeposit)
+  setValue('advanceMonths', house.advanceMonths ?? house.adVance ?? 0)
+  setValue('deposit', house.deposit ?? house.housingDeposit ?? 0)
+  setValue('surface', house.surface)
+  setValue('bedrooms', house.bedrooms ?? 0)
+  setValue('bathrooms', house.bathrooms ?? 0)
+  setValue('floor', house.floor ?? 0)
 
-  const addr = address || house.adress || {}
+  setValue('offerType', house.offerType?.value
+    ? { value: house.offerType.value, label: house.offerType.label }
+    : house.offerType)
+  setValue('houseType', house.houseType?.value
+    ? { value: house.houseType.value, label: house.houseType.label }
+    : house.houseType)
+  setValue('furnishing', house.furnishing?.value
+    ? { value: house.furnishing.value, label: house.furnishing.label }
+    : undefined)
 
-  setValue('description', description)
-  setValue('price', price)
-  setValue('adVance', adVance)
-  setValue('partNumber', partNumber)
-  setValue('surface', surface)
-  setValue('offerType', { value: offerType?.value, label: offerType?.value })
-  const displayPhone = phoneNumber ? String(phoneNumber).replace(/^(?:\+224|00224)/, '') : undefined
+  setValue('commodites', house.commodites || [])
+
+  const displayPhone = house.phoneNumber
+    ? String(house.phoneNumber).replace(/^(?:\+224|00224)/, '')
+    : undefined
   setValue('phoneNumber', displayPhone)
-  setValue('surface', surface)
-  // Commodities: form expects single select `commodite` but stored data is `commodites` array
-  // Commodities: form using MultiSelect expects an array of strings
-  const commodityList = house?.commodites || (Array.isArray(commodite) ? commodite : commodite ? [commodite] : [])
-  setValue('commodites', commodityList)
-  setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
 
-  // Bedrooms / area / furnishing
-  setValue('partNumber', partNumber)
-  setValue('bedrooms', (house?.bedrooms ?? Number(partNumber)) || 0)
-  setValue('area', house?.area ?? 0)
-  setValue('furnishing', house?.furnishing ? { value: house.furnishing.value, label: house.furnishing.label } : undefined)
+  // Address — section is now a plain string
+  const rawSection = addr?.section
+  setValue('section', typeof rawSection === 'string'
+    ? rawSection
+    : (rawSection?.value || rawSection?.label || ''))
+  setValue('long', Number(addr?.long) || 0)
+  setValue('lat', Number(addr?.lat) || 0)
+  setValue('zone', addr?.commune?.value
+    ? { value: addr.commune.value, label: addr.commune.label }
+    : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)
+  // town est maintenant un string libre (rétrocompat : anciens docs ont { label, value })
+  const rawTown = addr?.town
+  setValue('town', typeof rawTown === 'string' ? rawTown : (rawTown?.label || rawTown?.value || ''))
 
-  // Address fields (support legacy `adress` and new `address`)
-  setValue('section', addr?.section ? { value: addr.section.value || addr.section, label: addr.section.label || addr.section } : undefined)
-  setValue('long', Number(addr?.long))
-  setValue('lat', Number(addr?.lat))
-  setValue('zone', addr?.commune ? { value: addr?.commune.value || addr?.zone, label: addr?.commune.label || addr?.zone } : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)
-  setValue('isAvailable', isAvailable)
-  setValue('imageUrl', imageUrl)
-  setValue('houseInsides', houseInsides)
-
-  // Financial / reservation fields
-  setValue('housingDeposit', house?.housingDeposit ?? 0)
-  setValue('rentalDeposit', house?.rentalDeposit ?? 0)
-  setValue('rentalStatus', house?.rentalStatus ?? '')
-  setValue('reservationDetails', house?.reservationDetails ?? null)
-
-  // Furnishing / booleans
-  setValue('isFurnished', typeof house?.isFurnished === 'boolean' ? house.isFurnished : Boolean(house?.furnishing))
-  setValue('isPurchaseMode', typeof house?.isPurchaseMode === 'boolean' ? house.isPurchaseMode : false)
-
-  // Town (if present)
-  setValue('town', house?.address?.town ? { value: house.address.town.value, label: house.address.town.label } : undefined)
+  setValue('isAvailable', house.isAvailable)
+  setValue('imageUrl', house.imageUrl)
+  setValue('houseInsides', house.houseInsides)
 }
 
 
@@ -805,7 +777,7 @@ export const dailyRentalConstructorCreate = ({
   // Normalize select objects
   const commune = zone && zone.label && zone.value ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 } : zone || null
   const quartier = section && section.label && section.value ? { label: section.label, value: section.value } : section || null
-  const townObj = town && town.label && town.value ? { label: town.label, value: town.value } : { label: 'Conakry', value: 'conakry' }
+  const townStr = typeof town === 'string' ? town : (town?.label || town?.value || 'Conakry')
 
   return {
     // Specific Daily Rental fields
@@ -827,7 +799,7 @@ export const dailyRentalConstructorCreate = ({
     isAvailable: typeof isAvailable === 'boolean' ? isAvailable : true,
     address: {
       commune: commune,
-      town: townObj,
+      town: townStr,
       zone: quartier ? quartier.value : '',
       lat: Number(lat) || 0,
       long: Number(long) || 0,
@@ -928,7 +900,8 @@ export const autoFillDailyRentalForm = (reset, setValue, data) => {
   setValue('rentalStatus', rentalStatus || '')
   setValue('reservationDetails', reservationDetails || null)
 
-  // Town
-  setValue('town', data?.address?.town ? { value: data.address.town.value, label: data.address.town.label } : undefined)
+  // Town — string libre (rétrocompat : anciens docs ont { label, value })
+  const rawTownDR = data?.address?.town
+  setValue('town', typeof rawTownDR === 'string' ? rawTownDR : (rawTownDR?.label || rawTownDR?.value || ''))
 }
 
