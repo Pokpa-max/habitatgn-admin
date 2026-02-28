@@ -8,10 +8,14 @@ import {
   RiBookOpenFill,
   RiDashboardFill,
   RiLogoutBoxRLine,
+  RiSettings3Line,
+  RiToolsLine,
+  RiCalendarCheckLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
 import { useColors } from '../contexts/ColorContext'
+import { useNotifications } from '../contexts/NotificationsContext'
 import { useRouter } from 'next/router'
 
 const navigation = [
@@ -51,10 +55,31 @@ const navigation = [
     icon: RiGroupFill,
     claims: ['admin'],
   },
+  {
+    name: 'Réservations',
+    href: '/bookings',
+    icon: RiCalendarCheckLine,
+    claims: ['admin'],
+    badgeKey: 'pendingBookings',
+  },
+  {
+    name: 'Services',
+    href: '/service-requests',
+    icon: RiToolsLine,
+    claims: ['admin'],
+    badgeKey: 'pendingServices',
+  },
+  {
+    name: 'Paramètres',
+    href: '/settings',
+    icon: RiSettings3Line,
+    claims: ['admin'],
+  },
 ]
 
 export default function Scaffold({ children, title, subNav }) {
   const colors = useColors()
+  const notifications = useNotifications()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const AuthUser = useAuthUser()
   const router = useRouter()
@@ -216,6 +241,7 @@ export default function Scaffold({ children, title, subNav }) {
                     {navigation.map((item) => {
                       if (item.claims.includes(AuthUser.claims?.userType)) {
                         const isActive = currentPath === item.href
+                        const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
                         return (
                           <Link key={item.name} href={item.href}>
                             <a
@@ -228,6 +254,11 @@ export default function Scaffold({ children, title, subNav }) {
                               <span className="text-sm font-semibold">
                                 {item.name}
                               </span>
+                              {badgeCount > 0 && (
+                                <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                                  {badgeCount}
+                                </span>
+                              )}
                             </a>
                           </Link>
                         )
@@ -322,6 +353,7 @@ export default function Scaffold({ children, title, subNav }) {
               {navigation.map((item) => {
                 if (item.claims.includes(AuthUser.claims?.userType)) {
                   const isActive = currentPath === item.href
+                  const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
                   return (
                     <Link key={item.name} href={item.href}>
                       <a
@@ -333,6 +365,11 @@ export default function Scaffold({ children, title, subNav }) {
                         <span className="text-sm font-semibold">
                           {item.name}
                         </span>
+                        {badgeCount > 0 && (
+                          <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                            {badgeCount}
+                          </span>
+                        )}
                       </a>
                     </Link>
                   )

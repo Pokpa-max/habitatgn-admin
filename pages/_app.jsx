@@ -1,5 +1,6 @@
 import '../styles/globals.css'
 import { ColorProvider } from '../contexts/ColorContext'
+import { NotificationsProvider } from '../contexts/NotificationsContext'
 import initAuth from '@/utils/firebase/initAuth'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -21,7 +22,9 @@ function MyApp({ Component, pageProps }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ColorProvider>
-        <Component {...pageProps} />
+        <NotificationsProvider>
+          <Component {...pageProps} />
+        </NotificationsProvider>
       </ColorProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
