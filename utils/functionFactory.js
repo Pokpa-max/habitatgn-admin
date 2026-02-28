@@ -751,32 +751,26 @@ export const dailyRentalConstructorCreate = ({
   maxStay,
   minStay,
   pricePerDay,
-  pricePerHour,
-  pricePerMonth,
   pricePerNight,
-  pricePerWeek,
+  currency,
   amenities = [],
   // Common fields with houses
   phoneNumber,
-  section,
   imageUrl,
   houseType,
   description,
   long,
   lat,
-  partNumber = 0,
-  houseInsides,
+  bedrooms = 0,
+  images,
   zone,
   offerType,
   isAvailable,
   userId,
   town,
-  rentalStatus = '',
-  reservationDetails = null,
 }) => {
   // Normalize select objects
-  const commune = zone && zone.label && zone.value ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 } : zone || null
-  const quartier = section && section.label && section.value ? { label: section.label, value: section.value } : section || null
+  const commune = zone?.label && zone?.value ? { label: zone.label, value: zone.value, lat: Number(lat) || 0, long: Number(long) || 0 } : zone || null
   const townStr = typeof town === 'string' ? town : (town?.label || town?.value || 'Conakry')
 
   return {
@@ -787,12 +781,10 @@ export const dailyRentalConstructorCreate = ({
     maxStay: Number(maxStay) || 0,
     minStay: Number(minStay) || 0,
     pricePerDay: Number(pricePerDay) || 0,
-    pricePerHour: Number(pricePerHour) || 0,
-    pricePerMonth: Number(pricePerMonth) || 0,
     pricePerNight: Number(pricePerNight) || 0,
-    pricePerWeek: Number(pricePerWeek) || 0,
+    currency: currency?.value ? currency.value : (currency || 'GNF'),
     amenities: Array.isArray(amenities) ? amenities : amenities ? [amenities] : [],
-    bedrooms: Number(partNumber) || 0,
+    bedrooms: Number(bedrooms) || 0,
 
     // Common fields
     phoneNumber,
@@ -800,19 +792,17 @@ export const dailyRentalConstructorCreate = ({
     address: {
       commune: commune,
       town: townStr,
-      zone: quartier ? quartier.value : '',
+      zone: commune ? (commune.value || '') : '',
       lat: Number(lat) || 0,
       long: Number(long) || 0,
     },
-    zone: quartier ? quartier.value : '', // Keeping this for backward compatibility if needed, though structure shows it in address
 
-    offerType: offerType && offerType.value ? { label: offerType.label, value: offerType.value } : offerType,
+    offerType: offerType?.value ? { label: offerType.label, value: offerType.value } : offerType,
     imageUrl: imageUrl,
     description: description,
-    houseType: houseType && houseType.value ? { label: houseType.label, value: houseType.value } : houseType,
-    houseInsides: houseInsides,
-    rentalStatus: rentalStatus || '',
-    reservationDetails: reservationDetails || null,
+    houseType: houseType?.value ? { label: houseType.label, value: houseType.value } : houseType,
+    images: images || [],
+    likes: [],
 
     type: 'daily_rental',
     userId: userId,
@@ -837,10 +827,8 @@ export const autoFillDailyRentalForm = (reset, setValue, data) => {
     maxStay,
     minStay,
     pricePerDay,
-    pricePerHour,
-    pricePerMonth,
     pricePerNight,
-    pricePerWeek,
+    currency,
     amenities,
     bedrooms,
     phoneNumber,
@@ -849,12 +837,9 @@ export const autoFillDailyRentalForm = (reset, setValue, data) => {
     description,
     houseType,
     offerType,
-    houseInsides,
-    rentalStatus,
-    reservationDetails
   } = data
 
-  const addr = address || data.address || {}
+  const addr = address || {}
 
   setValue('description', description)
   setValue('checkInHour', checkInHour)
@@ -864,44 +849,35 @@ export const autoFillDailyRentalForm = (reset, setValue, data) => {
   setValue('minStay', minStay)
 
   setValue('pricePerDay', pricePerDay)
-  setValue('pricePerHour', pricePerHour)
-  setValue('pricePerMonth', pricePerMonth)
   setValue('pricePerNight', pricePerNight)
-  setValue('pricePerWeek', pricePerWeek)
+  setValue('currency', currency
+    ? { value: currency, label: currency }
+    : { value: 'GNF', label: 'GNF' })
 
-  setValue('partNumber', bedrooms) // reuse partNumber for bedrooms in form
+  setValue('bedrooms', bedrooms)
 
-  setValue('offerType', { value: offerType?.value, label: offerType?.value })
+  setValue('offerType', offerType?.value ? { value: offerType.value, label: offerType.label } : offerType)
   const displayPhone = phoneNumber ? String(phoneNumber).replace(/^(?:\+224|00224)/, '') : undefined
   setValue('phoneNumber', displayPhone)
 
-  // Amenities
-  // Amenities
-  const validAmenities = Array.isArray(amenities) ? amenities : (amenities ? [amenities] : []);
-  setValue('amenities', validAmenities);
+  const validAmenities = Array.isArray(amenities) ? amenities : (amenities ? [amenities] : [])
+  setValue('amenities', validAmenities)
 
-  setValue('houseType', houseType && houseType.value ? { value: houseType.value, label: houseType.label } : houseType)
+  setValue('houseType', houseType?.value ? { value: houseType.value, label: houseType.label } : houseType)
 
-  // Address fields
-  // Address fields
-  const sectionValue = addr?.section
-    ? (addr.section.value || addr.section)
-    : (typeof addr?.zone === 'string' ? addr.zone : undefined)
-
-  setValue('section', sectionValue ? { value: sectionValue, label: sectionValue } : undefined)
   setValue('long', Number(addr?.long))
   setValue('lat', Number(addr?.lat))
-  setValue('zone', addr?.commune ? { value: addr?.commune.value || addr?.zone, label: addr?.commune.label || addr?.zone } : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)
+  setValue('zone', addr?.commune?.value
+    ? { value: addr.commune.value, label: addr.commune.label }
+    : addr?.zone ? { value: addr.zone, label: addr.zone } : undefined)
 
   setValue('isAvailable', isAvailable)
   setValue('imageUrl', imageUrl)
-  setValue('houseInsides', houseInsides)
-
-  setValue('rentalStatus', rentalStatus || '')
-  setValue('reservationDetails', reservationDetails || null)
+  // Rétrocompat : anciens docs stockent houseInsides, nouveaux stockent images
+  setValue('images', data.images || data.houseInsides || [])
 
   // Town — string libre (rétrocompat : anciens docs ont { label, value })
-  const rawTownDR = data?.address?.town
-  setValue('town', typeof rawTownDR === 'string' ? rawTownDR : (rawTownDR?.label || rawTownDR?.value || ''))
+  const rawTown = addr?.town
+  setValue('town', typeof rawTown === 'string' ? rawTown : (rawTown?.label || rawTown?.value || ''))
 }
 

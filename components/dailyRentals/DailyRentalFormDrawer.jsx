@@ -11,6 +11,7 @@ import {
   CONAKRY_COMMUNES,
   houseType,
   commodites,
+  currencyOptions,
 } from '../../_data'
 import { useColors } from '../../contexts/ColorContext'
 import DrawerForm from '../DrawerForm'
@@ -48,12 +49,11 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
     formState: { errors },
   } = useForm({
     mode: 'onBlur',
-    defaultValues: { isAvailable: true },
+    defaultValues: { isAvailable: true, currency: { label: 'GNF', value: 'GNF' } },
     reValidateMode: 'onChange',
     shouldUnregister: false,
   })
 
-  const zone = watch('zone')
   const setLonLat = (lon, lat) => {
     setValue('long', lon)
     setValue('lat', lat)
@@ -68,7 +68,7 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
       return
     }
     if (dailyRental) {
-      setImages(dailyRental.houseInsides || [])
+      setImages(dailyRental.images || dailyRental.houseInsides || [])
       setImageFiles([])
       setPreviewUrl(dailyRental?.imageUrl || null)
     } else {
@@ -401,13 +401,16 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
               </div>
 
                <div className="form-group col-3">
-                <label className="form-label">Téléphone</label>
+                <label className="form-label">Téléphone *</label>
                 <input
                   type="tel"
-                  {...register('phoneNumber')}
+                  {...register('phoneNumber', { required: 'Requis' })}
                   className="form-input"
                   placeholder="+224 612345678"
                 />
+                {errors?.phoneNumber && (
+                  <span className="form-error">{errors.phoneNumber.message}</span>
+                )}
               </div>
             </div>
 
@@ -501,27 +504,21 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
           <div className="form-section">
             <div className="form-section-header">
               <div className="section-icon financial">💰</div>
-              <h3 className="form-section-title">Tarification (GNF)</h3>
+              <h3 className="form-section-title">Tarification</h3>
             </div>
-            
-             <div className="form-row">
+
+            <div className="form-row">
               <div className="form-group col-2">
-                <label className="form-label">Par Jour</label>
+                <label className="form-label">Par Jour *</label>
                 <input
                   type="number"
-                  {...register('pricePerDay')}
+                  {...register('pricePerDay', { required: 'Requis' })}
                   className="form-input"
                   placeholder="0"
                 />
-              </div>
-              <div className="form-group col-2">
-                <label className="form-label">Par Heure</label>
-                <input
-                  type="number"
-                  {...register('pricePerHour')}
-                  className="form-input"
-                  placeholder="0"
-                />
+                {errors?.pricePerDay && (
+                  <span className="form-error">{errors.pricePerDay.message}</span>
+                )}
               </div>
               <div className="form-group col-2">
                 <label className="form-label">Par Nuit</label>
@@ -532,24 +529,13 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
                   placeholder="0"
                 />
               </div>
-            </div>
-             <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Par Semaine</label>
-                <input
-                  type="number"
-                  {...register('pricePerWeek')}
-                  className="form-input"
-                  placeholder="0"
-                />
-              </div>
-              <div className="form-group col-3">
-                <label className="form-label">Par Mois</label>
-                <input
-                  type="number"
-                  {...register('pricePerMonth')}
-                  className="form-input"
-                  placeholder="0"
+              <div className="form-group col-2">
+                <label className="form-label">Devise</label>
+                <SimpleSelect
+                  name="currency"
+                  control={control}
+                  options={currencyOptions}
+                  placeholder="GNF"
                 />
               </div>
             </div>
@@ -563,68 +549,60 @@ function DailyRentalFormDrawer({ dailyRental, open, setOpen, setData, data }) {
             </div>
 
             <div className="form-row">
-              <div className="form-group col-2">
+              <div className="form-group col-3">
                 <label className="form-label">Commune</label>
                 <SimpleSelect
-                  required="Requis"
                   creatable
                   name="zone"
                   control={control}
                   options={CONAKRY_COMMUNES}
                   placeholder="Sélectionner"
                 />
-                {errors?.zone && (
-                  <span className="form-error">{errors.zone.message}</span>
-                )}
               </div>
 
-              <div className="form-group col-2">
-                <label className="form-label">Ville</label>
+              <div className="form-group col-3">
+                <label className="form-label">Ville *</label>
                 <input
                   type="text"
-                  {...register('town')}
+                  {...register('town', { required: 'Requis' })}
                   className="form-input"
                   placeholder="Ex: Conakry"
                 />
-              </div>
-
-              <div className="form-group col-2">
-                <label className="form-label">Quartier</label>
-                <input
-                  type="text"
-                  {...register('section', { required: 'Requis' })}
-                  className="form-input"
-                  placeholder="Ex: Kipé, Madina..."
-                />
-                {errors?.section && (
-                  <span className="form-error">{errors.section.message}</span>
+                {errors?.town && (
+                  <span className="form-error">{errors.town.message}</span>
                 )}
               </div>
             </div>
 
             <div className="form-row">
-              <div className="form-group col-2">
-                 <label className="form-label">Longitude</label>
+              <div className="form-group col-3">
+                <label className="form-label">Longitude *</label>
                 <input
-                  disabled
+                  readOnly
                   type="text"
-                  {...register('long')}
+                  {...register('long', { required: 'Cliquez sur la carte' })}
                   className="form-input bg-gray-50"
                   placeholder="Auto"
                 />
+                {errors?.long && (
+                  <span className="form-error">{errors.long.message}</span>
+                )}
               </div>
-               <div className="form-group col-2">
-                <label className="form-label">Latitude</label>
+              <div className="form-group col-3">
+                <label className="form-label">Latitude *</label>
                 <input
-                  disabled
+                  readOnly
                   type="text"
-                  {...register('lat')}
+                  {...register('lat', { required: 'Cliquez sur la carte' })}
                   className="form-input bg-gray-50"
                   placeholder="Auto"
                 />
+                {errors?.lat && (
+                  <span className="form-error">{errors.lat.message}</span>
+                )}
               </div>
             </div>
-             <div className="form-row">
+            <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Carte Localisation</label>
                 <GoogleMaps

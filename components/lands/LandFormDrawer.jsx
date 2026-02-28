@@ -1,15 +1,13 @@
 import { useAuthUser } from 'next-firebase-auth'
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiImage2Fill, RiCloseLine, RiCheckLine } from 'react-icons/ri'
+import { RiCloseLine, RiCheckLine } from 'react-icons/ri'
 import { client } from '../../lib/algolia'
 import { addLand, editLand } from '../../lib/services/lands'
 import { getCurrentDateOnline } from '../../utils/date'
 import { autoFillLandForm } from '../../lib/models/Land'
 import { notify } from '../../utils/toast'
-import {
-  CONAKRY_COMMUNES,
-} from '../../_data'
+import { CONAKRY_COMMUNES, currencyOptions, offerType as offerTypeOptions } from '../../_data'
 import { useColors } from '../../contexts/ColorContext'
 import DrawerForm from '../DrawerForm'
 import GoogleMaps from '../GoogleMaps'
@@ -45,12 +43,14 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
     formState: { errors },
   } = useForm({
     mode: 'onBlur',
-    defaultValues: { isAvailable: true },
+    defaultValues: {
+      isAvailable: true,
+      currency: { label: 'GNF', value: 'GNF' },
+    },
     reValidateMode: 'onChange',
     shouldUnregister: false,
   })
 
-  const zone = watch('zone')
   const setLonLat = (lon, lat) => {
     setValue('long', lon)
     setValue('lat', lat)
@@ -65,7 +65,7 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
       return
     }
     if (land) {
-      setImages(land.houseInsides || [])
+      setImages(land.images || land.houseInsides || [])
       setImageFiles([])
       setPreviewUrl(land?.imageUrl || null)
     } else {
@@ -118,10 +118,6 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
 
     if (data?.phoneNumber) data.phoneNumber = normalizePhone(data.phoneNumber)
 
-    // Force values for Land
-    data.houseType = { label: "Terrain", value: "land" }
-    data.offerType = { label: "Vendre", value: "Vendre" }
-
     try {
       const date = Date.now() / 1000
       const seconds = parseInt(date, 10)
@@ -164,8 +160,6 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
 
   return (
     <>
-
-
       <DrawerForm
         open={open}
         setOpen={setOpen}
@@ -209,13 +203,54 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
           {/* SECTION 1: Informations Basiques */}
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
             <div className="mb-5 flex items-center gap-3 border-b-2 border-gray-200 pb-4">
-              <div 
+              <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xl"
                 style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', color: colors.primary || '#3b82f6' }}
               >📋</div>
               <h3 className="m-0 text-sm font-bold uppercase tracking-wide text-gray-900">Informations Basiques</h3>
             </div>
 
+            {/* Row 1: offerType | price | currency */}
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Type d'offre</label>
+                <SimpleSelect
+                  required="Requis"
+                  name="offerType"
+                  control={control}
+                  options={offerTypeOptions}
+                  placeholder="Sélectionner"
+                />
+                {errors?.offerType && (
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.offerType.message}</span>
+                )}
+              </div>
+
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Prix</label>
+                <input
+                  type="number"
+                  {...register('price', { required: 'Requis' })}
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                  placeholder="0"
+                />
+                {errors?.price && (
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.price.message}</span>
+                )}
+              </div>
+
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Devise</label>
+                <SimpleSelect
+                  name="currency"
+                  control={control}
+                  options={currencyOptions}
+                  placeholder="GNF"
+                />
+              </div>
+            </div>
+
+            {/* Row 2: area | phoneNumber */}
             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
               <div className="col-span-6 sm:col-span-3">
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Superficie (m²)</label>
@@ -228,28 +263,20 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
               </div>
 
               <div className="col-span-6 sm:col-span-3">
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Prix Total (GNF)</label>
-                <input
-                  type="number"
-                  {...register('price')}
-                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
-             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
-               <div className="col-span-6 sm:col-span-3">
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Téléphone</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Téléphone *</label>
                 <input
                   type="tel"
-                  {...register('phoneNumber')}
+                  {...register('phoneNumber', { required: 'Requis' })}
                   className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                   placeholder="+224 612345678"
                 />
+                {errors?.phoneNumber && (
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.phoneNumber.message}</span>
+                )}
               </div>
             </div>
 
+            {/* Row 3: description */}
             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
               <div className="col-span-6">
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Description</label>
@@ -274,31 +301,29 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
               <div className="col-span-6 sm:col-span-2">
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Commune</label>
                 <SimpleSelect
-                  required="Requis"
                   creatable
                   name="zone"
                   control={control}
                   options={CONAKRY_COMMUNES}
                   placeholder="Sélectionner"
-                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
                 />
-                {errors?.zone && (
-                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.zone.message}</span>
+              </div>
+
+              <div className="col-span-6 sm:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Ville *</label>
+                <input
+                  type="text"
+                  {...register('town', { required: 'Requis' })}
+                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                  placeholder="Ex: Conakry"
+                />
+                {errors?.town && (
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.town.message}</span>
                 )}
               </div>
 
               <div className="col-span-6 sm:col-span-2">
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Ville</label>
-                <input
-                  type="text"
-                  {...register('town')}
-                  className="w-full rounded-md border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
-                  placeholder="Ex: Conakry"
-                />
-              </div>
-
-              <div className="col-span-6 sm:col-span-2">
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Quartier</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Quartier *</label>
                 <input
                   type="text"
                   {...register('section', { required: 'Requis' })}
@@ -313,27 +338,34 @@ function LandFormDrawer({ land, open, setOpen, setData, data }) {
 
             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
               <div className="col-span-6 sm:col-span-2">
-                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Longitude</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Longitude *</label>
                 <input
-                  disabled
+                  readOnly
                   type="text"
-                  {...register('long')}
+                  {...register('long', { required: 'Sélectionnez un point sur la carte' })}
                   className="w-full rounded-md border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 transition-all"
                   placeholder="Auto"
                 />
+                {errors?.long && (
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.long.message}</span>
+                )}
               </div>
               <div className="col-span-6 sm:col-span-2">
-                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Latitude</label>
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Latitude *</label>
                 <input
-                  disabled
+                  readOnly
                   type="text"
-                  {...register('lat')}
+                  {...register('lat', { required: 'Sélectionnez un point sur la carte' })}
                   className="w-full rounded-md border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-900 transition-all"
                   placeholder="Auto"
                 />
+                {errors?.lat && (
+                  <span className="mt-1 text-xs font-semibold text-red-600">{errors.lat.message}</span>
+                )}
               </div>
             </div>
-             <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
+
+            <div className="mb-4 grid grid-cols-6 gap-4 last:mb-0">
               <div className="col-span-6">
                 <label className="mb-2 block text-xs font-bold uppercase tracking-wide text-gray-800">Carte Localisation</label>
                 <GoogleMaps

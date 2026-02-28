@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
 import { OrderSkleton } from '../../../components/Orders/OrdersList'
 import GoogleMaps from '@/components/GoogleMaps'
+import { useColors } from '@/contexts/ColorContext'
 import {
   AuthAction,
   withAuthUser,
@@ -13,6 +14,7 @@ import {
 
 function HouseDetail() {
   const router = useRouter()
+  const colors = useColors()
   const { houseId } = router.query
   const [house, setHouse] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -124,11 +126,8 @@ function HouseDetail() {
                   <div
                     key={index}
                     onClick={() => setSelectedImage(img)}
-                    className={`relative h-24 cursor-pointer overflow-hidden rounded-lg transition-all ${
-                      selectedImage === img
-                        ? 'ring-4 ring-cyan-500'
-                        : 'hover:opacity-75'
-                    }`}
+                    className="relative h-24 cursor-pointer overflow-hidden rounded-lg transition-all hover:opacity-75"
+                    style={selectedImage === img ? { boxShadow: `0 0 0 2px ${colors.primary}` } : {}}
                   >
                     <img
                       src={img}
@@ -224,7 +223,7 @@ function HouseDetail() {
                 <p className="mb-1 text-sm text-gray-600">
                   {house.offerType?.label}
                 </p>
-                <p className="text-4xl font-bold text-cyan-600">
+                <p className="text-4xl font-bold" style={{ color: colors.primary }}>
                   {formatPrice(house.price, house.currency)}
                 </p>
                 <p className="mt-1 text-sm text-gray-500">
@@ -316,7 +315,8 @@ function HouseDetail() {
                 className="flex items-center gap-2 text-black hover:underline"
               >
                 <svg
-                  className="h-5 w-5 text-cyan-600"
+                  className="h-5 w-5"
+                  style={{ color: colors.primary }}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

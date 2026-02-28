@@ -1,10 +1,6 @@
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
-import { getAuth, onAuthStateChanged } from 'firebase/auth'
-
-import { parseDocsData } from '@/utils/firebase/firestore'
-import { db } from '@/lib/firebase/client_config'
 import {
   AuthAction,
   useAuthUser,
