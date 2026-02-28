@@ -5,6 +5,7 @@ import initAuth from '@/utils/firebase/initAuth'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { Toaster } from 'react-hot-toast'
 import { useState } from 'react'
 
 initAuth()
@@ -26,6 +27,7 @@ function MyApp({ Component, pageProps }) {
           <Component {...pageProps} />
         </NotificationsProvider>
       </ColorProvider>
+      <Toaster position="top-right" />
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   )

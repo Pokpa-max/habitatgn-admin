@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { onSnapshot, query, where, orderBy } from 'firebase/firestore'
+import { onSnapshot, query, where } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase/client_config'
 import { dailyBookingsCollectionRef } from '@/lib/services/dailyBookings'
@@ -39,8 +39,7 @@ export function NotificationsProvider({ children }) {
 
       const qBookings = query(
         dailyBookingsCollectionRef,
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc')
+        where('status', '==', 'pending')
       )
 
       unsubBookings = onSnapshot(qBookings, (snapshot) => {
@@ -65,8 +64,7 @@ export function NotificationsProvider({ children }) {
 
       const qServices = query(
         serviceRequestsCollectionRef,
-        where('status', '==', 'pending'),
-        orderBy('createdAt', 'desc')
+        where('status', '==', 'pending')
       )
 
       unsubServices = onSnapshot(qServices, (snapshot) => {
