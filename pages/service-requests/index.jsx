@@ -50,17 +50,21 @@ const STATUSES = [
     label: 'Terminé',
     bg: 'bg-green-100',
     text: 'text-green-700',
+    final: true,
   },
   {
     value: 'rejected',
     label: 'Rejeté',
     bg: 'bg-red-100',
     text: 'text-red-700',
+    final: true,
   },
 ]
 
 const getStatus = (value) =>
   STATUSES.find((s) => s.value === value) || STATUSES[0]
+
+const isFinal = (value) => STATUSES.find((s) => s.value === value)?.final === true
 
 const FILTER_TABS = [{ value: 'all', label: 'Tous' }, ...STATUSES]
 
@@ -179,23 +183,29 @@ function DetailModal({ request, colors, onClose, onStatusChange }) {
           )}
 
           {/* Changer statut */}
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              Changer le statut
+          {isFinal(request.status) ? (
+            <p className="rounded-xl bg-gray-50 px-4 py-3 text-center text-xs font-semibold text-gray-400">
+              Statut final — aucune modification possible
             </p>
-            <div className="flex flex-wrap gap-2">
-              {STATUSES.filter((s) => s.value !== request.status).map((s) => (
-                <button
-                  key={s.value}
-                  onClick={() => handleStatus(s.value)}
-                  disabled={updating}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${s.bg} ${s.text} hover:opacity-80`}
-                >
-                  {updating ? '...' : s.label}
-                </button>
-              ))}
+          ) : (
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Changer le statut
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {STATUSES.filter((s) => s.value !== request.status).map((s) => (
+                  <button
+                    key={s.value}
+                    onClick={() => handleStatus(s.value)}
+                    disabled={updating}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${s.bg} ${s.text} hover:opacity-80`}
+                  >
+                    {updating ? '...' : s.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -380,17 +390,19 @@ function ServiceRequestsPage() {
                 {/* Actions */}
                 <div className="flex flex-shrink-0 items-center gap-2">
                   {/* Changement statut rapide */}
-                  <select
-                    value={req.status}
-                    onChange={(e) => handleStatusChange(req.id, e.target.value)}
-                    className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs font-semibold text-gray-700 focus:border-gray-300 focus:outline-none"
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
+                  {!isFinal(req.status) && (
+                    <select
+                      value={req.status}
+                      onChange={(e) => handleStatusChange(req.id, e.target.value)}
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs font-semibold text-gray-700 focus:border-gray-300 focus:outline-none"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
                   {/* Voir détails */}
                   <button
