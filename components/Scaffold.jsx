@@ -3,7 +3,6 @@ import { Dialog, Transition } from '@headlessui/react'
 import {
   RiMenuFill,
   RiCloseFill,
-  RiStore3Fill,
   RiGroupFill,
   RiBookOpenFill,
   RiDashboardFill,
@@ -25,24 +24,6 @@ const navigation = [
     name: 'Dashboard',
     href: '/',
     icon: RiDashboardFill,
-    claims: ['admin', 'manager'],
-  },
-  {
-    name: 'Biens immobiliers',
-    href: '/houses',
-    icon: RiStore3Fill,
-    claims: ['admin', 'manager'],
-  },
-  {
-    name: 'Location Journalière',
-    href: '/daily-rentals',
-    icon: RiStore3Fill,
-    claims: ['admin', 'manager'],
-  },
-  {
-    name: 'Terrains',
-    href: '/lands',
-    icon: RiStore3Fill,
     claims: ['admin', 'manager'],
   },
   {

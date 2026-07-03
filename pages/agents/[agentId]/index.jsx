@@ -1,14 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import {
   RiArrowLeftLine,
   RiMailLine,
   RiPhoneLine,
   RiMapPinLine,
-  RiHome4Line,
-  RiLandscapeLine,
-  RiCalendarLine,
-  RiCalendarCheckLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -28,12 +24,6 @@ import {
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
-import { useInfiniteHouses } from '@/lib/hooks/useHouses'
-import { useInfiniteLands } from '@/lib/hooks/useLands'
-import { useInfiniteDailyRentals } from '@/lib/hooks/useDailyRentals'
-import HousesList from '@/components/houses/HouseList'
-import LandList from '@/components/lands/LandList'
-import DailyRentalList from '@/components/dailyRentals/DailyRentalList'
 import AgentBookingsTable from '@/components/bookings/AgentBookingsTable'
 
 const PROPERTY_TYPE_LABELS = {
@@ -52,7 +42,6 @@ function AgentDetail() {
   const [isAvailable, setIsAvailable] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('houses')
 
   useEffect(() => {
     if (!agentId) return
@@ -73,30 +62,6 @@ function AgentDetail() {
     load()
   }, [agentId])
 
-  const housesQuery = useInfiniteHouses('manager', agentId)
-  const landsQuery = useInfiniteLands('manager', agentId)
-  const dailyRentalsQuery = useInfiniteDailyRentals('manager', agentId)
-
-  const houses = useMemo(
-    () => housesQuery.data?.pages.flatMap((p) => p.houses) || [],
-    [housesQuery.data]
-  )
-  const lands = useMemo(
-    () => landsQuery.data?.pages.flatMap((p) => p.lands) || [],
-    [landsQuery.data]
-  )
-  const dailyRentals = useMemo(
-    () => dailyRentalsQuery.data?.pages.flatMap((p) => p.dailyRentals) || [],
-    [dailyRentalsQuery.data]
-  )
-
-  const TABS = [
-    { value: 'houses', label: 'Biens immobiliers', icon: RiHome4Line, count: houses.length },
-    { value: 'lands', label: 'Terrains', icon: RiLandscapeLine, count: lands.length },
-    { value: 'dailyRentals', label: 'Locations journalières', icon: RiCalendarLine, count: dailyRentals.length },
-    { value: 'bookings', label: 'Réservations', icon: RiCalendarCheckLine, count: null },
-  ]
-
   const handleToggleBlock = async () => {
     const nextAvailable = !isAvailable
     try {
@@ -112,7 +77,7 @@ function AgentDetail() {
 
   return (
     <Scaffold>
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <button
           onClick={() => router.back()}
           className="mb-4 flex items-center text-sm text-gray-600 hover:text-gray-900"
@@ -192,78 +157,10 @@ function AgentDetail() {
           </div>
         )}
 
-        {/* Onglets biens */}
-        <div className="mb-4 flex gap-2 border-b border-gray-200">
-          {TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
-              style={
-                activeTab === tab.value
-                  ? { borderColor: colors.primary, color: colors.primary }
-                  : { borderColor: 'transparent', color: colors.gray500 }
-              }
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-              {tab.count !== null && (
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-xs"
-                  style={
-                    activeTab === tab.value
-                      ? { backgroundColor: colors.primaryVeryLight, color: colors.primary }
-                      : { backgroundColor: colors.gray100, color: colors.gray500 }
-                  }
-                >
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'houses' && (
-          <HousesList
-            houses={houses}
-            showMore={housesQuery.fetchNextPage}
-            hasMore={housesQuery.hasNextPage}
-            isLoading={housesQuery.isLoading}
-            isFetchingMore={housesQuery.isFetchingNextPage}
-            data={{ houses }}
-            setData={() => {}}
-          />
-        )}
-
-        {activeTab === 'lands' && (
-          <LandList
-            data={{ lands }}
-            setData={() => {}}
-            lands={lands}
-            showMore={landsQuery.fetchNextPage}
-            hasMore={landsQuery.hasNextPage}
-            pagination={landsQuery.hasNextPage}
-            isLoading={landsQuery.isLoading}
-            isLoadingP={landsQuery.isFetchingNextPage}
-          />
-        )}
-
-        {activeTab === 'dailyRentals' && (
-          <DailyRentalList
-            data={{ dailyRentals }}
-            setData={() => {}}
-            dailyRentals={dailyRentals}
-            showMore={dailyRentalsQuery.fetchNextPage}
-            hasMore={dailyRentalsQuery.hasNextPage}
-            pagination={dailyRentalsQuery.hasNextPage}
-            isLoading={dailyRentalsQuery.isLoading}
-            isLoadingP={dailyRentalsQuery.isFetchingNextPage}
-          />
-        )}
-
-        {activeTab === 'bookings' && (
-          <AgentBookingsTable agentId={agentId} dailyRentals={dailyRentals} />
-        )}
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500">
+          Réservations
+        </h2>
+        <AgentBookingsTable agentId={agentId} dailyRentals={[]} />
       </div>
     </Scaffold>
   )
