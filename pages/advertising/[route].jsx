@@ -1,12 +1,11 @@
-
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import {
-  RiGroupFill,
-  RiProfileLine,
+  RiImageLine,
+  RiAdvertisementLine,
   RiTeamLine,
 } from 'react-icons/ri'
-
 import {
   AuthAction,
   withAuthUser,
@@ -15,42 +14,41 @@ import {
 
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
-import { useColors } from '../../contexts/ColorContext'
-import Link from 'next/link'
-import ManagersPage from '../../components/Users/Managers/ManagersPage'
-import CustomersPage from '../../components/Users/Customers/CustomersPage'
-import PartnersPage from '../../components/Users/Partners/PartnersPage'
+import { useColors } from '@/contexts/ColorContext'
+import HeroTab from '@/components/advertising/HeroTab'
+import FeaturedAdTab from '@/components/advertising/FeaturedAdTab'
+import PartnerAgenciesTab from '@/components/advertising/PartnerAgenciesTab'
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
 }
 
-function Users() {
+function Advertising() {
   const colors = useColors()
   const router = useRouter()
   const currentPath = router.query.route
 
   const subNavigation = [
     {
-      name: 'Utilisateurs',
-      href: `customers`,
-      icon: RiGroupFill,
-      current: currentPath === `customers`,
-      component: <CustomersPage />,
+      name: 'Section héro',
+      href: 'hero',
+      icon: RiImageLine,
+      current: currentPath === 'hero',
+      component: <HeroTab />,
     },
     {
-      name: 'Managers',
-      href: `managers`,
-      icon: RiProfileLine,
-      current: currentPath === `managers`,
-      component: <ManagersPage />,
+      name: 'Bannière vedette',
+      href: 'featured-ad',
+      icon: RiAdvertisementLine,
+      current: currentPath === 'featured-ad',
+      component: <FeaturedAdTab />,
     },
     {
-      name: 'Partenaires',
-      href: `partners`,
+      name: 'Agences partenaires',
+      href: 'agencies',
       icon: RiTeamLine,
-      current: currentPath === `partners`,
-      component: <PartnersPage />,
+      current: currentPath === 'agencies',
+      component: <PartnerAgenciesTab />,
     },
   ]
 
@@ -92,7 +90,15 @@ function Users() {
           <main className="relative min-h-screen">
             <div className="min-h-screen bg-white">
               <div className="divide-y divide-gray-200 lg:grid lg:grid-cols-12 lg:divide-y-0 lg:divide-x">
-                <aside className="py-6 lg:col-span-2">
+                <aside className="py-6 lg:col-span-3">
+                  <div className="px-6 pb-4">
+                    <h1
+                      className="text-2xl font-black"
+                      style={{ color: colors.gray900 }}
+                    >
+                      Publicité
+                    </h1>
+                  </div>
                   <nav className="space-y-1 px-2">
                     {subNavigation.map((item) => (
                       <Link passHref key={item.name} href={item.href}>
@@ -114,7 +120,7 @@ function Users() {
                     ))}
                   </nav>
                 </aside>
-                <div className="divide-y divide-gray-200 lg:col-span-10">
+                <div className="px-4 py-6 sm:px-6 lg:col-span-9 lg:px-8">
                   {cmp}
                 </div>
               </div>
@@ -122,14 +128,14 @@ function Users() {
           </main>
         </>
       }
-      title="Utilisateurs"
+      title="Publicité"
     />
   )
 }
 
-const UsersPage = () => (
-  <Page name="Users | HabitatGN">
-    <Users />
+const AdvertisingPage = () => (
+  <Page name="Publicité | HabitatGN">
+    <Advertising />
   </Page>
 )
 
@@ -137,15 +143,11 @@ export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
   if (AuthUser.claims.userType !== 'admin') {
-    return {
-      notFound: true,
-    }
+    return { notFound: true }
   }
-  return {
-    props: {},
-  }
+  return { props: {} }
 })
 
 export default withAuthUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
-})(UsersPage)
+})(AdvertisingPage)

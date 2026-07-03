@@ -8,7 +8,7 @@ class MyDocument extends Document {
 
   render() {
     return (
-      <Html className="h-full debug-screens font-stratos">
+      <Html className="h-full debug-screens">
         <Head>
           <meta property="example" content="example.com" />
         </Head>

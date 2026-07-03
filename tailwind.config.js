@@ -8,11 +8,6 @@ module.exports = {
       position: ['bottom', 'left'],
     },
     extend: {
-      fontFamily: {
-        stratos: ['stratos', 'cursive'],
-        'stratos-light': ['stratos-light', 'cursive'],
-        'stratos-extrabold': ['stratos-extrabold', 'cursive'],
-      },
       screens: {
         '3xl': '2000px',
       },

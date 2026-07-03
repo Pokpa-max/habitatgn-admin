@@ -33,27 +33,23 @@ const STATUSES = [
   {
     value: 'pending',
     label: 'En attente',
-    bg: 'bg-amber-100',
-    text: 'text-amber-700',
+    dot: 'gray400',
   },
   {
     value: 'confirmed',
     label: 'Confirmé',
-    bg: 'bg-blue-100',
-    text: 'text-blue-700',
+    dot: 'primary',
   },
   {
     value: 'completed',
     label: 'Terminé',
-    bg: 'bg-green-100',
-    text: 'text-green-700',
+    dot: 'gray700',
     final: true,
   },
   {
     value: 'cancelled',
     label: 'Annulé',
-    bg: 'bg-red-100',
-    text: 'text-red-700',
+    dot: 'gray300',
     final: true,
   },
 ]
@@ -83,11 +79,11 @@ const daysBetween = (checkIn, checkOut) => {
 // ─── Badge statut ────────────────────────────────────────────────────────────
 
 function StatusBadge({ value }) {
+  const colors = useColors()
   const s = getStatus(value)
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${s.bg} ${s.text}`}
-    >
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-semibold text-gray-700">
+      <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: colors[s.dot] }} />
       {s.label}
     </span>
   )
@@ -242,8 +238,9 @@ function DetailModal({ booking, colors, onClose, onStatusChange }) {
                     key={s.value}
                     onClick={() => handleStatus(s.value)}
                     disabled={updating}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${s.bg} ${s.text} hover:opacity-80`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-50"
                   >
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: colors[s.dot] }} />
                     {updating ? '...' : s.label}
                   </button>
                 ))}

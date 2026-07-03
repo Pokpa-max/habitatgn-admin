@@ -13,7 +13,7 @@ export const columnsSlider = [
     Cell: (data) => {
       return (
         <div className="flex-col p-4 line-clamp-2">
-          <p className="truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+          <p className="truncate whitespace-nowrap text-sm text-gray-500">
             {data}
           </p>
         </div>
@@ -32,7 +32,7 @@ export const columnsSlider = [
                 {data.title}
               </a>
             </Link>
-            <p className="truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+            <p className="truncate whitespace-nowrap text-sm text-gray-500">
               {data.description}
             </p>
           </div>
@@ -46,7 +46,7 @@ export const columnsSlider = [
     accessor: 'type',
     Cell: (data) => {
       return (
-        <div className="whitespace-nowrap px-3 font-stratos-light text-sm capitalize text-gray-500">
+        <div className="whitespace-nowrap px-3 text-sm capitalize text-gray-500">
           {data}
         </div>
       )
@@ -58,17 +58,10 @@ export const columnsSlider = [
     accessor: 'isActive',
     Cell: (isActive) => {
       return (
-        <span
-          className={classNames(
-            isActive
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800',
-            'inline-flex items-center rounded-full  px-2.5 py-0.5 text-xs font-medium '
-          )}
-        >
+        <span className="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700">
           <svg
             className={classNames(
-              isActive ? 'text-green-400' : 'text-red-400',
+              isActive ? 'text-gray-700' : 'text-gray-300',
               '-ml-0.5 mr-1.5 h-2 w-2 '
             )}
             fill="currentColor"
@@ -88,7 +81,7 @@ export const columnsSlider = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data)}
           </div>
         </div>
@@ -104,7 +97,7 @@ export const columnsSponsor = [
     Cell: (data) => {
       return (
         <div className="flex-col p-4 line-clamp-2">
-          <p className="truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+          <p className="truncate whitespace-nowrap text-sm text-gray-500">
             {data}
           </p>
         </div>
@@ -123,7 +116,7 @@ export const columnsSponsor = [
                 {data.name}
               </a>
             </Link>
-            <p className="truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+            <p className="truncate whitespace-nowrap text-sm text-gray-500">
               {data.id}
             </p>
           </div>
@@ -136,7 +129,7 @@ export const columnsSponsor = [
     accessor: 'type',
     Cell: (data) => {
       return (
-        <div className="whitespace-nowrap px-3 font-stratos-light text-sm capitalize text-gray-500">
+        <div className="whitespace-nowrap px-3 text-sm capitalize text-gray-500">
           {data}
         </div>
       )
@@ -148,7 +141,7 @@ export const columnsSponsor = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data.startDate)}
           </div>
         </div>
@@ -160,7 +153,7 @@ export const columnsSponsor = [
     accessor: 'periode',
     Cell: (data) => {
       return (
-        <div className="whitespace-nowrap px-3 font-stratos-light text-sm capitalize text-gray-500">
+        <div className="whitespace-nowrap px-3 text-sm capitalize text-gray-500">
           {timeBetween(Timestamp.fromDate(new Date()), data.endDate)}/
           <span className="font-semibold text-gray-900">
             {timeBetween(data.startDate, data.endDate)} jours
@@ -174,17 +167,10 @@ export const columnsSponsor = [
     accessor: 'isActive',
     Cell: (isActive) => {
       return (
-        <span
-          className={classNames(
-            isActive
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800',
-            'inline-flex items-center rounded-full  px-2.5 py-0.5 text-xs font-medium '
-          )}
-        >
+        <span className="inline-flex items-center rounded-full border border-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-700">
           <svg
             className={classNames(
-              isActive ? 'text-green-400' : 'text-red-400',
+              isActive ? 'text-gray-700' : 'text-gray-300',
               '-ml-0.5 mr-1.5 h-2 w-2 '
             )}
             fill="currentColor"
@@ -204,7 +190,7 @@ export const columnsSponsor = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data)}
           </div>
         </div>
@@ -225,7 +211,7 @@ export const columnsCommercial = [
             src={`${data}`}
             alt=""
           />
-          {/* <p className="truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+          {/* <p className="truncate whitespace-nowrap text-sm text-gray-500">
             {data}
           </p> */}
         </div>
@@ -269,7 +255,7 @@ export const columnsCommercial = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data)}
           </div>
         </div>
@@ -285,7 +271,7 @@ export const columnsCollection = [
     Cell: (data) => {
       return (
         <div className="flex-col p-4 line-clamp-2">
-          <p className="truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+          <p className="truncate whitespace-nowrap text-sm text-gray-500">
             {data}
           </p>
         </div>
@@ -331,7 +317,7 @@ export const columnsCollection = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data)}
           </div>
         </div>

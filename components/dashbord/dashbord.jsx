@@ -165,7 +165,7 @@ function DashboardCard() {
             label="Maisons"
             value={stats.houses.total}
             subValue={`${stats.houses.occupied} Occupée(s)`}
-            labelColor="text-red-500"
+            labelColor="text-gray-500"
         />
 
         {/* Card 2: Terrains */}
@@ -174,7 +174,7 @@ function DashboardCard() {
             label="Terrains"
             value={stats.lands.total}
             subValue={`${stats.lands.occupied} Occupé(s)`}
-            labelColor="text-red-500"
+            labelColor="text-gray-500"
         />
 
         {/* Card 3: Locations Journalières */}
@@ -183,7 +183,7 @@ function DashboardCard() {
             label="Locations Jr."
             value={stats.dailyRentals.total}
             subValue={`${stats.dailyRentals.occupied} Occupée(s)`}
-            labelColor="text-red-500"
+            labelColor="text-gray-500"
         />
 
         {/* Card 4: Total Utilisateurs - Display only for admin */}
@@ -205,7 +205,7 @@ function DashboardCard() {
                 (stats.dailyRentals.total - stats.dailyRentals.occupied)
             }
          
-            labelColor="text-green-600"
+            labelColor="text-gray-500"
         />
 
          {/* Card 6: Total Occupés (Global) */}
@@ -218,7 +218,7 @@ function DashboardCard() {
                 stats.dailyRentals.occupied
             }
            
-             labelColor="text-red-600"
+             labelColor="text-gray-500"
         />
       </div>
 

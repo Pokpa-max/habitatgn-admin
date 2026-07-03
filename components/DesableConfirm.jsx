@@ -23,17 +23,17 @@ function DesableConfirmModal({
         }
 
         .modal-header {
-          background-color: ${desable ? '#fee2e2' : '#dcfce7'};
-          border-bottom: 2px solid ${desable ? '#fecaca' : '#bbf7d0'};
+          background-color: ${colors.gray50};
+          border-bottom: 1px solid ${colors.gray200};
         }
 
         .modal-icon-wrapper {
-          background-color: ${desable ? 'rgba(220, 38, 38, 0.1)' : 'rgba(34, 197, 94, 0.1)'};
-          border: 2px solid ${desable ? 'rgba(220, 38, 38, 0.2)' : 'rgba(34, 197, 94, 0.2)'};
+          background-color: ${desable ? colors.gray100 : `${colors.primary}1A`};
+          border: 2px solid ${desable ? colors.gray200 : `${colors.primary}33`};
         }
 
         .modal-icon {
-          color: ${desable ? '#dc2626' : '#16a34a'};
+          color: ${desable ? colors.gray700 : colors.primary};
         }
 
         .modal-title {

@@ -1,11 +1,17 @@
 import { db } from '@/lib/firebase/client_config'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { fetchWithPost } from '../../utils/fetch'
 
 export const userRef = (userId) => doc(db, `users/${userId}`)
 
 export const desableUserFirestore = async (userId, isAvailable) => {
   await updateDoc(userRef(userId), { isAvailable: isAvailable })
+}
+
+export const getUserAvailability = async (userId) => {
+  if (!userId) return true
+  const snap = await getDoc(userRef(userId))
+  return snap.exists() ? snap.data().isAvailable !== false : true
 }
 
 export const desableUser = async (userId, desableAccount) => {

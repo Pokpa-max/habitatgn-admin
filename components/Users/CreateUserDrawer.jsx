@@ -93,7 +93,7 @@
 //                     className="block w-full flex-1 border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
 //                     placeholder="Nom du manager"
 //                   />
-//                   <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                   <p className="pt-1 text-xs text-red-600">
 //                     {errors?.agence?.message}
 //                   </p>
 //                 </div>
@@ -120,7 +120,7 @@
 //                   placeholder="votre nom"
 //                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
 //                 />
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.firstname?.message}
 //                 </p>
 //               </div>
@@ -142,7 +142,7 @@
 //                   placeholder="votre prenom"
 //                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
 //                 />
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.lastname?.message}
 //                 </p>
 //               </div>
@@ -169,7 +169,7 @@
 //                     className="block w-full border-gray-300 pl-12 pr-20 focus:border-primary focus:ring-primary sm:text-sm"
 //                     placeholder="Votre numero de telephone"
 //                   />
-//                   <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                   <p className="pt-1 text-xs text-red-600">
 //                     {errors?.phoneNumber?.type === 'pattern'
 //                       ? 'Entrez un numero valide'
 //                       : errors?.phoneNumber?.message}
@@ -194,7 +194,7 @@
 //                   placeholder="meloger@gmail.com"
 //                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
 //                 />
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.email?.type === 'pattern'
 //                     ? 'Entrez un email valide'
 //                     : errors?.email?.message}
@@ -218,7 +218,7 @@
 //                     placeholder="Selectionner la commune"
 //                   />
 //                 </div>
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.userRole?.message}
 //                 </p>
 //               </div>
@@ -240,7 +240,7 @@
 //                   placeholder="le mot de passe "
 //                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
 //                 />
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.passWord?.message}
 //                 </p>
 //               </div>
@@ -265,7 +265,7 @@
 //                     placeholder="Selectionner la commune"
 //                   />
 //                 </div>
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.zone?.message}
 //                 </p>
 //               </div>
@@ -286,7 +286,7 @@
 //                     placeholder="Selectionner le quartier"
 //                   />
 //                 </div>
-//                 <p className="pt-1 font-stratos-light text-xs text-red-600">
+//                 <p className="pt-1 text-xs text-red-600">
 //                   {errors?.quartier?.message}
 //                 </p>
 //               </div>

@@ -6,20 +6,20 @@ import {
   withAuthUser,
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
-import AdvertisinglsList from '../../components/adverstising/advertisingList'
+import ContactTab from '@/components/siteSettings/ContactTab'
 
-function Advertising() {
+function Settings() {
   return (
     <Scaffold>
-      <Header title={'Publicité'} />
-      <AdvertisinglsList />
+      <Header title="Paramètres" />
+      <ContactTab />
     </Scaffold>
   )
 }
 
-const AdvertisingPage = () => (
-  <Page name="Publicité">
-    <Advertising />
+const SettingsPage = () => (
+  <Page name="Paramètres | HabitatGN">
+    <Settings />
   </Page>
 )
 
@@ -27,16 +27,11 @@ export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
   if (AuthUser.claims.userType !== 'admin') {
-    return {
-      notFound: true,
-    }
+    return { notFound: true }
   }
-
-  return {
-    props: {},
-  }
+  return { props: {} }
 })
 
 export default withAuthUser({
-  whenAuthedBeforeRedirect: AuthAction.RENDER,
-})(AdvertisingPage)
+  whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
+})(SettingsPage)

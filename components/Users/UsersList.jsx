@@ -110,16 +110,6 @@ function UserTable({
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
-        .badge-active {
-          background-color: #dcfce7;
-          color: #166534;
-        }
-
-        .badge-inactive {
-          background-color: #fee2e2;
-          color: #991b1b;
-        }
-
         .table-header {
           background-color: #f9fafb;
           border-bottom: 1px solid #e5e7eb;
@@ -286,12 +276,12 @@ function UserTable({
                               setSelectUser(row)
                               setOpenModal(true)
                             }}
-                            className={`action-btn cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
-                              row.isAvailable
-                                ? 'badge-active border-green-300'
-                                : 'badge-inactive border-red-300'
-                            }`}
+                            className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
                           >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ backgroundColor: row.isAvailable ? colors.primary : colors.gray400 }}
+                            />
                             {row.isAvailable ? 'Actif' : 'Inactif'}
                           </button>
                         </td>

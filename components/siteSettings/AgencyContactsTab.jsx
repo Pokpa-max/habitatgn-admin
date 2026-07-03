@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Scaffold from '@/components/Scaffold'
-import Header from '@/components/Header'
-import { useColors } from '../../contexts/ColorContext'
-import {
-  AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
-} from 'next-firebase-auth'
+import { useColors } from '@/contexts/ColorContext'
 import {
   getPhoneOperators,
   addPhoneOperator,
@@ -19,14 +12,13 @@ import {
   RiEditLine,
   RiDeleteBinLine,
   RiPhoneLine,
-  RiCloseLine,
   RiCheckLine,
 } from 'react-icons/ri'
 import DrawerForm from '@/components/DrawerForm'
 import Loader from '@/components/Loader'
 import { useForm } from 'react-hook-form'
 
-function SettingsPage() {
+export default function AgencyContactsTab() {
   const colors = useColors()
   const [operators, setOperators] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -42,7 +34,6 @@ function SettingsPage() {
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
-  // Load operators
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
@@ -106,111 +97,105 @@ function SettingsPage() {
   }
 
   return (
-    <Scaffold>
-      <div className="px-4 sm:px-6 lg:px-8">
-        <Header title="Paramètres" />
-
-        {/* Section contacts */}
-        <div className="mt-4 rounded-xl bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">
-                Contacts de l'agence
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Numéros de contact affichés aux utilisateurs de l'application
-              </p>
-            </div>
-            <button
-              onClick={openAdd}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter
-            </button>
+    <>
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              Contacts de l'agence
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Numéros de contact affichés aux utilisateurs de l'application
+            </p>
           </div>
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+            style={{ backgroundColor: colors.primary }}
+          >
+            <RiAddLine className="h-4 w-4" />
+            Ajouter
+          </button>
+        </div>
 
-          {isLoading ? (
-            <div className="flex h-32 items-center justify-center">
-              <Loader />
-            </div>
-          ) : operators.length === 0 ? (
-            <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
-              <RiPhoneLine className="h-8 w-8 text-gray-300" />
-              <p className="text-sm text-gray-400">Aucun contact enregistré</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {operators.map((op) => (
-                <div
-                  key={op.id}
-                  className="flex items-center justify-between py-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full"
-                      style={{ backgroundColor: `${colors.primary}15` }}
-                    >
-                      <RiPhoneLine
-                        className="h-5 w-5"
-                        style={{ color: colors.primary }}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {op.operatorName}
-                      </p>
-                      <p className="text-sm text-gray-500">{op.phoneNumber}</p>
-                    </div>
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader color="#111827" />
+          </div>
+        ) : operators.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
+            <RiPhoneLine className="h-8 w-8 text-gray-300" />
+            <p className="text-sm text-gray-400">Aucun contact enregistré</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {operators.map((op) => (
+              <div
+                key={op.id}
+                className="flex items-center justify-between py-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${colors.primary}15` }}
+                  >
+                    <RiPhoneLine
+                      className="h-5 w-5"
+                      style={{ color: colors.primary }}
+                    />
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    {deleteConfirm === op.id ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          Confirmer ?
-                        </span>
-                        <button
-                          onClick={() => handleDelete(op)}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
-                        >
-                          Oui
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                        >
-                          Non
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => openEdit(op)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                          title="Modifier"
-                        >
-                          <RiEditLine className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(op.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                          title="Supprimer"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      </>
-                    )}
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {op.operatorName}
+                    </p>
+                    <p className="text-sm text-gray-500">{op.phoneNumber}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+
+                <div className="flex items-center gap-2">
+                  {deleteConfirm === op.id ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        Confirmer ?
+                      </span>
+                      <button
+                        onClick={() => handleDelete(op)}
+                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                      >
+                        Oui
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(null)}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                      >
+                        Non
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => openEdit(op)}
+                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                        title="Modifier"
+                      >
+                        <RiEditLine className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirm(op.id)}
+                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
+                        title="Supprimer"
+                      >
+                        <RiDeleteBinLine className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Drawer Ajout / Modification */}
       <DrawerForm
         open={drawerOpen}
         setOpen={setDrawerOpen}
@@ -288,19 +273,6 @@ function SettingsPage() {
           </div>
         </div>
       </DrawerForm>
-    </Scaffold>
+    </>
   )
 }
-
-export const getServerSideProps = withAuthUserTokenSSR({
-  whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
-    return { notFound: true }
-  }
-  return { props: {} }
-})
-
-export default withAuthUser({
-  whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
-})(SettingsPage)

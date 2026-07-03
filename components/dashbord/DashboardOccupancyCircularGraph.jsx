@@ -30,7 +30,7 @@ const DashboardOccupancyCircularGraph = ({ data }) => {
     { name: 'Occupé', value: totalOccupé }
   ]
 
-  const COLORS = [colors.primary, '#ef4444']
+  const COLORS = [colors.primary, colors.gray300]
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

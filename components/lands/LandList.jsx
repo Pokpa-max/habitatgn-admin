@@ -18,6 +18,7 @@ import ConfirmModal from '../ConfirmModal'
 import { deleteLand } from '../../lib/services/lands'
 import { useColors } from '../../contexts/ColorContext'
 import { useQueryClient } from '@tanstack/react-query'
+import OwnerFilterSelect from '../OwnerFilterSelect'
 
 function LandList({
   data,
@@ -57,6 +58,7 @@ function LandsTable({
   const [openModal, setOpenModal] = useState(false)
   const [openWarning, setOpenWarning] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [ownerFilter, setOwnerFilter] = useState('')
 
   const router = useRouter()
   data = data || {}
@@ -64,6 +66,7 @@ function LandsTable({
   const { lands, lastElement } = data
 
   const filteredItems = items?.filter((item) => {
+    if (ownerFilter && item.userId !== ownerFilter) return false
     if (!searchTerm) return true
 
     const searchLower = searchTerm.toLowerCase()
@@ -111,16 +114,6 @@ function LandsTable({
           outline: none;
           border-color: ${colors.primary || '#3b82f6'};
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .badge-available {
-          background-color: #dcfce7;
-          color: #166534;
-        }
-
-        .badge-occupied {
-          background-color: #fee2e2;
-          color: #991b1b;
         }
 
         .table-header {
@@ -208,6 +201,8 @@ function LandsTable({
               </div>
             </div>
 
+            <OwnerFilterSelect items={items || []} value={ownerFilter} onChange={setOwnerFilter} />
+
             {/* Add Button */}
             <button
               onClick={() => {
@@ -281,12 +276,12 @@ function LandsTable({
                               setSelectedItem(row)
                               setOpenModal(true)
                             }}
-                            className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
-                              row.isAvailable
-                                ? 'badge-available border-green-300'
-                                : 'badge-occupied border-red-300'
-                            }`}
+                            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
                           >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ backgroundColor: row.isAvailable ? colors.primary : colors.gray400 }}
+                            />
                             {row.isAvailable ? 'Disponible' : 'Occupé'}
                           </button>
                         </td>
@@ -316,10 +311,10 @@ function LandsTable({
                                 router?.push(`${router.pathname}/${row.id}`)
                               }}
                               type="button"
-                              className="action-btn inline-flex items-center justify-center rounded bg-gray-100 p-2"
+                              className="action-btn inline-flex items-center justify-center rounded border border-gray-200 p-2"
                               title="Voir détails"
                             >
-                              <RiProfileLine className="h-4 w-4 text-gray-700" />
+                              <RiProfileLine className="h-4 w-4 text-gray-600" />
                             </button>
 
                             {/* Delete Button */}
@@ -329,10 +324,10 @@ function LandsTable({
                                 setOpenWarning(true)
                               }}
                               type="button"
-                              className="action-btn inline-flex items-center justify-center rounded bg-red-100 p-2"
+                              className="action-btn inline-flex items-center justify-center rounded border border-gray-200 p-2 text-gray-400 hover:border-red-200 hover:text-red-500"
                               title="Supprimer"
                             >
-                              <RiDeleteRow className="h-4 w-4 text-red-600" />
+                              <RiDeleteRow className="h-4 w-4" />
                             </button>
                           </div>
                         </td>

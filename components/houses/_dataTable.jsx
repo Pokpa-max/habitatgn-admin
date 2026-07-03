@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { firebaseDateFormat } from '../../utils/date'
+import OwnerCell from '../OwnerCell'
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -35,7 +36,7 @@ export const columnsHouse = [
                 {data.label}
               </a>
             </Link>
-            <p className="w-2/4 truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+            <p className="w-2/4 truncate whitespace-nowrap text-sm text-gray-500">
               3 chambres · 0 m²
             </p>
           </div>
@@ -68,7 +69,7 @@ export const columnsHouse = [
           <div className="text-black-900 w-2/4 truncate whitespace-nowrap px-3 text-sm font-bold">
             Bailleur
           </div>
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {data}
           </div>
         </div>
@@ -81,12 +82,22 @@ export const columnsHouse = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data)}
           </div>
         </div>
       )
     },
   },
-
+  {
+    Header: 'Publié par',
+    accessor: 'userId',
+    Cell: (data) => {
+      return (
+        <div className="whitespace-nowrap px-3">
+          <OwnerCell userId={data} />
+        </div>
+      )
+    },
+  },
 ]

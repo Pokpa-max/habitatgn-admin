@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { firebaseDateFormat } from '../../utils/date'
+import OwnerCell from '../OwnerCell'
 
 export const columnsLand = [
   {
@@ -29,7 +30,7 @@ export const columnsLand = [
              <span className="group-hover:text-primary">
                 {data} m²
              </span>
-             <p className="w-2/4 truncate whitespace-nowrap font-stratos-light text-sm text-gray-500">
+             <p className="w-2/4 truncate whitespace-nowrap text-sm text-gray-500">
               Terrain
             </p>
           </div>
@@ -72,7 +73,7 @@ export const columnsLand = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-           <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+           <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {data}
           </div>
         </div>
@@ -85,9 +86,20 @@ export const columnsLand = [
     Cell: (data) => {
       return (
         <div className="flex-col py-4">
-          <div className="whitespace-nowrap px-3 font-stratos-light text-sm text-gray-500">
+          <div className="whitespace-nowrap px-3 text-sm text-gray-500">
             {firebaseDateFormat(data)}
           </div>
+        </div>
+      )
+    },
+  },
+  {
+    Header: 'Publié par',
+    accessor: 'userId',
+    Cell: (data) => {
+      return (
+        <div className="whitespace-nowrap px-3">
+          <OwnerCell userId={data} />
         </div>
       )
     },

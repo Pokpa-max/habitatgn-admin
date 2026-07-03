@@ -60,10 +60,10 @@ const DashboardOccupancyGraph = ({ data }) => {
               radius={[4, 4, 0, 0]}
               barSize={40}
             />
-            <Bar 
-              dataKey="Occupé" 
-              fill="#ef4444" 
-              radius={[4, 4, 0, 0]} 
+            <Bar
+              dataKey="Occupé"
+              fill={colors.gray300}
+              radius={[4, 4, 0, 0]}
               barSize={40}
             />
           </BarChart>

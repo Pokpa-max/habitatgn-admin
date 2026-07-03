@@ -11,6 +11,8 @@ import {
   RiSettings3Line,
   RiToolsLine,
   RiCalendarCheckLine,
+  RiBriefcaseLine,
+  RiHammerLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -53,6 +55,18 @@ const navigation = [
     name: 'Utilisateurs',
     href: '/users',
     icon: RiGroupFill,
+    claims: ['admin'],
+  },
+  {
+    name: 'Agents',
+    href: '/agents',
+    icon: RiBriefcaseLine,
+    claims: ['admin'],
+  },
+  {
+    name: 'Ouvriers',
+    href: '/workers',
+    icon: RiHammerLine,
     claims: ['admin'],
   },
   {
@@ -115,10 +129,10 @@ export default function Scaffold({ children, title, subNav }) {
 
         .nav-item-active {
           color: ${colors.primary};
-          background-color: ${colors.primaryVeryLight};
+          background-color: transparent;
           font-weight: 700;
-          border-left: 4px solid ${colors.primary};
-          padding-left: calc(1rem - 4px);
+          border-left: 3px solid ${colors.primary};
+          padding-left: calc(1rem - 3px);
         }
 
         .nav-item-inactive {
@@ -128,18 +142,17 @@ export default function Scaffold({ children, title, subNav }) {
 
         .nav-item-inactive:hover {
           color: ${colors.primary};
-          background-color: ${colors.primaryVeryLight};
+          background-color: ${colors.gray50};
           padding-left: 1rem;
         }
 
         .sidebar-content {
-          background: linear-gradient(180deg, ${colors.white} 0%, ${colors.gray50} 100%);
+          background-color: ${colors.white};
         }
 
         .logo-section {
-          background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%);
+          background-color: ${colors.primary};
           color: ${colors.white};
-          animation: fadeIn 0.5s ease-out;
         }
 
         .user-section {
@@ -255,7 +268,7 @@ export default function Scaffold({ children, title, subNav }) {
                                 {item.name}
                               </span>
                               {badgeCount > 0 && (
-                                <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                                <span className="ml-auto rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-bold text-white">
                                   {badgeCount}
                                 </span>
                               )}
@@ -366,7 +379,7 @@ export default function Scaffold({ children, title, subNav }) {
                           {item.name}
                         </span>
                         {badgeCount > 0 && (
-                          <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-bold text-white">
+                          <span className="ml-auto rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-bold text-white">
                             {badgeCount}
                           </span>
                         )}
