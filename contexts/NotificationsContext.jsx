@@ -2,100 +2,100 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { onSnapshot, query, where } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase/client_config'
-import { dailyBookingsCollectionRef } from '@/lib/services/dailyBookings'
-import { serviceRequestsCollectionRef } from '@/lib/services/serviceRequests'
+import { agentRequestsCollectionRef } from '@/lib/services/agentRequests'
+import { workersCollectionRef } from '@/lib/services/workers'
 import { notify } from '@/utils/toast'
 
 const NotificationsContext = createContext({
-  pendingBookings: 0,
-  pendingServices: 0,
+  pendingAgents: 0,
+  pendingWorkers: 0,
 })
 
 export function NotificationsProvider({ children }) {
-  const [pendingBookings, setPendingBookings] = useState(0)
-  const [pendingServices, setPendingServices] = useState(0)
+  const [pendingAgents, setPendingAgents] = useState(0)
+  const [pendingWorkers, setPendingWorkers] = useState(0)
 
   // null = not yet initialized (first snapshot = baseline, no toast)
-  const knownBookingIds = useRef(null)
-  const knownServiceIds = useRef(null)
+  const knownAgentIds = useRef(null)
+  const knownWorkerIds = useRef(null)
 
   useEffect(() => {
-    let unsubBookings = null
-    let unsubServices = null
+    let unsubAgents = null
+    let unsubWorkers = null
 
     // Start Firestore listeners only once the user is authenticated
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       // Clean up previous listeners on auth change
-      if (unsubBookings) unsubBookings()
-      if (unsubServices) unsubServices()
-      knownBookingIds.current = null
-      knownServiceIds.current = null
+      if (unsubAgents) unsubAgents()
+      if (unsubWorkers) unsubWorkers()
+      knownAgentIds.current = null
+      knownWorkerIds.current = null
 
       if (!user) {
-        setPendingBookings(0)
-        setPendingServices(0)
+        setPendingAgents(0)
+        setPendingWorkers(0)
         return
       }
 
-      const qBookings = query(
-        dailyBookingsCollectionRef,
+      const qAgents = query(
+        agentRequestsCollectionRef,
         where('status', '==', 'pending')
       )
 
-      unsubBookings = onSnapshot(qBookings, (snapshot) => {
+      unsubAgents = onSnapshot(qAgents, (snapshot) => {
         const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingBookings(ids.size)
+        setPendingAgents(ids.size)
 
-        if (knownBookingIds.current === null) {
+        if (knownAgentIds.current === null) {
           // First load — record baseline, no toast
-          knownBookingIds.current = ids
+          knownAgentIds.current = ids
         } else {
-          const newOnes = [...ids].filter((id) => !knownBookingIds.current.has(id))
+          const newOnes = [...ids].filter((id) => !knownAgentIds.current.has(id))
           if (newOnes.length > 0) {
             const n = newOnes.length
             notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} réservation${n > 1 ? 's' : ''} en attente !`,
+              `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} agent !`,
               'success'
             )
           }
-          knownBookingIds.current = ids
+          knownAgentIds.current = ids
         }
       })
 
-      const qServices = query(
-        serviceRequestsCollectionRef,
+      const qWorkers = query(
+        workersCollectionRef,
         where('status', '==', 'pending')
       )
 
-      unsubServices = onSnapshot(qServices, (snapshot) => {
+      unsubWorkers = onSnapshot(qWorkers, (snapshot) => {
         const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingServices(ids.size)
+        setPendingWorkers(ids.size)
 
-        if (knownServiceIds.current === null) {
-          knownServiceIds.current = ids
+        if (knownWorkerIds.current === null) {
+          knownWorkerIds.current = ids
         } else {
-          const newOnes = [...ids].filter((id) => !knownServiceIds.current.has(id))
+          const newOnes = [...ids].filter((id) => !knownWorkerIds.current.has(id))
           if (newOnes.length > 0) {
             const n = newOnes.length
             notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de service !`,
+              `${n} nouveau${n > 1 ? 'x' : ''} profil${n > 1 ? 's' : ''} ouvrier en attente !`,
               'success'
             )
           }
-          knownServiceIds.current = ids
+          knownWorkerIds.current = ids
         }
       })
     })
 
     return () => {
       unsubAuth()
-      if (unsubBookings) unsubBookings()
-      if (unsubServices) unsubServices()
+      if (unsubAgents) unsubAgents()
+      if (unsubWorkers) unsubWorkers()
     }
   }, [])
 
   return (
-    <NotificationsContext.Provider value={{ pendingBookings, pendingServices }}>
+    <NotificationsContext.Provider value={{ pendingAgents, pendingWorkers }}>
       {children}
     </NotificationsContext.Provider>
   )

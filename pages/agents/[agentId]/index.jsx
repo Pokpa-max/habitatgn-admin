@@ -24,7 +24,6 @@ import {
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
-import AgentBookingsTable from '@/components/bookings/AgentBookingsTable'
 
 const PROPERTY_TYPE_LABELS = {
   location: 'Location',
@@ -156,11 +155,6 @@ function AgentDetail() {
             </div>
           </div>
         )}
-
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500">
-          Réservations
-        </h2>
-        <AgentBookingsTable agentId={agentId} dailyRentals={[]} />
       </div>
     </Scaffold>
   )

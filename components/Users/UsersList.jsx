@@ -22,6 +22,7 @@ function UsersList({
   isLoading,
   isLoadingP,
   title,
+  isStaffTab,
 }) {
   const [selectedUser, setSelectedUser] = useState()
   return (
@@ -36,6 +37,7 @@ function UsersList({
       setData={setData}
       pagination={pagination}
       title={title}
+      isStaffTab={isStaffTab}
     />
   )
 }
@@ -49,6 +51,7 @@ function UserTable({
   isLoading,
   isLoadingP,
   title,
+  isStaffTab,
 }) {
   const colors = useColors()
   const [openModal, setOpenModal] = useState(false)
@@ -172,7 +175,7 @@ function UserTable({
               // Determine if we need to update managers list or generic users list based on title
               // The logic below assumes 'managers' and 'users' arrays exist in data
               // We'll update both or valid one.
-              if (title === 'Managers') {
+              if (isStaffTab) {
                  const newManagers = [newUser, ...(managers || [])]
                  setData({ ...data, managers: newManagers })
               } else {
@@ -201,14 +204,14 @@ function UserTable({
                     borderColor: '#e5e7eb',
                     color: '#111827',
                   }}
-                  placeholder={`Rechercher un ${title === 'Managers' ? 'manager' : 'utilisateur'}...`}
+                  placeholder={`Rechercher un ${isStaffTab ? title.toLowerCase() : 'utilisateur'}...`}
                   type="search"
                 />
               </div>
             </div>
 
             {/* Add Button */}
-            {title === 'Managers' && (
+            {isStaffTab && (
               <button
                 onClick={() => {
                   setOpenDrawer(true)

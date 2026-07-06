@@ -1,5 +1,4 @@
 import React from 'react'
-import Header from '@/components/Header'
 import UsersList from '../UsersList'
 import { db } from '@/lib/firebase/client_config'
 
@@ -18,7 +17,7 @@ import { useState } from 'react'
 import { useEffect } from 'react'
 import { HITS_PER_PAGE } from '../../../lib/constants'
 
-function ManagersPage() {
+function ManagersPage({ types = ['manager', 'admin'], title = 'Managers' }) {
   const [data, setData] = useState(null)
   const [pagination, setPagination] = useState({
     page: 0,
@@ -34,7 +33,7 @@ function ManagersPage() {
       setIsLoading(true)
       const q = query(
         managerRef,
-        where('type', 'in', ['manager', 'admin']),
+        where('type', 'in', types),
         orderBy('createdAt', 'desc'),
         limit(HITS_PER_PAGE)
       )
@@ -48,7 +47,7 @@ function ManagersPage() {
       setIsLoading(false)
     }
     fetchData()
-  }, [])
+  }, [types])
 
   const managerToShow = data?.managers ?? []
   const showMoreFirestore = async () => {
@@ -58,7 +57,7 @@ function ManagersPage() {
 
     const q = query(
       customerRef,
-      where('type', 'in', ['manager', 'admin']),
+      where('type', 'in', types),
       orderBy('createdAt', 'desc'),
       startAfter(lastElement),
       limit(HITS_PER_PAGE)
@@ -77,21 +76,17 @@ function ManagersPage() {
   }
 
   return (
-    <div className="flex-1 py-6">
-      <div className="mx-auto px-4 sm:px-6 md:px-8">
-        <Header title={'Managers'} />
-        <UsersList
-          title={'Managers'}
-          setData={setData}
-          data={data}
-          customers={managerToShow}
-          showMore={showMoreFirestore}
-          pagination={pagination.showPagination}
-          isLoading={isLoading}
-          isLoadingP={isLoadingP}
-        />
-      </div>
-    </div>
+    <UsersList
+      title={title}
+      isStaffTab
+      setData={setData}
+      data={data}
+      customers={managerToShow}
+      showMore={showMoreFirestore}
+      pagination={pagination.showPagination}
+      isLoading={isLoading}
+      isLoadingP={isLoadingP}
+    />
   )
 }
 

@@ -20,7 +20,7 @@ import {
   deletePartner,
   togglePartnerAvailable,
 } from '@/lib/services/partners'
-import { CONAKRY_COMMUNES } from '../../../_data'
+import { CONAKRY_COMMUNES } from '../../_data'
 
 const TYPE_LABELS = {
   notaire: 'Cabinet Notarial',
@@ -28,7 +28,7 @@ const TYPE_LABELS = {
   autre: 'Bureau Technique',
 }
 
-export default function PartnersPage() {
+export default function LegalPartnersTab() {
   const colors = useColors()
   const [partners, setPartners] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -152,13 +152,14 @@ export default function PartnersPage() {
   }
 
   return (
-    <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+    <>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="rounded-xl bg-white p-6 shadow-sm lg:col-span-2">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Partenaires légaux</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Notaires, juristes et bureaux techniques affichés sur le site public
+              Répertoire de notaires, juristes et bureaux techniques
             </p>
           </div>
           <button
@@ -262,6 +263,14 @@ export default function PartnersPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <p className="text-sm text-gray-600">
+          Ce répertoire n'est pour l'instant affiché sur aucune page du site public — il est prêt côté
+          admin, en attente d'un emplacement dédié sur le site.
+        </p>
+      </div>
       </div>
 
       <DrawerForm
@@ -415,6 +424,6 @@ export default function PartnersPage() {
           </div>
         </div>
       </DrawerForm>
-    </div>
+    </>
   )
 }
