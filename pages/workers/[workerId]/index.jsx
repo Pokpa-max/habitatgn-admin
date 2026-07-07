@@ -23,6 +23,7 @@ import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import ConfirmModal from '@/components/ConfirmModal'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getWorkerById } from '@/lib/services/workers'
 import {
   desableUser,
@@ -31,6 +32,8 @@ import {
 } from '@/lib/services/managers'
 import { getWorkerReviews, deleteWorkerReview } from '@/lib/services/workerReviews'
 
+const PAGE_SIZE = 10
+
 function WorkerDetail() {
   const colors = useColors()
   const router = useRouter()
@@ -38,6 +41,7 @@ function WorkerDetail() {
 
   const [worker, setWorker] = useState(null)
   const [reviews, setReviews] = useState([])
+  const [visibleReviewsCount, setVisibleReviewsCount] = useState(PAGE_SIZE)
   const [isAvailable, setIsAvailable] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
@@ -56,6 +60,7 @@ function WorkerDetail() {
         ])
         setIsAvailable(available)
         setReviews(reviewsData)
+        setVisibleReviewsCount(PAGE_SIZE)
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -253,31 +258,38 @@ function WorkerDetail() {
             Avis ({reviews.length})
           </h2>
           {reviews.length > 0 ? (
-            <div className="divide-y divide-gray-100">
-              {reviews.map((review) => (
-                <div key={review.id} className="flex items-start justify-between gap-4 py-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900">{review.userName}</p>
-                      <span className="flex items-center gap-0.5 text-xs text-gray-500">
-                        <RiStarFill className="h-3.5 w-3.5" style={{ color: colors.primary }} />
-                        {review.rating}
-                      </span>
+            <>
+              <div className="divide-y divide-gray-100">
+                {reviews.slice(0, visibleReviewsCount).map((review) => (
+                  <div key={review.id} className="flex items-start justify-between gap-4 py-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-gray-900">{review.userName}</p>
+                        <span className="flex items-center gap-0.5 text-xs text-gray-500">
+                          <RiStarFill className="h-3.5 w-3.5" style={{ color: colors.primary }} />
+                          {review.rating}
+                        </span>
+                      </div>
+                      {review.comment && (
+                        <p className="mt-1 text-sm text-gray-600">{review.comment}</p>
+                      )}
                     </div>
-                    {review.comment && (
-                      <p className="mt-1 text-sm text-gray-600">{review.comment}</p>
-                    )}
+                    <button
+                      onClick={() => setReviewToDelete(review)}
+                      className="flex-shrink-0 rounded-lg border border-gray-200 p-2 text-gray-400 hover:border-red-200 hover:text-red-500"
+                      title="Supprimer l'avis"
+                    >
+                      <RiDeleteBinLine className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setReviewToDelete(review)}
-                    className="flex-shrink-0 rounded-lg border border-gray-200 p-2 text-gray-400 hover:border-red-200 hover:text-red-500"
-                    title="Supprimer l'avis"
-                  >
-                    <RiDeleteBinLine className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              {visibleReviewsCount < reviews.length && (
+                <PaginationButton
+                  getmoreData={() => setVisibleReviewsCount((c) => c + PAGE_SIZE)}
+                />
+              )}
+            </>
           ) : (
             <p className="text-sm text-gray-400">Aucun avis pour le moment</p>
           )}

@@ -1,0 +1,146 @@
+import { ColorProvider } from "../contexts/ColorContext";
+import { LanguageProvider } from "../contexts/LanguageContext";
+import { AuthProvider } from "../contexts/AuthContext";
+import { PartnerAgenciesProvider } from "../contexts/PartnerAgenciesContext";
+import { SettingsProvider } from "../contexts/SettingsContext";
+import { Providers } from "../components/Providers";
+import Script from "next/script";
+import type { Metadata } from "next";
+
+import Header from "../components/header";
+import "./globals.css";
+import { Footer } from "../components/footer";
+import { FloatingContactWidget } from "../components/FloatingContactWidget";
+import { AppDownloadModal } from "../components/AppDownloadModal";
+import { FeaturedAdBanner } from "../components/FeaturedAdBanner";
+
+const BASE_URL = "https://batiservices.com";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "BâtiServices — Logement & Services en Guinée",
+    template: "%s | BâtiServices",
+  },
+  description:
+    "Trouvez votre logement, terrain ou location journalière en Guinée. Services de rénovation, plomberie, électricité et gestion locative à Conakry et partout en Guinée.",
+  keywords: [
+    "logement Guinée",
+    "appartement Conakry",
+    "maison à louer Guinée",
+    "terrain à vendre Conakry",
+    "location journalière Guinée",
+    "immobilier Guinée",
+    "BâtiServices",
+    "rénovation maison Conakry",
+  ],
+  authors: [{ name: "BâtiServices", url: BASE_URL }],
+  creator: "BâtiServices",
+  publisher: "BâtiServices",
+  openGraph: {
+    type: "website",
+    locale: "fr_GN",
+    url: BASE_URL,
+    siteName: "BâtiServices",
+    title: "BâtiServices — Logement & Services en Guinée",
+    description:
+      "Trouvez votre logement, terrain ou location journalière en Guinée. Services de rénovation et gestion locative à Conakry.",
+    images: [
+      {
+        url: "/og-default.jpg",
+        width: 1200,
+        height: 630,
+        alt: "BatiServices — Logement en Guinée",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BâtiServices — Logement & Services en Guinée",
+    description:
+      "Trouvez votre logement, terrain ou location journalière en Guinée.",
+    images: ["/og-default.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: {
+    canonical: BASE_URL,
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="fr" suppressHydrationWarning>
+      <body suppressHydrationWarning>
+        {/* Google Analytics 4 */}
+        {process.env.NEXT_PUBLIC_GA4_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA4_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA4_ID}', { page_path: window.location.pathname });
+              `}
+            </Script>
+          </>
+        )}
+        <Script id="strip-fdprocessedid" strategy="beforeInteractive">
+          {`
+            (() => {
+              const clean = () => {
+                document
+                  .querySelectorAll("[fdprocessedid]")
+                  .forEach((el) => el.removeAttribute("fdprocessedid"));
+              };
+              clean();
+              const observer = new MutationObserver(() => clean());
+              observer.observe(document.documentElement, {
+                attributes: true,
+                subtree: true,
+                attributeFilter: ["fdprocessedid"],
+              });
+            })();
+          `}
+        </Script>
+        <Providers>
+          <ColorProvider>
+            <AuthProvider>
+              <SettingsProvider>
+                <PartnerAgenciesProvider>
+                <LanguageProvider>
+                  <div className="flex flex-col min-h-screen">
+                    <FeaturedAdBanner />
+                    <Header />
+                    <main className="grow">{children}</main>
+                    <Footer />
+                  </div>
+                  <FloatingContactWidget />
+                  <AppDownloadModal />
+                </LanguageProvider>
+                </PartnerAgenciesProvider>
+              </SettingsProvider>
+            </AuthProvider>
+          </ColorProvider>
+        </Providers>
+      </body>
+    </html>
+  );
+}

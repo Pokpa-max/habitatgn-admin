@@ -11,6 +11,8 @@ import {
   RiBriefcaseLine,
   RiHammerLine,
   RiTeamLine,
+  RiTruckLine,
+  RiMailLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -56,6 +58,19 @@ const navigation = [
     href: '/partners',
     icon: RiTeamLine,
     claims: ['admin'],
+  },
+  {
+    name: 'Services',
+    href: '/services',
+    icon: RiTruckLine,
+    claims: ['admin'],
+  },
+  {
+    name: 'Messages',
+    href: '/messages',
+    icon: RiMailLine,
+    claims: ['admin'],
+    badgeKey: 'unreadMessages',
   },
   {
     name: 'Paramètres',
