@@ -20,6 +20,7 @@ import {
   setContactMessageRead,
   deleteContactMessage,
 } from '@/lib/services/contactMessages'
+import { getContactSettings } from '@/lib/services/siteSettings'
 
 const PAGE_SIZE = 10
 
@@ -29,7 +30,7 @@ const FILTERS = [
   { value: 'read', label: 'Lues' },
 ]
 
-function DetailModal({ message, open, setOpen, onToggleRead, onDelete }) {
+function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEmail }) {
   const colors = useColors()
   if (!message) return null
 
@@ -92,9 +93,11 @@ function DetailModal({ message, open, setOpen, onToggleRead, onDelete }) {
                       {message.read ? 'Marquer comme non lu' : 'Marquer comme lu'}
                     </button>
                     <a
-                      href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-                        message.email
-                      )}&su=${encodeURIComponent('RE: ' + message.subject)}`}
+                      href={`https://mail.google.com/mail/?view=cm&fs=1${
+                        senderEmail ? `&authuser=${encodeURIComponent(senderEmail)}` : ''
+                      }&to=${encodeURIComponent(message.email)}&su=${encodeURIComponent(
+                        'RE: ' + message.subject
+                      )}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
@@ -103,6 +106,11 @@ function DetailModal({ message, open, setOpen, onToggleRead, onDelete }) {
                       <RiMailLine className="h-4 w-4" />
                       Répondre par email (Gmail)
                     </a>
+                    {senderEmail && (
+                      <p className="text-center text-xs text-gray-400">
+                        Depuis {senderEmail}
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={async () => {
@@ -155,12 +163,18 @@ export default function ContactMessagesPage() {
   const [detailTarget, setDetailTarget] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [senderEmail, setSenderEmail] = useState('')
 
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
       try {
-        setMessages(await getContactMessages())
+        const [messagesData, contactSettings] = await Promise.all([
+          getContactMessages(),
+          getContactSettings(),
+        ])
+        setMessages(messagesData)
+        setSenderEmail(contactSettings?.email || '')
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -220,6 +234,7 @@ export default function ContactMessagesPage() {
         setOpen={setDetailOpen}
         onToggleRead={handleToggleRead}
         onDelete={(m) => setDeleteTarget(m)}
+        senderEmail={senderEmail}
       />
 
       <ConfirmModal
