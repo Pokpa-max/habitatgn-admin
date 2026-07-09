@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
-import { RiAddLine, RiEditLine, RiDeleteBinLine, RiHome4Line } from 'react-icons/ri'
+import { RiAddLine, RiEditLine, RiDeleteBinLine, RiHome4Line, RiArrowRightSLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import { formatGNF } from '@/utils/format'
+import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import SimpleDrawer from '@/components/SimpleDrawer'
 import PropertyDrawerForm from './PropertyDrawerForm'
 import { getManagedProperties, getPropertiesByOwner, deleteManagedProperty } from '@/lib/services/managedProperties'
 import { getPropertyOwners } from '@/lib/services/propertyOwners'
+import { getLeasesByProperty } from '@/lib/services/leases'
+import { getPaymentsByProperty } from '@/lib/services/rentPayments'
+import { getTicketsByProperty } from '@/lib/services/maintenanceTickets'
+import { getExpensesByProperty } from '@/lib/services/propertyExpenses'
 
 const STATUS_CONFIG = {
   vacant: { label: 'Vacant', bg: '#FEF3C7', color: '#92400E' },
@@ -25,6 +31,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [selected, setSelected] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [search, setSearch] = useState('')
+  const [detailProperty, setDetailProperty] = useState(null)
+  const [showDeleteLink, setShowDeleteLink] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -56,8 +64,15 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }
 
   const openEdit = (property) => {
+    setDetailProperty(null)
     setSelected(property)
     setDrawerOpen(true)
+  }
+
+  const openDetail = (property) => {
+    setShowDeleteLink(false)
+    setDeleteConfirm(null)
+    setDetailProperty(property)
   }
 
   const handleSaved = (saved) => {
@@ -73,9 +88,24 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
 
   const handleDelete = async (property) => {
     try {
+      const [leases, payments, tickets, expenses] = await Promise.all([
+        getLeasesByProperty(property.id),
+        getPaymentsByProperty(property.id),
+        getTicketsByProperty(property.id),
+        getExpensesByProperty(property.id),
+      ])
+      if (leases.length > 0 || payments.length > 0 || tickets.length > 0 || expenses.length > 0) {
+        notify(
+          "Impossible de supprimer : ce bien a un historique (bail, paiement, entretien ou dépense) rattaché",
+          'error'
+        )
+        setDeleteConfirm(null)
+        return
+      }
       await deleteManagedProperty(property.id)
       setProperties((prev) => prev.filter((p) => p.id !== property.id))
       setDeleteConfirm(null)
+      setDetailProperty(null)
       notify('Bien supprimé avec succès', 'success')
     } catch (e) {
       notify('Une erreur est survenue', 'error')
@@ -90,6 +120,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       p.reference?.toLowerCase().includes(q) ||
       p.address?.toLowerCase().includes(q) ||
       p.city?.toLowerCase().includes(q) ||
+      p.unitLabel?.toLowerCase().includes(q) ||
       owner?.name?.toLowerCase().includes(q)
     )
   })
@@ -151,11 +182,23 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                   const statusCfg = STATUS_CONFIG[property.status] || STATUS_CONFIG.vacant
                   const owner = ownerById(property.ownerId)
                   return (
-                    <tr key={property.id}>
+                    <tr
+                      key={property.id}
+                      onClick={() => openDetail(property)}
+                      className="cursor-pointer hover:bg-gray-50"
+                    >
                       <td className="py-3 pr-4 font-semibold text-gray-900">{property.reference}</td>
                       <td className="py-3 pr-4 text-gray-700">
                         {property.address}
                         {property.city ? `, ${property.city}` : ''}
+                        {property.unitLabel && (
+                          <span
+                            className="ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                          >
+                            {property.unitLabel}
+                          </span>
+                        )}
                         <p className="text-xs text-gray-400">{property.type}</p>
                       </td>
                       {!ownerId && (
@@ -175,41 +218,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           {statusCfg.label}
                         </span>
                       </td>
-                      <td className="py-3 pr-4">
-                        {deleteConfirm === property.id ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">Confirmer ?</span>
-                            <button
-                              onClick={() => handleDelete(property)}
-                              className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
-                            >
-                              Oui
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(null)}
-                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                            >
-                              Non
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => openEdit(property)}
-                              className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                              title="Modifier"
-                            >
-                              <RiEditLine className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(property.id)}
-                              className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                              title="Supprimer"
-                            >
-                              <RiDeleteBinLine className="h-4 w-4" />
-                            </button>
-                          </div>
-                        )}
+                      <td className="py-3 pr-4 text-right">
+                        <RiArrowRightSLine className="ml-auto h-4 w-4" style={{ color: colors.gray400 }} />
                       </td>
                     </tr>
                   )
@@ -229,6 +239,132 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
         onSaved={handleSaved}
         onOwnerCreated={handleOwnerCreated}
       />
+
+      <SimpleDrawer
+        open={!!detailProperty}
+        setOpen={(open) => !open && setDetailProperty(null)}
+        title={detailProperty?.reference}
+        description={detailProperty ? `${detailProperty.address}${detailProperty.city ? `, ${detailProperty.city}` : ''}` : ''}
+        footerButtons={
+          <button
+            onClick={() => openEdit(detailProperty)}
+            className="inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+            style={{ backgroundColor: colors.primary }}
+          >
+            <RiEditLine className="h-4 w-4" />
+            Modifier
+          </button>
+        }
+      >
+        {detailProperty && (
+          <div className="space-y-5 px-6 py-6 sm:p-8">
+            {(() => {
+              const statusCfg = STATUS_CONFIG[detailProperty.status] || STATUS_CONFIG.vacant
+              const owner = ownerById(detailProperty.ownerId)
+              return (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                      style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                    >
+                      {statusCfg.label}
+                    </span>
+                    <span className="text-xs text-gray-500">{detailProperty.type}</span>
+                    {detailProperty.unitLabel && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                        style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                      >
+                        {detailProperty.unitLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Surface</p>
+                      <p className="text-gray-900">{detailProperty.surface ? `${detailProperty.surface} m²` : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Pièces</p>
+                      <p className="text-gray-900">{detailProperty.nbRooms || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Loyer mensuel</p>
+                      <p className="font-semibold" style={{ color: colors.primary }}>
+                        {formatGNF(detailProperty.rentAmount)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Commission</p>
+                      <p className="text-gray-900">{detailProperty.commissionRate || 0}%</p>
+                    </div>
+                  </div>
+
+                  {detailProperty.description && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Description</p>
+                      <p className="text-sm text-gray-700">{detailProperty.description}</p>
+                    </div>
+                  )}
+
+                  {!ownerId && owner && (
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Propriétaire
+                      </p>
+                      <p className="text-sm text-gray-900">{owner.name}</p>
+                      <p className="text-sm text-gray-500">{owner.phone}</p>
+                    </div>
+                  )}
+
+                  {detailProperty.createdAt && (
+                    <p className="text-xs text-gray-400">
+                      Ajouté le {firebaseDateFormat(detailProperty.createdAt)}
+                    </p>
+                  )}
+
+                  <div className="border-t border-gray-100 pt-4">
+                    {deleteConfirm === detailProperty.id ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Confirmer la suppression ?</span>
+                        <button
+                          onClick={() => handleDelete(detailProperty)}
+                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                        >
+                          Oui, supprimer
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                          Non
+                        </button>
+                      </div>
+                    ) : showDeleteLink ? (
+                      <button
+                        onClick={() => setDeleteConfirm(detailProperty.id)}
+                        className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-red-500"
+                      >
+                        <RiDeleteBinLine className="h-3.5 w-3.5" />
+                        Supprimer ce bien
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setShowDeleteLink(true)}
+                        className="text-xs font-medium text-gray-300 hover:text-gray-500"
+                      >
+                        Options avancées
+                      </button>
+                    )}
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        )}
+      </SimpleDrawer>
     </>
   )
 }

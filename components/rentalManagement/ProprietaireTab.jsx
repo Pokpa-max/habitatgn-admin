@@ -117,6 +117,7 @@ export default function ProprietaireTab({ ownerId, ownerName }) {
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.reference} — {p.address}
+                {p.unitLabel ? ` (${p.unitLabel})` : ''}
               </option>
             ))}
           </select>

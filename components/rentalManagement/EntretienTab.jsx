@@ -185,7 +185,8 @@ export default function EntretienTab({ ownerId }) {
                         </span>
                       </div>
                       <p className="mt-0.5 text-xs text-gray-500">
-                        {property?.reference} — {property?.address} · {ticket.category}
+                        {property?.reference} — {property?.address}
+                        {property?.unitLabel ? ` (${property.unitLabel})` : ''} · {ticket.category}
                       </p>
                       {ticket.description && <p className="mt-1 text-sm text-gray-600">{ticket.description}</p>}
                       <p className="mt-1 text-xs text-gray-400">
@@ -319,6 +320,7 @@ export default function EntretienTab({ ownerId }) {
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.reference} — {p.address}
+                  {p.unitLabel ? ` (${p.unitLabel})` : ''}
                 </option>
               ))}
             </select>

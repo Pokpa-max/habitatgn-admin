@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import {
   RiArrowLeftLine,
   RiEditLine,
+  RiDeleteBinLine,
   RiMailLine,
   RiPhoneLine,
   RiHome4Line,
@@ -34,7 +35,7 @@ import ProprietaireTab from '@/components/rentalManagement/ProprietaireTab'
 import OccupationTab from '@/components/rentalManagement/OccupationTab'
 import EntretienTab from '@/components/rentalManagement/EntretienTab'
 import DepensesTab from '@/components/rentalManagement/DepensesTab'
-import { getPropertyOwnerById, editPropertyOwner } from '@/lib/services/propertyOwners'
+import { getPropertyOwnerById, editPropertyOwner, deletePropertyOwner } from '@/lib/services/propertyOwners'
 import { getPropertiesByOwner } from '@/lib/services/managedProperties'
 
 const TABS = [
@@ -69,6 +70,8 @@ function OwnerDetail() {
   const [editOpen, setEditOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('biens')
+  const [showDeleteLink, setShowDeleteLink] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
 
   const {
     register,
@@ -113,6 +116,21 @@ function OwnerDetail() {
       notify('Une erreur est survenue', 'error')
     }
     setSaving(false)
+  }
+
+  const handleDeleteOwner = async () => {
+    if (properties.length > 0) {
+      notify('Ce propriétaire a encore des biens rattachés — supprimez-les ou réassignez-les avant', 'error')
+      setDeleteConfirm(false)
+      return
+    }
+    try {
+      await deletePropertyOwner(owner.id)
+      notify('Propriétaire supprimé avec succès', 'success')
+      router.push('/gestion-locative')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
   }
 
   const totalRent = properties.reduce((sum, p) => sum + (p.rentAmount || 0), 0)
@@ -170,6 +188,41 @@ function OwnerDetail() {
                 <StatCard label="Biens gérés" value={properties.length} color={colors.primary} />
                 <StatCard label="Occupés" value={occupiedCount} color="#065F46" />
                 <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" />
+              </div>
+
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                {deleteConfirm ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Confirmer la suppression ?</span>
+                    <button
+                      onClick={handleDeleteOwner}
+                      className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                    >
+                      Oui, supprimer
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirm(false)}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Non
+                    </button>
+                  </div>
+                ) : showDeleteLink ? (
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-red-500"
+                  >
+                    <RiDeleteBinLine className="h-3.5 w-3.5" />
+                    Supprimer ce propriétaire
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowDeleteLink(true)}
+                    className="text-xs font-medium text-gray-300 hover:text-gray-500"
+                  >
+                    Options avancées
+                  </button>
+                )}
               </div>
             </div>
 
@@ -293,7 +346,7 @@ function OwnerDetail() {
 }
 
 const OwnerDetailPage = () => (
-  <Page name="Propriétaire | HabitatGN">
+  <Page name="Propriétaire | BâtiServices Admin">
     <OwnerDetail />
   </Page>
 )

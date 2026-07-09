@@ -57,7 +57,7 @@ function Advertising() {
 }
 
 const AdvertisingPage = () => (
-  <Page name="Publicité | HabitatGN">
+  <Page name="Publicité | BâtiServices Admin">
     <Advertising />
   </Page>
 )

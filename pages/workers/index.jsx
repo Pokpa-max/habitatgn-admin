@@ -16,7 +16,7 @@ function Workers() {
 }
 
 const WorkersIndexPage = () => (
-  <Page name="Ouvriers | HabitatGN">
+  <Page name="Ouvriers | BâtiServices Admin">
     <Workers />
   </Page>
 )

@@ -19,7 +19,7 @@ function Messages() {
 }
 
 const MessagesPage = () => (
-  <Page name="Messages | HabitatGN">
+  <Page name="Messages | BâtiServices Admin">
     <Messages />
   </Page>
 )

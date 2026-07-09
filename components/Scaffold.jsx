@@ -71,6 +71,7 @@ const navigation = [
     href: '/services',
     icon: RiTruckLine,
     claims: ['admin'],
+    badgeKey: 'pendingServiceRequests',
   },
   {
     name: 'Messages',
@@ -207,7 +208,7 @@ export default function Scaffold({ children, title, subNav }) {
                   style={{ borderColor: colors.gray100 }}
                 >
                   <p className="text-base font-bold tracking-tight" style={{ color: colors.gray900 }}>
-                    HabitatGN
+                    BâtiServices Admin
                   </p>
                 </div>
 
@@ -229,7 +230,7 @@ export default function Scaffold({ children, title, subNav }) {
                               <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                               <span className="text-sm">{item.name}</span>
                               {badgeCount > 0 && (
-                                <span className="ml-auto rounded-full bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                                   {badgeCount}
                                 </span>
                               )}
@@ -272,7 +273,7 @@ export default function Scaffold({ children, title, subNav }) {
               style={{ borderColor: colors.gray100 }}
             >
               <p className="text-base font-bold tracking-tight" style={{ color: colors.gray900 }}>
-                HabitatGN
+                BâtiServices Admin
               </p>
             </div>
 
@@ -292,7 +293,7 @@ export default function Scaffold({ children, title, subNav }) {
                         <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                         <span className="text-sm">{item.name}</span>
                         {badgeCount > 0 && (
-                          <span className="ml-auto rounded-full bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                             {badgeCount}
                           </span>
                         )}
@@ -341,7 +342,7 @@ export default function Scaffold({ children, title, subNav }) {
               <RiMenuLine className="h-5 w-5" aria-hidden="true" />
             </button>
             <p className="ml-2 text-sm font-bold" style={{ color: colors.gray900 }}>
-              HabitatGN
+              BâtiServices Admin
             </p>
           </div>
 

@@ -300,7 +300,7 @@ function WorkerDetail() {
 }
 
 const WorkerDetailPage = () => (
-  <Page name="Ouvrier | HabitatGN">
+  <Page name="Ouvrier | BâtiServices Admin">
     <WorkerDetail />
   </Page>
 )

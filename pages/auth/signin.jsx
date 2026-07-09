@@ -251,7 +251,7 @@ function SignIn() {
                 </svg>
               </div>
               <span className="text-lg font-bold uppercase tracking-widest">
-                HabitatGN
+                BâtiServices Admin
               </span>
             </div>
 
@@ -285,7 +285,7 @@ function SignIn() {
                 className="mb-2 text-3xl font-bold"
                 style={{ color: colors.gray900 }}
               >
-                HabitatGN
+                BâtiServices Admin
               </h2>
               <p className="text-sm" style={{ color: colors.gray500 }}>
                 Portail Administrateur
@@ -592,7 +592,7 @@ function SignIn() {
 }
 
 const SignInPage = () => (
-  <Page name="HabitatGN - Connexion">
+  <Page name="BâtiServices Admin - Connexion">
     {' '}
     <SignIn />
   </Page>

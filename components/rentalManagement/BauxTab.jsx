@@ -159,6 +159,7 @@ export default function BauxTab({ ownerId }) {
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.reference} — {p.address}
+                  {p.unitLabel ? ` (${p.unitLabel})` : ''}
                 </option>
               ))}
             </select>
@@ -209,7 +210,9 @@ export default function BauxTab({ ownerId }) {
                   return (
                     <tr key={lease.id}>
                       <td className="py-3 pr-4 text-gray-700">
-                        {property ? `${property.reference} — ${property.address}` : '—'}
+                        {property
+                          ? `${property.reference} — ${property.address}${property.unitLabel ? ` (${property.unitLabel})` : ''}`
+                          : '—'}
                       </td>
                       <td className="py-3 pr-4 text-gray-700">
                         {lease.tenantName}
@@ -307,6 +310,7 @@ export default function BauxTab({ ownerId }) {
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.reference} — {p.address}
+                  {p.unitLabel ? ` (${p.unitLabel})` : ''}
                 </option>
               ))}
             </select>

@@ -18,7 +18,7 @@ function Partners() {
 }
 
 const PartnersIndexPage = () => (
-  <Page name="Partenaires | HabitatGN">
+  <Page name="Partenaires | BâtiServices Admin">
     <Partners />
   </Page>
 )

@@ -161,7 +161,7 @@ function AgentDetail() {
 }
 
 const AgentDetailPage = () => (
-  <Page name="Agent | HabitatGN">
+  <Page name="Agent | BâtiServices Admin">
     <AgentDetail />
   </Page>
 )

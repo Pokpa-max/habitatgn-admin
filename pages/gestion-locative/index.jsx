@@ -19,7 +19,7 @@ function GestionLocative() {
 }
 
 const GestionLocativePage = () => (
-  <Page name="Gestion locative | HabitatGN">
+  <Page name="Gestion locative | BâtiServices Admin">
     <GestionLocative />
   </Page>
 )

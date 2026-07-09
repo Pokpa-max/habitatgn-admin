@@ -10,19 +10,21 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
 import { useColors } from '@/contexts/ColorContext'
+import { useNotifications } from '@/contexts/NotificationsContext'
 import MovingTab from '@/components/services/MovingTab'
 import RentalManagementTab from '@/components/services/RentalManagementTab'
 import LegalSecurityTab from '@/components/services/LegalSecurityTab'
 
-const TABS = [
-  { value: 'moving', label: 'Déménagement', icon: RiTruckLine },
-  { value: 'rental', label: 'Gestion locative', icon: RiHomeGearLine },
-  { value: 'legal', label: 'Sécurisation foncière', icon: RiFileShieldLine },
-]
-
 function Services() {
   const colors = useColors()
+  const notifications = useNotifications()
   const [activeTab, setActiveTab] = useState('moving')
+
+  const TABS = [
+    { value: 'moving', label: 'Déménagement', icon: RiTruckLine, badgeCount: notifications.pendingMovingRequests },
+    { value: 'rental', label: 'Gestion locative', icon: RiHomeGearLine, badgeCount: notifications.pendingRentalRequests },
+    { value: 'legal', label: 'Sécurisation foncière', icon: RiFileShieldLine, badgeCount: notifications.pendingLegalRequests },
+  ]
 
   return (
     <Scaffold>
@@ -44,6 +46,11 @@ function Services() {
             >
               <tab.icon className="h-4 w-4" />
               {tab.label}
+              {tab.badgeCount > 0 && (
+                <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  {tab.badgeCount}
+                </span>
+              )}
             </button>
           )
         })}
@@ -57,7 +64,7 @@ function Services() {
 }
 
 const ServicesPage = () => (
-  <Page name="Services | HabitatGN">
+  <Page name="Services | BâtiServices Admin">
     <Services />
   </Page>
 )

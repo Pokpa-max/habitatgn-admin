@@ -32,6 +32,7 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         type: selected.type,
         address: selected.address,
         city: selected.city || '',
+        unitLabel: selected.unitLabel || '',
         description: selected.description || '',
         surface: selected.surface || '',
         nbRooms: selected.nbRooms || '',
@@ -45,6 +46,8 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         type: 'Appartement',
         address: '',
         city: '',
+        unitLabel: '',
+        unitCount: '1',
         description: '',
         surface: '',
         nbRooms: '',
@@ -88,14 +91,31 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
       }
 
       if (selected) {
-        await editManagedProperty(selected.id, payload)
-        onSaved({ ...selected, ...payload })
+        const updated = { ...payload, unitLabel: data.unitLabel || '' }
+        await editManagedProperty(selected.id, updated)
+        onSaved({ ...selected, ...updated })
         notify('Bien modifié avec succès', 'success')
       } else {
-        const reference = `BIEN-${String(Date.now()).slice(-6)}`
-        const saved = await addManagedProperty({ ...payload, reference })
-        onSaved(saved)
-        notify('Bien ajouté avec succès', 'success')
+        const unitCount = Math.max(1, Number(data.unitCount) || 1)
+        const base = String(Date.now()).slice(-6)
+
+        if (unitCount > 1) {
+          for (let i = 1; i <= unitCount; i += 1) {
+            const reference = `BIEN-${base}-${String(i).padStart(2, '0')}`
+            const saved = await addManagedProperty({
+              ...payload,
+              unitLabel: `Appt ${i}`,
+              reference,
+            })
+            onSaved(saved)
+          }
+          notify(`${unitCount} appartements créés avec succès`, 'success')
+        } else {
+          const reference = `BIEN-${base}`
+          const saved = await addManagedProperty({ ...payload, unitLabel: data.unitLabel || '', reference })
+          onSaved(saved)
+          notify('Bien ajouté avec succès', 'success')
+        }
       }
       setOpen(false)
     } catch (e) {
@@ -186,6 +206,40 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
           />
           {errors.address && <p className="mt-1 text-xs font-semibold text-red-500">{errors.address.message}</p>}
         </div>
+
+        {selected ? (
+          <div>
+            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              Étiquette de l'unité
+            </label>
+            <input
+              type="text"
+              {...register('unitLabel')}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              placeholder="Ex: Appt 3"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Utile si ce bien fait partie d'un immeuble à plusieurs appartements.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              Nombre d'appartements identiques à créer
+            </label>
+            <input
+              type="number"
+              min="1"
+              {...register('unitCount')}
+              className="w-full max-w-32 rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              placeholder="1"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Pour un immeuble de plusieurs appartements, indiquez le nombre à créer d'un coup (ex: 20). Chacun
+              sera étiqueté "Appt 1", "Appt 2"... et modifiable individuellement ensuite (loyer, statut, locataire).
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-4">
           <div>

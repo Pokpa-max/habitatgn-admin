@@ -53,7 +53,7 @@ function Settings() {
 }
 
 const SettingsPage = () => (
-  <Page name="Paramètres | HabitatGN">
+  <Page name="Paramètres | BâtiServices Admin">
     <Settings />
   </Page>
 )

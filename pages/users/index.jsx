@@ -86,7 +86,7 @@ function Users() {
 }
 
 const UsersPage = () => (
-  <Page name="Utilisateurs | HabitatGN">
+  <Page name="Utilisateurs | BâtiServices Admin">
     <Users />
   </Page>
 )

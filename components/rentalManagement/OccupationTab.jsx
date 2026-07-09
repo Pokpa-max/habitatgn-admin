@@ -119,6 +119,7 @@ export default function OccupationTab({ ownerId }) {
                     <tr key={property.id}>
                       <td className="py-3 pr-4 text-gray-700">
                         {property.reference} — {property.address}
+                        {property.unitLabel ? ` (${property.unitLabel})` : ''}
                       </td>
                       <td className="py-3 pr-4">
                         <span
