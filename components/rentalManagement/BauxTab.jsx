@@ -1,0 +1,422 @@
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { RiAddLine, RiEditLine, RiFileTextLine, RiCheckLine } from 'react-icons/ri'
+import { useColors } from '@/contexts/ColorContext'
+import { notify } from '@/utils/toast'
+import { formatGNF } from '@/utils/format'
+import { firebaseDateFormat } from '@/utils/date'
+import Loader from '@/components/Loader'
+import DrawerForm from '@/components/DrawerForm'
+import { getManagedProperties, getPropertiesByOwner, editManagedProperty } from '@/lib/services/managedProperties'
+import { getLeases, addLease, editLease } from '@/lib/services/leases'
+
+const STATUS_CONFIG = {
+  active: { label: 'Actif', bg: '#D1FAE5', color: '#065F46' },
+  ended: { label: 'Terminé', bg: '#F3F4F6', color: '#374151' },
+  terminated: { label: 'Résilié', bg: '#FEE2E2', color: '#991B1B' },
+}
+
+export default function BauxTab({ ownerId }) {
+  const colors = useColors()
+  const [leases, setLeases] = useState([])
+  const [properties, setProperties] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selected, setSelected] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [propertyFilter, setPropertyFilter] = useState('all')
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({ mode: 'onBlur' })
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true)
+      try {
+        const [leasesData, propertiesData] = await Promise.all([
+          getLeases(),
+          ownerId ? getPropertiesByOwner(ownerId) : getManagedProperties(),
+        ])
+        const propertyIds = new Set(propertiesData.map((p) => p.id))
+        setLeases(ownerId ? leasesData.filter((l) => propertyIds.has(l.propertyId)) : leasesData)
+        setProperties(propertiesData)
+      } catch (e) {
+        notify('Erreur lors du chargement', 'error')
+      }
+      setIsLoading(false)
+    }
+    load()
+  }, [ownerId])
+
+  const propertyById = (id) => properties.find((p) => p.id === id)
+
+  const openAdd = () => {
+    setSelected(null)
+    reset({
+      propertyId: properties[0]?.id || '',
+      tenantName: '',
+      tenantPhone: '',
+      tenantEmail: '',
+      rentAmount: '',
+      depositAmount: '',
+      startDate: '',
+      endDate: '',
+      notes: '',
+    })
+    setDrawerOpen(true)
+  }
+
+  const openEdit = (lease) => {
+    setSelected(lease)
+    reset({
+      propertyId: lease.propertyId,
+      tenantName: lease.tenantName,
+      tenantPhone: lease.tenantPhone,
+      tenantEmail: lease.tenantEmail || '',
+      rentAmount: lease.rentAmount,
+      depositAmount: lease.depositAmount || '',
+      startDate: lease.startDate || '',
+      endDate: lease.endDate || '',
+      notes: lease.notes || '',
+    })
+    setDrawerOpen(true)
+  }
+
+  const setPropertyStatus = async (propertyId, status) => {
+    await editManagedProperty(propertyId, { status })
+    setProperties((prev) => prev.map((p) => (p.id === propertyId ? { ...p, status } : p)))
+  }
+
+  const onSubmit = async (data) => {
+    setSaving(true)
+    try {
+      const payload = {
+        propertyId: data.propertyId,
+        tenantName: data.tenantName,
+        tenantPhone: data.tenantPhone,
+        tenantEmail: data.tenantEmail,
+        rentAmount: Number(data.rentAmount) || 0,
+        depositAmount: Number(data.depositAmount) || 0,
+        startDate: data.startDate,
+        endDate: data.endDate || null,
+        notes: data.notes,
+      }
+
+      if (selected) {
+        await editLease(selected.id, payload)
+        setLeases((prev) => prev.map((l) => (l.id === selected.id ? { ...l, ...payload } : l)))
+        notify('Bail modifié avec succès', 'success')
+      } else {
+        const saved = await addLease({ ...payload, status: 'active' })
+        setLeases((prev) => [saved, ...prev])
+        await setPropertyStatus(data.propertyId, 'occupied')
+        notify('Bail ajouté avec succès', 'success')
+      }
+      setDrawerOpen(false)
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setSaving(false)
+  }
+
+  const endLease = async (lease, status) => {
+    try {
+      await editLease(lease.id, { status })
+      setLeases((prev) => prev.map((l) => (l.id === lease.id ? { ...l, status } : l)))
+      const stillActive = leases.some(
+        (l) => l.id !== lease.id && l.propertyId === lease.propertyId && l.status === 'active'
+      )
+      if (!stillActive) await setPropertyStatus(lease.propertyId, 'vacant')
+      notify('Bail mis à jour', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
+
+  const filtered = leases.filter((l) => propertyFilter === 'all' || l.propertyId === propertyFilter)
+
+  return (
+    <>
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Locataires & baux</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {leases.length} bail{leases.length !== 1 ? 'x' : ''} enregistré{leases.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <select
+              value={propertyFilter}
+              onChange={(e) => setPropertyFilter(e.target.value)}
+              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            >
+              <option value="all">Tous les biens</option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.reference} — {p.address}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={openAdd}
+              disabled={properties.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter un bail
+            </button>
+          </div>
+        </div>
+
+        {properties.length === 0 && !isLoading && (
+          <p className="mb-4 text-sm text-gray-400">
+            Ajoutez d'abord un bien dans l'onglet "Biens gérés" avant de créer un bail.
+          </p>
+        )}
+
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader color="#111827" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
+            <RiFileTextLine className="h-6 w-6 text-gray-300" />
+            <p className="text-sm text-gray-400">Aucun bail enregistré</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <th className="py-2 pr-4">Bien</th>
+                  <th className="py-2 pr-4">Locataire</th>
+                  <th className="py-2 pr-4">Loyer</th>
+                  <th className="py-2 pr-4">Début</th>
+                  <th className="py-2 pr-4">Statut</th>
+                  <th className="py-2 pr-4" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filtered.map((lease) => {
+                  const property = propertyById(lease.propertyId)
+                  const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
+                  return (
+                    <tr key={lease.id}>
+                      <td className="py-3 pr-4 text-gray-700">
+                        {property ? `${property.reference} — ${property.address}` : '—'}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-700">
+                        {lease.tenantName}
+                        <p className="text-xs text-gray-400">{lease.tenantPhone}</p>
+                      </td>
+                      <td className="py-3 pr-4 font-semibold" style={{ color: colors.primary }}>
+                        {formatGNF(lease.rentAmount)}
+                      </td>
+                      <td className="py-3 pr-4 text-gray-500">
+                        {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span
+                          className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                          style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                        >
+                          {statusCfg.label}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEdit(lease)}
+                            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                            title="Modifier"
+                          >
+                            <RiEditLine className="h-4 w-4" />
+                          </button>
+                          {lease.status === 'active' && (
+                            <button
+                              onClick={() => endLease(lease, 'ended')}
+                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                            >
+                              Clôturer
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <DrawerForm
+        open={drawerOpen}
+        setOpen={setDrawerOpen}
+        onSubmit={handleSubmit(onSubmit)}
+        title={selected ? 'Modifier le bail' : 'Ajouter un bail'}
+        description={selected ? 'Mettez à jour les informations du bail' : 'Enregistrer un nouveau bail'}
+        footerButtons={
+          <>
+            {saving ? (
+              <div
+                className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <Loader />
+              </div>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="rounded border border-gray-300 bg-white px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <RiCheckLine className="h-4 w-4" />
+                  Enregistrer
+                </button>
+              </>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-5 px-6 py-6 sm:p-8">
+          <div>
+            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              Bien *
+            </label>
+            <select
+              {...register('propertyId', { required: 'Requis' })}
+              disabled={!!selected}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50"
+            >
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.reference} — {p.address}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                Nom du locataire *
+              </label>
+              <input
+                type="text"
+                {...register('tenantName', { required: 'Requis' })}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              />
+              {errors.tenantName && (
+                <p className="mt-1 text-xs font-semibold text-red-500">{errors.tenantName.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                Téléphone *
+              </label>
+              <input
+                type="text"
+                {...register('tenantPhone', { required: 'Requis' })}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                placeholder="+224 6XX XX XX XX"
+              />
+              {errors.tenantPhone && (
+                <p className="mt-1 text-xs font-semibold text-red-500">{errors.tenantPhone.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              {...register('tenantEmail')}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                Loyer mensuel (GNF) *
+              </label>
+              <input
+                type="number"
+                {...register('rentAmount', { required: 'Requis' })}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              />
+              {errors.rentAmount && (
+                <p className="mt-1 text-xs font-semibold text-red-500">{errors.rentAmount.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                Caution (GNF)
+              </label>
+              <input
+                type="number"
+                {...register('depositAmount')}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                Date de début *
+              </label>
+              <input
+                type="date"
+                {...register('startDate', { required: 'Requis' })}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              />
+              {errors.startDate && (
+                <p className="mt-1 text-xs font-semibold text-red-500">{errors.startDate.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                Date de fin
+              </label>
+              <input
+                type="date"
+                {...register('endDate')}
+                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              Notes
+            </label>
+            <textarea
+              rows={2}
+              {...register('notes')}
+              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+        </div>
+      </DrawerForm>
+    </>
+  )
+}

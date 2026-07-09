@@ -13,6 +13,7 @@ import {
   RiTeamLine,
   RiTruckLine,
   RiMailLine,
+  RiBuildingLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -45,6 +46,12 @@ const navigation = [
     icon: RiBriefcaseLine,
     claims: ['admin'],
     badgeKey: 'pendingAgents',
+  },
+  {
+    name: 'Gestion locative',
+    href: '/gestion-locative',
+    icon: RiBuildingLine,
+    claims: ['admin'],
   },
   {
     name: 'Ouvriers',
