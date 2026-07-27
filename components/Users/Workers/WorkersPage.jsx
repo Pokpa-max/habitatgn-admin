@@ -9,6 +9,7 @@ import {
   RiWhatsappLine,
   RiMore2Fill,
   RiProfileLine,
+  RiSearchLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -30,7 +31,14 @@ const STATUS_FILTERS = [
   { value: 'rejected', label: 'Rejetés' },
 ]
 
-function ActionsModal({ worker, open, setOpen, onApprove, onReject, onToggleBlock }) {
+function ActionsModal({
+  worker,
+  open,
+  setOpen,
+  onApprove,
+  onReject,
+  onToggleBlock,
+}) {
   const colors = useColors()
   if (!worker) return null
   const status = worker.status || 'pending'
@@ -66,7 +74,9 @@ function ActionsModal({ worker, open, setOpen, onApprove, onReject, onToggleBloc
                   <Dialog.Title className="text-sm font-bold text-gray-900">
                     {worker.name}
                   </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">Choisir une action</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Choisir une action
+                  </p>
                 </div>
 
                 <div className="space-y-1 p-2">
@@ -83,7 +93,10 @@ function ActionsModal({ worker, open, setOpen, onApprove, onReject, onToggleBloc
                         onClick={onApprove}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
                       >
-                        <RiCheckLine className="h-4 w-4" style={{ color: colors.primary }} />
+                        <RiCheckLine
+                          className="h-4 w-4"
+                          style={{ color: colors.primary }}
+                        />
                         Approuver le profil
                       </button>
                       <button
@@ -103,14 +116,22 @@ function ActionsModal({ worker, open, setOpen, onApprove, onReject, onToggleBloc
                     >
                       <span
                         className="h-2 w-2 rounded-full"
-                        style={{ backgroundColor: worker.isAvailable ? colors.gray700 : colors.primary }}
+                        style={{
+                          backgroundColor: worker.isAvailable
+                            ? colors.gray700
+                            : colors.primary,
+                        }}
                       />
-                      {worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+                      {worker.isAvailable
+                        ? 'Bloquer le compte'
+                        : 'Débloquer le compte'}
                     </button>
                   )}
 
                   {status === 'rejected' && (
-                    <p className="px-3 py-2.5 text-sm text-gray-400">Aucune action disponible</p>
+                    <p className="px-3 py-2.5 text-sm text-gray-400">
+                      Aucune action disponible
+                    </p>
                   )}
                 </div>
 
@@ -136,6 +157,7 @@ export default function WorkersPage() {
   const [workers, setWorkers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
+  const [searchTerm, setSearchTerm] = useState('')
   const [actioningId, setActioningId] = useState(null)
   const [blockTarget, setBlockTarget] = useState(null)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
@@ -145,7 +167,7 @@ export default function WorkersPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [statusFilter])
+  }, [statusFilter, searchTerm])
 
   useEffect(() => {
     const load = async () => {
@@ -204,7 +226,9 @@ export default function WorkersPage() {
       await desableUser(blockTarget.userId, !nextAvailable)
       await desableUserFirestore(blockTarget.userId, nextAvailable)
       setWorkers((prev) =>
-        prev.map((w) => (w.id === blockTarget.id ? { ...w, isAvailable: nextAvailable } : w))
+        prev.map((w) =>
+          w.id === blockTarget.id ? { ...w, isAvailable: nextAvailable } : w
+        )
       )
       notify('Action effectuée avec succès', 'success')
       setBlockModalOpen(false)
@@ -213,184 +237,255 @@ export default function WorkersPage() {
     }
   }
 
-  const filtered = workers.filter((w) => (w.status || 'pending') === statusFilter)
+  const filtered = workers.filter((w) => {
+    const matchStatus = (w.status || 'pending') === statusFilter
+    if (!matchStatus) return false
+    if (!searchTerm) return true
+    const lower = searchTerm.toLowerCase()
+    return (
+      w.name?.toLowerCase().includes(lower) ||
+      w.phone?.toLowerCase().includes(lower) ||
+      (w.specialties || []).some((s) => s?.toLowerCase().includes(lower)) ||
+      (w.communes || []).some((c) => c?.toLowerCase().includes(lower))
+    )
+  })
   const visible = filtered.slice(0, visibleCount)
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
-    <DesableConfirmModal
-      title="Bloquer l'ouvrier"
-      desable={blockTarget?.isAvailable}
-      message={
-        blockTarget?.isAvailable
-          ? "Bloquer cet ouvrier l'empêchera de se connecter et son profil ne sera plus visible."
-          : 'Débloquer cet ouvrier lui redonnera accès à son compte.'
-      }
-      confirmFunction={handleToggleBlock}
-      open={blockModalOpen}
-      setOpen={setBlockModalOpen}
-    />
+      <DesableConfirmModal
+        title="Bloquer l'ouvrier"
+        desable={blockTarget?.isAvailable}
+        message={
+          blockTarget?.isAvailable
+            ? "Bloquer cet ouvrier l'empêchera de se connecter et son profil ne sera plus visible."
+            : 'Débloquer cet ouvrier lui redonnera accès à son compte.'
+        }
+        confirmFunction={handleToggleBlock}
+        open={blockModalOpen}
+        setOpen={setBlockModalOpen}
+      />
 
-    <ActionsModal
-      worker={actionsTarget}
-      open={actionsModalOpen}
-      setOpen={setActionsModalOpen}
-      onApprove={() => handleApprove(actionsTarget)}
-      onReject={() => handleReject(actionsTarget)}
-      onToggleBlock={() => {
-        setActionsModalOpen(false)
-        setBlockTarget(actionsTarget)
-        setBlockModalOpen(true)
-      }}
-    />
+      <ActionsModal
+        worker={actionsTarget}
+        open={actionsModalOpen}
+        setOpen={setActionsModalOpen}
+        onApprove={() => handleApprove(actionsTarget)}
+        onReject={() => handleReject(actionsTarget)}
+        onToggleBlock={() => {
+          setActionsModalOpen(false)
+          setBlockTarget(actionsTarget)
+          setBlockModalOpen(true)
+        }}
+      />
 
-    <div className="rounded-xl bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-900">Ouvriers</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Profils d'artisans/ouvriers inscrits depuis le site public
-        </p>
-      </div>
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Ouvriers</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Profils d'artisans/ouvriers inscrits depuis le site public
+            </p>
+          </div>
+          <div className="relative sm:w-64">
+            <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher nom, spécialité, zone..."
+              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+        </div>
 
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
-        {STATUS_FILTERS.map((f) => {
-          const count = workers.filter((w) => (w.status || 'pending') === f.value).length
-          const active = statusFilter === f.value
-          return (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
-              style={
-                active
-                  ? { borderColor: colors.primary, color: colors.primary }
-                  : { borderColor: 'transparent', color: colors.gray500 }
-              }
-            >
-              {f.label}
-              <span
-                className="rounded-full px-1.5 py-0.5 text-xs"
+        <div className="mb-6 flex gap-2 border-b border-gray-200">
+          {STATUS_FILTERS.map((f) => {
+            const count = workers.filter(
+              (w) => (w.status || 'pending') === f.value
+            ).length
+            const active = statusFilter === f.value
+            return (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
                 style={
                   active
-                    ? { backgroundColor: colors.primaryVeryLight, color: colors.primary }
-                    : { backgroundColor: colors.gray100, color: colors.gray500 }
+                    ? { borderColor: colors.primary, color: colors.primary }
+                    : { borderColor: 'transparent', color: colors.gray500 }
                 }
               >
-                {count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                {f.label}
+                <span
+                  className="rounded-full px-1.5 py-0.5 text-xs"
+                  style={
+                    active
+                      ? {
+                          backgroundColor: colors.primaryVeryLight,
+                          color: colors.primary,
+                        }
+                      : {
+                          backgroundColor: colors.gray100,
+                          color: colors.gray500,
+                        }
+                  }
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
 
-      {isLoading ? (
-        <div className="flex h-32 items-center justify-center">
-          <Loader color="#111827" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
-          <RiUserLine className="h-8 w-8 text-gray-300" />
-          <p className="text-sm text-gray-400">Aucun ouvrier dans cette catégorie</p>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead style={{ backgroundColor: colors.gray50 }}>
-                <tr>
-                  {['Ouvrier', 'Spécialités', 'Zones', 'Contact', 'Statut', 'Actions'].map((h) => (
-                    <th
-                      key={h}
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {visible.map((worker) => (
-                  <tr key={worker.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-gray-100">
-                          {worker.imageUrl ? (
-                            <img src={worker.imageUrl} alt={worker.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <RiUserLine className="h-4 w-4 text-gray-300" />
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{worker.name}</p>
-                          <p className="text-xs uppercase tracking-wide text-gray-400">
-                            {worker.accountType === 'enterprise' ? 'Entreprise' : 'Particulier'}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {(worker.specialties || []).map((s) => (
-                          <span key={s} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600">
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-xs text-gray-500">{(worker.communes || []).join(', ') || '—'}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {worker.phone && (
-                        <p className="flex items-center gap-1 text-xs text-gray-500">
-                          <RiPhoneLine className="h-3.5 w-3.5" /> {worker.phone}
-                        </p>
-                      )}
-                      {worker.whatsapp && (
-                        <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                          <RiWhatsappLine className="h-3.5 w-3.5" /> {worker.whatsapp}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: worker.isAvailable ? colors.primary : colors.gray700 }}
-                        />
-                        {worker.isAvailable ? 'Actif' : 'Bloqué'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {actioningId === worker.id ? (
-                        <Loader color="#111827" />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setActionsTarget(worker)
-                            setActionsModalOpen(true)
-                          }}
-                          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                          title="Actions"
-                        >
-                          <RiMore2Fill className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader color="#111827" />
           </div>
-          {visibleCount < filtered.length && (
-            <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-          )}
-        </div>
-      )}
-    </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
+            <RiUserLine className="h-8 w-8 text-gray-300" />
+            <p className="text-sm text-gray-400">
+              Aucun ouvrier dans cette catégorie
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    {[
+                      'Ouvrier',
+                      'Spécialités',
+                      'Zones',
+                      'Contact',
+                      'Statut',
+                      'Actions',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {visible.map((worker) => (
+                    <tr key={worker.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-gray-100">
+                            {worker.imageUrl ? (
+                              <img
+                                src={worker.imageUrl}
+                                alt={worker.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <RiUserLine className="h-4 w-4 text-gray-300" />
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {worker.name}
+                            </p>
+                            <p className="text-xs uppercase tracking-wide text-gray-400">
+                              {worker.accountType === 'enterprise'
+                                ? 'Entreprise'
+                                : 'Particulier'}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {(worker.specialties || []).map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-600"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-xs text-gray-500">
+                          {(worker.communes || []).join(', ') || '—'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {worker.phone && (
+                          <p className="flex items-center gap-1 text-xs text-gray-500">
+                            <RiPhoneLine className="h-3.5 w-3.5" />{' '}
+                            {worker.phone}
+                          </p>
+                        )}
+                        {worker.whatsapp && (
+                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                            <RiWhatsappLine className="h-3.5 w-3.5" />{' '}
+                            {worker.whatsapp}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                          style={{
+                            backgroundColor: worker.isAvailable
+                              ? colors.primaryVeryLight
+                              : colors.gray100,
+                            color: worker.isAvailable
+                              ? colors.primaryDark
+                              : colors.gray600,
+                          }}
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{
+                              backgroundColor: worker.isAvailable
+                                ? colors.primary
+                                : colors.gray500,
+                            }}
+                          />
+                          {worker.isAvailable ? 'Actif' : 'Bloqué'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {actioningId === worker.id ? (
+                          <Loader color="#111827" />
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setActionsTarget(worker)
+                              setActionsModalOpen(true)
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                            title="Actions"
+                          >
+                            <RiMore2Fill className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton
+                getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
+              />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

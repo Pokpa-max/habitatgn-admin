@@ -27,7 +27,11 @@ export default function Header({ title }) {
         </nav>
       </div>
       <div className="mt-2 md:flex md:items-center md:justify-between">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex items-center gap-3">
+          <div
+            className="h-7 w-1.5 rounded-full"
+            style={{ backgroundColor: colors.primary }}
+          />
           <h2
             className="text-2xl font-bold leading-7 sm:truncate sm:text-3xl"
             style={{ color: colors.gray900 }}

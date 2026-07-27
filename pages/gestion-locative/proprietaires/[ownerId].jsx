@@ -48,11 +48,11 @@ const TABS = [
   { value: 'depenses', label: 'Dépenses', icon: RiBillLine },
 ]
 
-function StatCard({ label, value, color }) {
+function StatCard({ label, value, color, bgColor }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-bold" style={{ color }}>
+    <div className="rounded-xl border border-gray-100 p-4 shadow-sm" style={{ backgroundColor: bgColor || '#F9FAFB' }}>
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
+      <p className="mt-1 text-xl font-extrabold" style={{ color }}>
         {value}
       </p>
     </div>
@@ -185,9 +185,9 @@ function OwnerDetail() {
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-4">
-                <StatCard label="Biens gérés" value={properties.length} color={colors.primary} />
-                <StatCard label="Occupés" value={occupiedCount} color="#065F46" />
-                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" />
+                <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
+                <StatCard label="Occupés" value={occupiedCount} color="#065F46" bgColor="#ECFDF5" />
+                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" bgColor="#FFFBEB" />
               </div>
 
               <div className="mt-4 border-t border-gray-100 pt-4">

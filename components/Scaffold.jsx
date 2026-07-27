@@ -14,6 +14,7 @@ import {
   RiTruckLine,
   RiMailLine,
   RiBuildingLine,
+  RiShoppingBag3Line,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -27,6 +28,12 @@ const navigation = [
     href: '/',
     icon: RiDashboardLine,
     claims: ['admin', 'manager'],
+  },
+  {
+    name: 'Marketplace',
+    href: '/marketplace',
+    icon: RiShoppingBag3Line,
+    claims: ['admin'],
   },
   {
     name: 'Publicité',
@@ -117,21 +124,20 @@ export default function Scaffold({ children, title, subNav }) {
 
         .nav-item-active {
           color: ${colors.primary};
-          background-color: transparent;
+          background-color: ${colors.primaryVeryLight};
           font-weight: 600;
-          border-left: 2px solid ${colors.primary};
-          padding-left: calc(1rem - 2px);
+          border-left: 3px solid ${colors.primary};
+          box-shadow: 0 1px 2px 0 rgba(2, 70, 82, 0.05);
         }
 
         .nav-item-inactive {
           color: ${colors.gray600};
-          transition: color 0.15s ease, background-color 0.15s ease;
+          transition: all 0.15s ease-in-out;
         }
 
         .nav-item-inactive:hover {
-          color: ${colors.gray900};
+          color: ${colors.primaryHover};
           background-color: ${colors.gray50};
-          padding-left: 1rem;
         }
 
         .logout-btn {
@@ -204,12 +210,23 @@ export default function Scaffold({ children, title, subNav }) {
 
                 {/* Logo Mobile */}
                 <div
-                  className="flex h-16 flex-shrink-0 items-center border-b px-6"
+                  className="flex h-16 flex-shrink-0 items-center border-b px-6 gap-2.5"
                   style={{ borderColor: colors.gray100 }}
                 >
-                  <p className="text-base font-bold tracking-tight" style={{ color: colors.gray900 }}>
-                    BâtiServices Admin
-                  </p>
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    <span className="text-sm font-black text-white">B</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold tracking-tight leading-none" style={{ color: colors.gray900 }}>
+                      BâtiServices
+                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: colors.primary }}>
+                      Tableau de bord
+                    </p>
+                  </div>
                 </div>
 
                 {/* Navigation Mobile */}
@@ -269,12 +286,24 @@ export default function Scaffold({ children, title, subNav }) {
           >
             {/* Logo Desktop */}
             <div
-              className="flex h-16 flex-shrink-0 items-center border-b px-6"
+              className="flex h-16 flex-shrink-0 items-center border-b px-6 gap-2.5"
               style={{ borderColor: colors.gray100 }}
             >
-              <p className="text-base font-bold tracking-tight" style={{ color: colors.gray900 }}>
-                BâtiServices Admin
-              </p>
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <span className="text-sm font-black text-white">B</span>
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-tight leading-none" style={{ color: colors.gray900 }}>
+                  BâtiServices
+                </p>
+
+                <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: colors.primary }}>
+                  Tableau de bord
+                </p>
+              </div>
             </div>
 
             {/* Navigation Desktop */}
@@ -308,12 +337,22 @@ export default function Scaffold({ children, title, subNav }) {
             {/* User Section Desktop */}
             <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: colors.gray100 }}>
               <div className="w-full">
-                <p className="text-sm font-semibold" style={{ color: colors.gray900 }}>
-                  {AuthUser?.displayName || 'Utilisateur'}
-                </p>
-                <p className="text-xs" style={{ color: colors.gray500 }}>
-                  {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
-                </p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm"
+                    style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                  >
+                    {(AuthUser?.displayName?.[0] || 'A').toUpperCase()}
+                  </div>
+                  <div className="overflow-hidden">
+                    <p className="truncate text-sm font-semibold" style={{ color: colors.gray900 }}>
+                      {AuthUser?.displayName || 'Utilisateur'}
+                    </p>
+                    <p className="text-xs" style={{ color: colors.gray500 }}>
+                      {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={AuthUser.signOut}
                   className="logout-btn mt-3 flex w-full items-center gap-2 text-xs font-medium"

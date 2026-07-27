@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RiTruckLine, RiHomeGearLine, RiFileShieldLine } from 'react-icons/ri'
+import { RiTruckLine, RiHomeGearLine, RiFileShieldLine, RiMoneyDollarCircleLine } from 'react-icons/ri'
 import {
   AuthAction,
   withAuthUser,
@@ -14,6 +14,7 @@ import { useNotifications } from '@/contexts/NotificationsContext'
 import MovingTab from '@/components/services/MovingTab'
 import RentalManagementTab from '@/components/services/RentalManagementTab'
 import LegalSecurityTab from '@/components/services/LegalSecurityTab'
+import ServiceRevenuesTab from '@/components/services/ServiceRevenuesTab'
 
 function Services() {
   const colors = useColors()
@@ -24,6 +25,7 @@ function Services() {
     { value: 'moving', label: 'Déménagement', icon: RiTruckLine, badgeCount: notifications.pendingMovingRequests },
     { value: 'rental', label: 'Gestion locative', icon: RiHomeGearLine, badgeCount: notifications.pendingRentalRequests },
     { value: 'legal', label: 'Sécurisation foncière', icon: RiFileShieldLine, badgeCount: notifications.pendingLegalRequests },
+    { value: 'revenues', label: 'Revenus des services', icon: RiMoneyDollarCircleLine },
   ]
 
   return (
@@ -59,6 +61,7 @@ function Services() {
       {activeTab === 'moving' && <MovingTab />}
       {activeTab === 'rental' && <RentalManagementTab />}
       {activeTab === 'legal' && <LegalSecurityTab />}
+      {activeTab === 'revenues' && <ServiceRevenuesTab />}
     </Scaffold>
   )
 }

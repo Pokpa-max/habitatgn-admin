@@ -10,6 +10,7 @@ import {
   RiMapPinLine,
   RiProfileLine,
   RiMore2Fill,
+  RiSearchLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -42,7 +43,14 @@ const PROPERTY_TYPE_LABELS = {
   terrain: 'Terrain',
 }
 
-function ActionsModal({ request, open, setOpen, onApprove, onReject, onToggleBlock }) {
+function ActionsModal({
+  request,
+  open,
+  setOpen,
+  onApprove,
+  onReject,
+  onToggleBlock,
+}) {
   const colors = useColors()
   if (!request) return null
   const status = request.status || 'pending'
@@ -78,7 +86,9 @@ function ActionsModal({ request, open, setOpen, onApprove, onReject, onToggleBlo
                   <Dialog.Title className="text-sm font-bold text-gray-900">
                     {request.fullName}
                   </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">Choisir une action</p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Choisir une action
+                  </p>
                 </div>
 
                 <div className="space-y-1 p-2">
@@ -88,7 +98,10 @@ function ActionsModal({ request, open, setOpen, onApprove, onReject, onToggleBlo
                         onClick={onApprove}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
                       >
-                        <RiCheckLine className="h-4 w-4" style={{ color: colors.primary }} />
+                        <RiCheckLine
+                          className="h-4 w-4"
+                          style={{ color: colors.primary }}
+                        />
                         Approuver la candidature
                       </button>
                       <button
@@ -115,15 +128,23 @@ function ActionsModal({ request, open, setOpen, onApprove, onReject, onToggleBlo
                       >
                         <span
                           className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: request.isAvailable ? colors.gray700 : colors.primary }}
+                          style={{
+                            backgroundColor: request.isAvailable
+                              ? colors.gray700
+                              : colors.primary,
+                          }}
                         />
-                        {request.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+                        {request.isAvailable
+                          ? 'Bloquer le compte'
+                          : 'Débloquer le compte'}
                       </button>
                     </>
                   )}
 
                   {status === 'rejected' && (
-                    <p className="px-3 py-2.5 text-sm text-gray-400">Aucune action disponible</p>
+                    <p className="px-3 py-2.5 text-sm text-gray-400">
+                      Aucune action disponible
+                    </p>
                   )}
                 </div>
 
@@ -149,6 +170,7 @@ export default function AgentsPage() {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
+  const [searchTerm, setSearchTerm] = useState('')
   const [actioningId, setActioningId] = useState(null)
   const [blockTarget, setBlockTarget] = useState(null)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
@@ -158,7 +180,7 @@ export default function AgentsPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [statusFilter])
+  }, [statusFilter, searchTerm])
 
   useEffect(() => {
     const load = async () => {
@@ -185,7 +207,9 @@ export default function AgentsPage() {
     try {
       await approveAgentRequest(request.id, request.userId)
       setRequests((prev) =>
-        prev.map((r) => (r.id === request.id ? { ...r, status: 'approved' } : r))
+        prev.map((r) =>
+          r.id === request.id ? { ...r, status: 'approved' } : r
+        )
       )
       notify('Candidature approuvée', 'success')
     } catch (e) {
@@ -200,7 +224,9 @@ export default function AgentsPage() {
     try {
       await rejectAgentRequest(request.id)
       setRequests((prev) =>
-        prev.map((r) => (r.id === request.id ? { ...r, status: 'rejected' } : r))
+        prev.map((r) =>
+          r.id === request.id ? { ...r, status: 'rejected' } : r
+        )
       )
       notify('Candidature rejetée', 'success')
     } catch (e) {
@@ -217,7 +243,9 @@ export default function AgentsPage() {
       await desableUser(blockTarget.userId, !nextAvailable)
       await desableUserFirestore(blockTarget.userId, nextAvailable)
       setRequests((prev) =>
-        prev.map((r) => (r.id === blockTarget.id ? { ...r, isAvailable: nextAvailable } : r))
+        prev.map((r) =>
+          r.id === blockTarget.id ? { ...r, isAvailable: nextAvailable } : r
+        )
       )
       notify('Action effectuée avec succès', 'success')
       setBlockModalOpen(false)
@@ -226,177 +254,242 @@ export default function AgentsPage() {
     }
   }
 
-  const filtered = requests.filter((r) => (r.status || 'pending') === statusFilter)
+  const filtered = requests.filter((r) => {
+    const matchStatus = (r.status || 'pending') === statusFilter
+    if (!matchStatus) return false
+    if (!searchTerm) return true
+    const lower = searchTerm.toLowerCase()
+    return (
+      r.fullName?.toLowerCase().includes(lower) ||
+      r.email?.toLowerCase().includes(lower) ||
+      r.phone?.toLowerCase().includes(lower) ||
+      r.commune?.toLowerCase().includes(lower) ||
+      r.agencyName?.toLowerCase().includes(lower)
+    )
+  })
   const visible = filtered.slice(0, visibleCount)
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
-    <DesableConfirmModal
-      title="Bloquer l'agent"
-      desable={blockTarget?.isAvailable}
-      message={
-        blockTarget?.isAvailable
-          ? "Bloquer cet agent l'empêchera de se connecter à son compte."
-          : 'Débloquer cet agent lui redonnera accès à son compte.'
-      }
-      confirmFunction={handleToggleBlock}
-      open={blockModalOpen}
-      setOpen={setBlockModalOpen}
-    />
+      <DesableConfirmModal
+        title="Bloquer l'agent"
+        desable={blockTarget?.isAvailable}
+        message={
+          blockTarget?.isAvailable
+            ? "Bloquer cet agent l'empêchera de se connecter à son compte."
+            : 'Débloquer cet agent lui redonnera accès à son compte.'
+        }
+        confirmFunction={handleToggleBlock}
+        open={blockModalOpen}
+        setOpen={setBlockModalOpen}
+      />
 
-    <ActionsModal
-      request={actionsTarget}
-      open={actionsModalOpen}
-      setOpen={setActionsModalOpen}
-      onApprove={() => handleApprove(actionsTarget)}
-      onReject={() => handleReject(actionsTarget)}
-      onToggleBlock={() => {
-        setActionsModalOpen(false)
-        setBlockTarget(actionsTarget)
-        setBlockModalOpen(true)
-      }}
-    />
+      <ActionsModal
+        request={actionsTarget}
+        open={actionsModalOpen}
+        setOpen={setActionsModalOpen}
+        onApprove={() => handleApprove(actionsTarget)}
+        onReject={() => handleReject(actionsTarget)}
+        onToggleBlock={() => {
+          setActionsModalOpen(false)
+          setBlockTarget(actionsTarget)
+          setBlockModalOpen(true)
+        }}
+      />
 
-    <div className="rounded-xl bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-900">Agents</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Candidatures pour devenir agent immobilier sur le site public
-        </p>
-      </div>
+      <div className="rounded-xl bg-white p-6 shadow-sm">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Agents</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Candidatures pour devenir agent immobilier sur le site public
+            </p>
+          </div>
+          <div className="relative sm:w-64">
+            <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher nom, agence, téléphone..."
+              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+        </div>
 
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
-        {STATUS_FILTERS.map((f) => {
-          const count = requests.filter((r) => (r.status || 'pending') === f.value).length
-          const active = statusFilter === f.value
-          return (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
-              style={
-                active
-                  ? { borderColor: colors.primary, color: colors.primary }
-                  : { borderColor: 'transparent', color: colors.gray500 }
-              }
-            >
-              {f.label}
-              <span
-                className="rounded-full px-1.5 py-0.5 text-xs"
+        <div className="mb-6 flex gap-2 border-b border-gray-200">
+          {STATUS_FILTERS.map((f) => {
+            const count = requests.filter(
+              (r) => (r.status || 'pending') === f.value
+            ).length
+            const active = statusFilter === f.value
+            return (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
                 style={
                   active
-                    ? { backgroundColor: colors.primaryVeryLight, color: colors.primary }
-                    : { backgroundColor: colors.gray100, color: colors.gray500 }
+                    ? { borderColor: colors.primary, color: colors.primary }
+                    : { borderColor: 'transparent', color: colors.gray500 }
                 }
               >
-                {count}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                {f.label}
+                <span
+                  className="rounded-full px-1.5 py-0.5 text-xs"
+                  style={
+                    active
+                      ? {
+                          backgroundColor: colors.primaryVeryLight,
+                          color: colors.primary,
+                        }
+                      : {
+                          backgroundColor: colors.gray100,
+                          color: colors.gray500,
+                        }
+                  }
+                >
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
 
-      {isLoading ? (
-        <div className="flex h-32 items-center justify-center">
-          <Loader color="#111827" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
-          <RiUserLine className="h-8 w-8 text-gray-300" />
-          <p className="text-sm text-gray-400">Aucune candidature dans cette catégorie</p>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead style={{ backgroundColor: colors.gray50 }}>
-                <tr>
-                  {['Agent', 'Contact', 'Commune', 'Types de biens', 'Statut', 'Actions'].map((h) => (
-                    <th
-                      key={h}
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {visible.map((request) => (
-                  <tr key={request.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-gray-900">{request.fullName}</p>
-                      <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
-                        {request.accountType === 'agence'
-                          ? `Agence — ${request.agencyName || ''}`
-                          : 'Particulier'}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4">
-                      {request.email && (
-                        <p className="flex items-center gap-1 text-xs text-gray-500">
-                          <RiMailLine className="h-3.5 w-3.5" /> {request.email}
-                        </p>
-                      )}
-                      {request.phone && (
-                        <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
-                          <RiPhoneLine className="h-3.5 w-3.5" /> {request.phone}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {request.commune && (
-                        <p className="flex items-center gap-1 text-xs capitalize text-gray-500">
-                          <RiMapPinLine className="h-3.5 w-3.5" /> {request.commune}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {(request.propertyTypes || []).map((t) => (
-                          <span key={t} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                            {PROPERTY_TYPE_LABELS[t] || t}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: request.isAvailable ? colors.primary : colors.gray700 }}
-                        />
-                        {request.isAvailable ? 'Actif' : 'Bloqué'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {actioningId === request.id ? (
-                        <Loader color="#111827" />
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setActionsTarget(request)
-                            setActionsModalOpen(true)
-                          }}
-                          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                          title="Actions"
-                        >
-                          <RiMore2Fill className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {isLoading ? (
+          <div className="flex h-32 items-center justify-center">
+            <Loader color="#111827" />
           </div>
-          {visibleCount < filtered.length && (
-            <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-          )}
-        </div>
-      )}
-    </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200">
+            <RiUserLine className="h-8 w-8 text-gray-300" />
+            <p className="text-sm text-gray-400">
+              Aucune candidature dans cette catégorie
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    {[
+                      'Agent',
+                      'Contact',
+                      'Commune',
+                      'Types de biens',
+                      'Statut',
+                      'Actions',
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {visible.map((request) => (
+                    <tr key={request.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {request.fullName}
+                        </p>
+                        <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
+                          {request.accountType === 'agence'
+                            ? `Agence — ${request.agencyName || ''}`
+                            : 'Particulier'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4">
+                        {request.email && (
+                          <p className="flex items-center gap-1 text-xs text-gray-500">
+                            <RiMailLine className="h-3.5 w-3.5" />{' '}
+                            {request.email}
+                          </p>
+                        )}
+                        {request.phone && (
+                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                            <RiPhoneLine className="h-3.5 w-3.5" />{' '}
+                            {request.phone}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {request.commune && (
+                          <p className="flex items-center gap-1 text-xs capitalize text-gray-500">
+                            <RiMapPinLine className="h-3.5 w-3.5" />{' '}
+                            {request.commune}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {(request.propertyTypes || []).map((t) => (
+                            <span
+                              key={t}
+                              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                            >
+                              {PROPERTY_TYPE_LABELS[t] || t}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                          style={{
+                            backgroundColor: request.isAvailable
+                              ? colors.primaryVeryLight
+                              : colors.gray100,
+                            color: request.isAvailable
+                              ? colors.primaryDark
+                              : colors.gray600,
+                          }}
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{
+                              backgroundColor: request.isAvailable
+                                ? colors.primary
+                                : colors.gray500,
+                            }}
+                          />
+                          {request.isAvailable ? 'Actif' : 'Bloqué'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {actioningId === request.id ? (
+                          <Loader color="#111827" />
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setActionsTarget(request)
+                              setActionsModalOpen(true)
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                            title="Actions"
+                          >
+                            <RiMore2Fill className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton
+                getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
+              />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
