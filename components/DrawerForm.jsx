@@ -1,7 +1,7 @@
-import { Fragment, useState } from 'react'
+import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { RiCloseFill } from 'react-icons/ri'
-
+import { useColors } from '../contexts/ColorContext'
 export default function DrawerForm({
   title,
   description,
@@ -10,12 +10,13 @@ export default function DrawerForm({
   footerButtons,
   children,
   onSubmit,
-}) {
+}) {  
+  const colors = useColors()
   return (
     <Transition.Root show={open} as={Fragment}>
       <Dialog
         as="div"
-        className="fixed inset-0 overflow-hidden"
+        className="fixed inset-0 overflow-hidden z-50"
         onClose={setOpen}
       >
         <div className="absolute inset-0 overflow-hidden">
@@ -36,7 +37,12 @@ export default function DrawerForm({
                   className="flex h-full flex-col divide-y divide-gray-200 bg-white shadow-xl"
                 >
                   <div className="h-0 flex-1 overflow-y-auto">
-                    <div className="bg-cyan-500 px-4 py-6 sm:px-6">
+                    <div
+                      className="px-4 py-6 sm:px-6"
+                      style={{
+                        backgroundColor: colors.primary,
+                      }}
+                    >
                       <div className="flex items-center justify-between">
                         <Dialog.Title className="text-xl font-bold text-white">
                           {title}

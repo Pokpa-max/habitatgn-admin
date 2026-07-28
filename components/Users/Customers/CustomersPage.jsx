@@ -1,5 +1,4 @@
 import React from 'react'
-import Header from '@/components/Header'
 import UsersList from '../UsersList'
 import { db } from '@/lib/firebase/client_config'
 
@@ -77,21 +76,16 @@ function CustomersPage() {
   }
 
   return (
-    <div className="flex-1 py-6">
-      <div className="mx-auto px-4 sm:px-6 md:px-8">
-        <Header title={'Utilisateurs'} />
-        <UsersList
-          title={'Utilisateurs'}
-          setData={setData}
-          data={data}
-          customers={usersToShow}
-          showMore={showMoreFirestore}
-          pagination={pagination.showPagination}
-          isLoading={isLoading}
-          isLoadingP={isLoadingP}
-        />
-      </div>
-    </div>
+    <UsersList
+      title={'Utilisateurs'}
+      setData={setData}
+      data={data}
+      customers={usersToShow}
+      showMore={showMoreFirestore}
+      pagination={pagination.showPagination}
+      isLoading={isLoading}
+      isLoadingP={isLoadingP}
+    />
   )
 }
 

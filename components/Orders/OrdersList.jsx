@@ -119,17 +119,17 @@ export default OrdersList
 
 export function OrderSkleton() {
   return (
-    <div class="animate-pulse">
-      <div class="mt-3 mb-6 h-4 rounded bg-gray-200"></div>
-      <div class="mb-6 h-4 rounded bg-gray-300"></div>
-      <div class="mb-6 h-4 rounded bg-gray-200"></div>
-      <div class="mb-6 h-4 rounded bg-gray-300"></div>
-      <div class="mb-6 h-4 rounded bg-gray-200"></div>
-      <div class="mt-3 mb-6 h-4 rounded bg-gray-200"></div>
-      <div class="mb-6 h-4 rounded bg-gray-300"></div>
-      <div class="mb-6 h-4 rounded bg-gray-200"></div>
-      <div class="mb-6 h-4 rounded bg-gray-300"></div>
-      <div class="mb-6 h-4 rounded bg-gray-200"></div>
+    <div className="animate-pulse">
+      <div className="mt-3 mb-6 h-4 rounded bg-gray-200"></div>
+      <div className="mb-6 h-4 rounded bg-gray-300"></div>
+      <div className="mb-6 h-4 rounded bg-gray-200"></div>
+      <div className="mb-6 h-4 rounded bg-gray-300"></div>
+      <div className="mb-6 h-4 rounded bg-gray-200"></div>
+      <div className="mt-3 mb-6 h-4 rounded bg-gray-200"></div>
+      <div className="mb-6 h-4 rounded bg-gray-300"></div>
+      <div className="mb-6 h-4 rounded bg-gray-200"></div>
+      <div className="mb-6 h-4 rounded bg-gray-300"></div>
+      <div className="mb-6 h-4 rounded bg-gray-200"></div>
     </div>
   )
 }

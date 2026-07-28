@@ -1,4 +1,3 @@
-import Breadcrumbs from 'nextjs-breadcrumbs'
 import { RiArrowLeftLine } from 'react-icons/ri'
 import { useColors } from '../contexts/ColorContext'
 
@@ -26,50 +25,13 @@ export default function Header({ title }) {
             Retour
           </a>
         </nav>
-        <nav className="hidden sm:flex" aria-label="Breadcrumb">
-          <ol role="list" className="flex items-center space-x-4">
-            <div className="flex flex-row">
-              <style>{`
-                .bread-container {
-                  display: flex;
-                  align-items: center;
-                  gap: 1rem;
-                }
-
-                .bread-container a {
-                  color: ${colors.gray600};
-                  text-decoration: none;
-                  font-size: 0.875rem;
-                  transition: all 0.3s ease;
-                  cursor: pointer;
-                }
-
-                .bread-container a:hover {
-                  color: ${colors.primary};
-                }
-
-                .bread-container span {
-                  color: ${colors.gray400};
-                  font-size: 0.875rem;
-                }
-
-                .bread-container .active {
-                  color: ${colors.primary};
-                  font-weight: 600;
-                  cursor: default;
-                }
-              `}</style>
-              <Breadcrumbs
-                containerClassName="bread-container"
-                transformLabel={(title) => title}
-                rootLabel="Acceuil"
-              />
-            </div>
-          </ol>
-        </nav>
       </div>
       <div className="mt-2 md:flex md:items-center md:justify-between">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex items-center gap-3">
+          <div
+            className="h-7 w-1.5 rounded-full"
+            style={{ backgroundColor: colors.primary }}
+          />
           <h2
             className="text-2xl font-bold leading-7 sm:truncate sm:text-3xl"
             style={{ color: colors.gray900 }}
