@@ -4,19 +4,42 @@ import { RiCheckLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
-import { getContactSettings, updateContactSettings } from '@/lib/services/siteSettings'
+import {
+  getContactSettings,
+  updateContactSettings,
+} from '@/lib/services/siteSettings'
 
 const FIELDS = [
   { name: 'email', label: 'Email', placeholder: 'contact@habitatgn.com' },
   { name: 'phone1', label: 'Téléphone 1', placeholder: '+224 6XX XXX XXX' },
   { name: 'phone2', label: 'Téléphone 2', placeholder: '+224 6XX XXX XXX' },
-  { name: 'whatsappNumber', label: 'Numéro WhatsApp', placeholder: '+224 6XX XXX XXX' },
+  {
+    name: 'whatsappNumber',
+    label: 'Numéro WhatsApp',
+    placeholder: '+224 6XX XXX XXX',
+  },
   { name: 'address1', label: 'Adresse 1', placeholder: 'Quartier, ville' },
   { name: 'address2', label: 'Adresse 2', placeholder: 'Quartier, ville' },
-  { name: 'facebookUrl', label: 'Lien Facebook', placeholder: 'https://facebook.com/...' },
-  { name: 'instagramUrl', label: 'Lien Instagram', placeholder: 'https://instagram.com/...' },
-  { name: 'twitterUrl', label: 'Lien Twitter / X', placeholder: 'https://x.com/...' },
-  { name: 'linkedinUrl', label: 'Lien LinkedIn', placeholder: 'https://linkedin.com/...' },
+  {
+    name: 'facebookUrl',
+    label: 'Lien Facebook',
+    placeholder: 'https://facebook.com/...',
+  },
+  {
+    name: 'instagramUrl',
+    label: 'Lien Instagram',
+    placeholder: 'https://instagram.com/...',
+  },
+  {
+    name: 'twitterUrl',
+    label: 'Lien Twitter / X',
+    placeholder: 'https://x.com/...',
+  },
+  {
+    name: 'linkedinUrl',
+    label: 'Lien LinkedIn',
+    placeholder: 'https://linkedin.com/...',
+  },
 ]
 
 export default function ContactTab() {
@@ -60,11 +83,17 @@ export default function ContactTab() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="rounded-xl bg-white p-6 shadow-sm">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="rounded-xl bg-white p-6 shadow-sm"
+    >
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-gray-900">Contact & réseaux sociaux</h2>
+        <h2 className="text-lg font-bold text-gray-900">
+          Contact & réseaux sociaux
+        </h2>
         <p className="mt-1 text-sm text-gray-500">
-          Coordonnées et liens affichés sur le site public (pied de page, page contact...)
+          Coordonnées et liens affichés sur le site public (pied de page, page
+          contact...)
         </p>
       </div>
 
@@ -86,7 +115,10 @@ export default function ContactTab() {
 
       <div className="mt-6 flex justify-end">
         {saving ? (
-          <div className="inline-flex justify-center rounded-lg px-6 py-2 text-sm font-semibold text-white" style={{ backgroundColor: colors.primary }}>
+          <div
+            className="inline-flex justify-center rounded-lg px-6 py-2 text-sm font-semibold text-white"
+            style={{ backgroundColor: colors.primary }}
+          >
             <Loader />
           </div>
         ) : (
