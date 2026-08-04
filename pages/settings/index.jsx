@@ -9,7 +9,6 @@ import {
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
 import { useColors } from '@/contexts/ColorContext'
-import ContactTab from '@/components/siteSettings/ContactTab'
 import ServicePricingTab from '@/components/settings/ServicePricingTab'
 
 const TABS = [
