@@ -55,7 +55,7 @@ function DesableConfirmModal({
         }
 
         .btn-confirm {
-          background-color: ${desable ? '#dc2626' : colors.primary || '#3b82f6'};
+          background-color: ${desable ? '#dc2626' : colors.primary || '#BD5B37'};
           transition: all 0.3s ease;
           font-weight: 600;
           display: inline-flex;
@@ -64,8 +64,8 @@ function DesableConfirmModal({
         }
 
         .btn-confirm:hover {
-          background-color: ${desable ? '#b91c1c' : colors.primary ? colors.primary.replace(')', ', 0.9)').replace('rgb', 'rgba') : 'rgba(59, 130, 246, 0.9)'};
-          box-shadow: 0 4px 12px ${desable ? 'rgba(220, 38, 38, 0.2)' : 'rgba(59, 130, 246, 0.2)'};
+          background-color: ${desable ? '#b91c1c' : colors.primaryHover || colors.primary || '#A44B2B'};
+          box-shadow: 0 4px 12px ${desable ? 'rgba(220, 38, 38, 0.2)' : 'rgba(189, 91, 55, 0.2)'};
           transform: translateY(-1px);
         }
 
@@ -102,10 +102,10 @@ function DesableConfirmModal({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
           </Transition.Child>
 
-          <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
               <Transition.Child
                 as={Fragment}
@@ -116,7 +116,7 @@ function DesableConfirmModal({
                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
               >
-                <Dialog.Panel className="modal-content relative transform overflow-hidden rounded-lg shadow-xl transition-all sm:w-full sm:max-w-md">
+                <Dialog.Panel className="modal-content relative transform overflow-hidden rounded-2xl border border-gray-100 shadow-2xl transition-all sm:w-full sm:max-w-md">
                   {/* Header */}
                   <div className="modal-header px-6 py-5">
                     <div className="flex items-start gap-4">

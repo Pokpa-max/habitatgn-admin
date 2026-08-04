@@ -89,7 +89,7 @@ export default function PartnerAgenciesTab() {
       specialty: '',
       phone: '',
       website: '',
-      color: '#024652',
+      color: '#BD5B37',
       ownerId: '',
     })
     setPreviewUrl(null)
@@ -103,7 +103,7 @@ export default function PartnerAgenciesTab() {
       specialty: agency.specialty || '',
       phone: agency.phone || '',
       website: agency.website || '',
-      color: agency.color || '#024652',
+      color: agency.color || '#BD5B37',
       ownerId: agency.ownerId || '',
     })
     setPreviewUrl(agency.logoUrl || null)
