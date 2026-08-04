@@ -9,7 +9,7 @@ import {
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
 import { useColors } from '@/contexts/ColorContext'
-import ServicePricingTab from '@/components/settings/ServicePricingTab'
+import ServicePricingTab from '@/components/Settings/ServicePricingTab'
 
 const TABS = [
   { value: 'contact', label: 'Contact', icon: RiContactsLine },
