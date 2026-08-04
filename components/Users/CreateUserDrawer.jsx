@@ -310,7 +310,7 @@ import DrawerForm from '../DrawerForm'
 import SimpleSelect from '../SimpleSelect'
 import { useColors } from '../../contexts/ColorContext'
 
-export default function CreateUserDrawer({ open, setOpen, ...props }) {
+export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props }) {
   const colors = useColors()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -331,6 +331,15 @@ export default function CreateUserDrawer({ open, setOpen, ...props }) {
     reValidateMode: 'onChange',
     shouldUnregister: false,
   })
+
+  React.useEffect(() => {
+    if (open && defaultRole) {
+      const foundOption = userRole.find((r) => r.value === defaultRole)
+      if (foundOption) {
+        setValue('userRole', foundOption)
+      }
+    }
+  }, [open, defaultRole, setValue])
 
   const CreatedAccountSubmit = async (data) => {
     setLoading(true)
@@ -380,8 +389,8 @@ export default function CreateUserDrawer({ open, setOpen, ...props }) {
         }
 
         .section-icon.agency {
-          background-color: rgba(59, 130, 246, 0.15);
-          color: ${colors.primary || '#3b82f6'};
+          background-color: rgba(189, 91, 55, 0.15);
+          color: ${colors.primary || '#BD5B37'};
         }
 
         .section-icon.manager {
@@ -425,9 +434,9 @@ export default function CreateUserDrawer({ open, setOpen, ...props }) {
         }
 
         .form-input:focus {
-          border-color: ${colors.primary || '#3b82f6'};
+          border-color: ${colors.primary || '#BD5B37'};
           outline: none;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+          box-shadow: 0 0 0 2px rgba(189, 91, 55, 0.1);
         }
 
         .form-error {
@@ -492,7 +501,7 @@ export default function CreateUserDrawer({ open, setOpen, ...props }) {
             {loading ? (
               <div
                 className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: colors.primary || '#3b82f6' }}
+                style={{ backgroundColor: colors.primary || '#BD5B37' }}
               >
                 <Loader />
               </div>
@@ -508,7 +517,7 @@ export default function CreateUserDrawer({ open, setOpen, ...props }) {
                 <button
                   type="submit"
                   className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
-                  style={{ backgroundColor: colors.primary || '#3b82f6' }}
+                  style={{ backgroundColor: colors.primary || '#BD5B37' }}
                 >
                   <RiCheckLine className="h-4 w-4" />
                   Créer le compte

@@ -13,6 +13,19 @@ interface ColorStyles {
   primaryLight: string
   primaryDark: string
   primaryVeryLight: string
+  secondary: string
+  secondaryHover: string
+  secondaryLight: string
+  terracotta: string
+  terracottaHover: string
+  terracottaLight: string
+  terracottaVeryLight: string
+  dark: string
+  darkHover: string
+  paper: string
+  cream: string
+  ink: string
+  navy: string
   white: string
   gray50: string
   gray100: string
@@ -32,12 +45,33 @@ interface ColorStyles {
 }
 
 const COLOR_PALETTE: ColorStyles = {
-  primary: '#024652',
-  primaryHover: '#035E6B',
-  primaryLight: '#3A99A5',
-  primaryDark: '#012F36',
-  primaryVeryLight: '#D4F1F5',
+  // Couleur Terracotta (Principale pour les Boutons, CTA, Actifs & Marque)
+  primary: '#BD5B37',
+  primaryHover: '#A44B2B',
+  primaryLight: '#F2E1D6',
+  primaryDark: '#8C3D20',
+  primaryVeryLight: '#FAF0E6',
 
+  // Terracotta Alias
+  terracotta: '#BD5B37',
+  terracottaHover: '#A44B2B',
+  terracottaLight: '#F2E1D6',
+  terracottaVeryLight: '#FAF0E6',
+
+  // Structure Dark (Noir & Navy pour les headers, bannières et cartes)
+  dark: '#12192B',
+  darkHover: '#263449',
+  secondary: '#12192B',
+  secondaryHover: '#263449',
+  secondaryLight: '#3E4652',
+
+  // Fonds & accents sombres
+  paper: '#FDFCFA',
+  cream: '#F3ECE1',
+  ink: '#12192B',
+  navy: '#263449',
+
+  // Neutres
   white: '#FFFFFF',
   gray50: '#F9FAFB',
   gray100: '#F3F4F6',
@@ -50,10 +84,10 @@ const COLOR_PALETTE: ColorStyles = {
   gray800: '#1F2937',
   gray900: '#111827',
 
-  // Couleurs utilitaires
-  success: '#16A34A', // Vert pour succès
-  warning: '#F59E0B', // Orange pour avertissement
-  error: '#EF4444', // Rouge pour erreurs
+  // États
+  success: '#16A34A',
+  warning: '#F59E0B',
+  error: '#EF4444',
 
   // Ombres
   shadow:
@@ -71,7 +105,7 @@ export const ColorProvider: React.FC<{ children: React.ReactNode }> = ({
     // Mise à jour des variables CSS au montage du composant
     const root = document.documentElement
 
-    // Variables CSS personnalisées pour le vert émeraude
+    // Terracotta (Primaire / Marque)
     root.style.setProperty('--color-primary', COLOR_PALETTE.primary)
     root.style.setProperty('--color-primary-hover', COLOR_PALETTE.primaryHover)
     root.style.setProperty('--color-primary-light', COLOR_PALETTE.primaryLight)
@@ -80,9 +114,21 @@ export const ColorProvider: React.FC<{ children: React.ReactNode }> = ({
       '--color-primary-very-light',
       COLOR_PALETTE.primaryVeryLight
     )
+    root.style.setProperty('--color-terracotta', COLOR_PALETTE.terracotta)
+    root.style.setProperty('--color-terracotta-hover', COLOR_PALETTE.terracottaHover)
+    root.style.setProperty('--color-terracotta-light', COLOR_PALETTE.terracottaLight)
 
-    // Variables pour Tailwind CSS (HSL du vert émeraude)
-    root.style.setProperty('--primary', '160 84% 39%') // HSL de #10B981
+    // Dark Ink (Secondaire / Structure)
+    root.style.setProperty('--color-secondary', COLOR_PALETTE.secondary)
+    root.style.setProperty('--color-secondary-hover', COLOR_PALETTE.secondaryHover)
+    root.style.setProperty('--color-dark', COLOR_PALETTE.dark)
+    root.style.setProperty('--color-paper', COLOR_PALETTE.paper)
+    root.style.setProperty('--color-cream', COLOR_PALETTE.cream)
+    root.style.setProperty('--color-ink', COLOR_PALETTE.ink)
+    root.style.setProperty('--color-navy', COLOR_PALETTE.navy)
+
+    // Variables pour Tailwind CSS (HSL du Terracotta #BD5B37)
+    root.style.setProperty('--primary', '16 55% 48%')
     root.style.setProperty('--primary-foreground', '0 0% 100%')
   }, [])
 

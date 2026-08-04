@@ -14,7 +14,10 @@ export default async function handler(
     const userRecord = await createUserAuth(email, passWord, name)
 
     // 2. Determine user type and set custom claims IMMEDIATELY
-    const userType = type === 'admin' ? 'admin' : 'manager'
+    const validTypes = ['admin', 'manager', 'agent', 'worker', 'ouvrier']
+    let userType = validTypes.includes(type) ? type : 'manager'
+    if (userType === 'ouvrier') userType = 'worker'
+
     await setCustomUserClaims(userRecord.uid, userType)
 
     const { uid } = userRecord
@@ -25,14 +28,46 @@ export default async function handler(
       email,
       name,
       type: userType,
+      role: userType,
       createdAt: FieldValue.serverTimestamp(),
-      phoneNumber: phoneNumber,
-      agence: agence,
+      phoneNumber: phoneNumber || '',
+      agence: agence || '',
       image_url: '',
       isAvailable: true,
       provider: 'email',
       uid: uid,
     })
+
+    // 4. Create approved entry for agent or worker if created directly by Admin
+    if (userType === 'agent') {
+      batch.set(
+        dbAdmin.collection('agent_requests').doc(uid),
+        {
+          userId: uid,
+          name,
+          email,
+          phone: phoneNumber || '',
+          agencyName: agence || '',
+          status: 'approved',
+          createdAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+    } else if (userType === 'worker') {
+      batch.set(
+        dbAdmin.collection('workers').doc(uid),
+        {
+          userId: uid,
+          name,
+          email,
+          phone: phoneNumber || '',
+          status: 'approved',
+          isAvailable: true,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      )
+    }
 
     await batch.commit()
 

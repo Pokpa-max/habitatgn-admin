@@ -158,9 +158,9 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
         }
 
         .form-input:focus {
-          border-color: ${colors.primary || '#3b82f6'};
+          border-color: ${colors.primary || '#BD5B37'};
           outline: none;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+          box-shadow: 0 0 0 2px rgba(189, 91, 55, 0.1);
         }
 
         .form-error {
@@ -210,8 +210,8 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
         }
 
         .image-upload-area:hover {
-          border-color: ${colors.primary || '#3b82f6'};
-          background-color: rgba(59, 130, 246, 0.02);
+          border-color: ${colors.primary || '#BD5B37'};
+          background-color: rgba(189, 91, 55, 0.02);
         }
 
         .image-preview {
@@ -238,7 +238,7 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
             {loading ? (
               <div
                 className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: colors.primary || '#3b82f6' }}
+                style={{ backgroundColor: colors.primary || '#BD5B37' }}
               >
                 <Loader />
               </div>
@@ -254,7 +254,7 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                 <button
                   type="submit"
                   className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
-                  style={{ backgroundColor: colors.primary || '#3b82f6' }}
+                  style={{ backgroundColor: colors.primary || '#BD5B37' }}
                 >
                   <RiCheckLine className="h-4 w-4" />
                   Enregistrer
@@ -330,8 +330,8 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                       htmlFor="file-upload"
                       className="cursor-pointer rounded px-3 py-1 text-xs font-semibold transition-all"
                       style={{
-                        color: colors.primary || '#3b82f6',
-                        backgroundColor: `rgba(59, 130, 246, 0.1)`,
+                        color: colors.primary || '#BD5B37',
+                        backgroundColor: `rgba(189, 91, 55, 0.1)`,
                       }}
                     >
                       Charger

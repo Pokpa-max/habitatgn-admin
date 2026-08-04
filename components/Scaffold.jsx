@@ -127,7 +127,7 @@ export default function Scaffold({ children, title, subNav }) {
           background-color: ${colors.primaryVeryLight};
           font-weight: 600;
           border-left: 3px solid ${colors.primary};
-          box-shadow: 0 1px 2px 0 rgba(2, 70, 82, 0.05);
+          box-shadow: 0 1px 2px 0 rgba(189, 91, 55, 0.08);
         }
 
         .nav-item-inactive {

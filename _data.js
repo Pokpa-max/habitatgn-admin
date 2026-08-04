@@ -7,9 +7,10 @@ export const zones = [
   { label: 'Matoto', value: 'Matoto' },
 ]
 export const userRole = [
-  { label: 'manager', value: 'manager' },
-  { label: 'admin', value: 'admin' },
-
+  { label: 'Gestionnaire / Manager', value: 'manager' },
+  { label: 'Administrateur', value: 'admin' },
+  { label: 'Agent Immobilier', value: 'agent' },
+  { label: 'Ouvrier / Artisan', value: 'worker' },
 ]
 
 export const quartier = [

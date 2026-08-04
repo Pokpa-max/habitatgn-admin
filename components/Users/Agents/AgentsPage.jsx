@@ -11,10 +11,12 @@ import {
   RiProfileLine,
   RiMore2Fill,
   RiSearchLine,
+  RiAddLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
 import {
   getAgentRequests,
   approveAgentRequest,
@@ -176,6 +178,7 @@ export default function AgentsPage() {
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [actionsTarget, setActionsTarget] = useState(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   useEffect(() => {
@@ -305,17 +308,36 @@ export default function AgentsPage() {
               Candidatures pour devenir agent immobilier sur le site public
             </p>
           </div>
-          <div className="relative sm:w-64">
-            <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher nom, agence, téléphone..."
-              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative sm:w-64">
+              <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher nom, agence, téléphone..."
+                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setCreateDrawerOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter un Agent
+            </button>
           </div>
         </div>
+
+        <CreateUserDrawer
+          open={createDrawerOpen}
+          setOpen={setCreateDrawerOpen}
+          defaultRole="agent"
+          onCreate={() => {
+            getAgentRequests().then(setRequests).catch(console.error)
+          }}
+        />
 
         <div className="mb-6 flex gap-2 border-b border-gray-200">
           {STATUS_FILTERS.map((f) => {

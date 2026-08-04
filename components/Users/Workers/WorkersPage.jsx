@@ -10,10 +10,12 @@ import {
   RiMore2Fill,
   RiProfileLine,
   RiSearchLine,
+  RiAddLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
 import { getWorkers, approveWorker, rejectWorker } from '@/lib/services/workers'
 import {
   desableUser,
@@ -163,30 +165,34 @@ export default function WorkersPage() {
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [actionsTarget, setActionsTarget] = useState(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
+  const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
   }, [statusFilter, searchTerm])
 
-  useEffect(() => {
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const data = await getWorkers()
-        const withAvailability = await Promise.all(
-          data.map(async (w) => ({
-            ...w,
-            isAvailable: await getUserAvailability(w.userId),
-          }))
-        )
-        setWorkers(withAvailability)
-      } catch (e) {
-        notify('Erreur lors du chargement', 'error')
-      }
+  const fetchWorkersData = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getWorkers()
+      const withAvailability = await Promise.all(
+        data.map(async (w) => ({
+          ...w,
+          isAvailable: await getUserAvailability(w.userId),
+        }))
+      )
+      setWorkers(withAvailability)
+    } catch (err) {
+      console.error(err)
+      notify('Erreur lors du chargement des ouvriers', 'error')
+    } finally {
       setIsLoading(false)
     }
-    load()
+  }
+
+  useEffect(() => {
+    fetchWorkersData()
   }, [])
 
   const handleApprove = async (worker) => {
@@ -287,17 +293,36 @@ export default function WorkersPage() {
               Profils d'artisans/ouvriers inscrits depuis le site public
             </p>
           </div>
-          <div className="relative sm:w-64">
-            <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher nom, spécialité, zone..."
-              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-            />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative sm:w-64">
+              <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Rechercher nom, spécialité, zone..."
+                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setCreateDrawerOpen(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter un Ouvrier
+            </button>
           </div>
         </div>
+
+        <CreateUserDrawer
+          open={createDrawerOpen}
+          setOpen={setCreateDrawerOpen}
+          defaultRole="worker"
+          onCreate={() => {
+            fetchWorkersData()
+          }}
+        />
 
         <div className="mb-6 flex gap-2 border-b border-gray-200">
           {STATUS_FILTERS.map((f) => {
