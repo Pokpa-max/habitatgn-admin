@@ -5,6 +5,7 @@ import {
   RiMailLine,
   RiPhoneLine,
   RiMapPinLine,
+  RiMoneyDollarCircleLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -26,6 +27,15 @@ import {
   getUserAvailability,
 } from '@/lib/services/managers'
 import { getPropertiesByOwner } from '@/lib/services/managedProperties'
+import {
+  getAgentPayments,
+  getAgentSubscriptionAmount,
+  recordAgentPayment,
+  computeAgentPaymentStatus,
+} from '@/lib/services/agentPayments'
+import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Agents/paymentStatusConfig'
+import RecordPaymentModal from '@/components/Users/Agents/RecordPaymentModal'
+import { firebaseDateFormat } from '@/utils/date'
 import BiensTab from '@/components/rentalManagement/BiensTab'
 
 const PROPERTY_TYPE_LABELS = {
@@ -56,6 +66,9 @@ function AgentDetail() {
   const [isAvailable, setIsAvailable] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
+  const [payments, setPayments] = useState([])
+  const [subscriptionAmount, setSubscriptionAmount] = useState(0)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
 
   useEffect(() => {
     if (!agentId) return
@@ -73,9 +86,11 @@ function AgentDetail() {
           new Set([agentId, profile?.userId, profile?.id].filter(Boolean))
         )
 
-        const propLists = await Promise.all(
-          candidateIds.map((id) => getPropertiesByOwner(id))
-        )
+        const [propLists, paymentsData, amount] = await Promise.all([
+          Promise.all(candidateIds.map((id) => getPropertiesByOwner(id))),
+          profile?.id ? getAgentPayments(profile.id) : Promise.resolve([]),
+          getAgentSubscriptionAmount(),
+        ])
 
         const map = new Map()
         propLists.flat().forEach((p) => {
@@ -83,6 +98,8 @@ function AgentDetail() {
         })
 
         setProperties(Array.from(map.values()))
+        setPayments(paymentsData)
+        setSubscriptionAmount(amount)
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -90,6 +107,20 @@ function AgentDetail() {
     }
     load()
   }, [agentId])
+
+  const paymentStatus = agent ? computeAgentPaymentStatus(agent, payments) : null
+
+  const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
+    if (!agent?.id) return
+    try {
+      await recordAgentPayment(agent.id, amount, paidAt, monthsCovered)
+      const refreshed = await getAgentPayments(agent.id)
+      setPayments(refreshed)
+      notify('Paiement enregistré', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
 
   const handleToggleBlock = async () => {
     const nextAvailable = !isAvailable
@@ -129,6 +160,13 @@ function AgentDetail() {
           confirmFunction={handleToggleBlock}
           open={blockModalOpen}
           setOpen={setBlockModalOpen}
+        />
+
+        <RecordPaymentModal
+          open={paymentModalOpen}
+          setOpen={setPaymentModalOpen}
+          defaultAmount={subscriptionAmount}
+          onConfirm={handleRecordPayment}
         />
 
         {isLoading ? (
@@ -195,6 +233,70 @@ function AgentDetail() {
                 <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" bgColor="#FFFBEB" />
               </div>
             </div>
+
+            {/* Abonnement */}
+            {agent?.status === 'approved' && paymentStatus && (
+              <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+                      Abonnement
+                    </h2>
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                        style={{
+                          backgroundColor: PAYMENT_STATUS_CONFIG[paymentStatus.status].bg,
+                          color: PAYMENT_STATUS_CONFIG[paymentStatus.status].color,
+                        }}
+                      >
+                        {PAYMENT_STATUS_CONFIG[paymentStatus.status].label}
+                      </span>
+                      <p className="text-xs text-gray-500">
+                        {paymentStatus.status === 'trial'
+                          ? `Essai gratuit jusqu'au ${firebaseDateFormat(paymentStatus.trialEndAt)}`
+                          : paymentStatus.nextDueAt
+                          ? `Prochaine échéance : ${firebaseDateFormat(paymentStatus.nextDueAt)}`
+                          : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setPaymentModalOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    <RiMoneyDollarCircleLine className="h-4 w-4" />
+                    Enregistrer un paiement
+                  </button>
+                </div>
+
+                <div className="mt-5 border-t border-gray-100 pt-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    Historique des paiements
+                  </p>
+                  {payments.length > 0 ? (
+                    <div className="divide-y divide-gray-100">
+                      {payments.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+                          <span className="text-gray-600">
+                            {firebaseDateFormat(p.paidAt)}
+                            {p.monthsCovered > 1 && (
+                              <span className="ml-2 text-xs text-gray-400">
+                                ({p.monthsCovered} mois)
+                              </span>
+                            )}
+                          </span>
+                          <span className="font-semibold text-gray-900">{formatGNF(p.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400">Aucun paiement enregistré</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Section Gestion des Biens de l'agent */}
             <BiensTab ownerId={agentId} onPropertiesChange={setProperties} />

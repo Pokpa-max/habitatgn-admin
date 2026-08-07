@@ -11,6 +11,7 @@ import {
   RiMore2Fill,
   RiSearchLine,
   RiAddLine,
+  RiMoneyDollarCircleLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -26,8 +27,18 @@ import {
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
+import {
+  getAllAgentPayments,
+  getAgentSubscriptionAmount,
+  recordAgentPayment,
+  computeAgentPaymentStatus,
+} from '@/lib/services/agentPayments'
+import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
+import RecordPaymentModal from './RecordPaymentModal'
+import AgentRevenueChart from './AgentRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import PaginationButton from '@/components/Orders/PaginationButton'
+import { firebaseDateFormat } from '@/utils/date'
 
 const PAGE_SIZE = 10
 
@@ -36,6 +47,8 @@ const STATUS_FILTERS = [
   { value: 'approved', label: 'Approuvées' },
   { value: 'rejected', label: 'Rejetées' },
 ]
+
+const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
 
 const PROPERTY_TYPE_LABELS = {
   location: 'Location',
@@ -56,38 +69,60 @@ export default function AgentsPage() {
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [subscriptionAmount, setSubscriptionAmount] = useState(0)
+  const [paymentTarget, setPaymentTarget] = useState(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [payments, setPayments] = useState([])
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
   }, [statusFilter, searchTerm])
 
   useEffect(() => {
-    const load = async () => {
-      setIsLoading(true)
-      try {
-        const data = await getAgentRequests()
-        const withAvailability = await Promise.all(
-          data.map(async (r) => ({
-            ...r,
-            isAvailable: await getUserAvailability(r.userId),
-          }))
-        )
-        setRequests(withAvailability)
-      } catch (e) {
-        notify('Erreur lors du chargement', 'error')
-      }
-      setIsLoading(false)
+    getAgentSubscriptionAmount().then(setSubscriptionAmount).catch(() => {})
+  }, [])
+
+  const fetchAgentsData = async () => {
+    setIsLoading(true)
+    try {
+      const [data, allPayments] = await Promise.all([getAgentRequests(), getAllAgentPayments()])
+      const withAvailability = await Promise.all(
+        data.map(async (r) => ({
+          ...r,
+          isAvailable: await getUserAvailability(r.userId),
+          paymentStatus: computeAgentPaymentStatus(
+            r,
+            allPayments.filter((p) => p.agentId === r.id)
+          ),
+        }))
+      )
+      setRequests(withAvailability)
+      setPayments(allPayments)
+    } catch (e) {
+      notify('Erreur lors du chargement', 'error')
     }
-    load()
+    setIsLoading(false)
+  }
+
+  useEffect(() => {
+    fetchAgentsData()
   }, [])
 
   const handleApprove = async (request) => {
     setActioningId(request.id)
     try {
       await approveAgentRequest(request.id, request.userId)
+      const approvedAt = new Date()
       setRequests((prev) =>
         prev.map((r) =>
-          r.id === request.id ? { ...r, status: 'approved' } : r
+          r.id === request.id
+            ? {
+                ...r,
+                status: 'approved',
+                approvedAt,
+                paymentStatus: computeAgentPaymentStatus({ ...r, status: 'approved', approvedAt }, []),
+              }
+            : r
         )
       )
       notify('Candidature approuvée', 'success')
@@ -133,6 +168,27 @@ export default function AgentsPage() {
     }
   }
 
+  const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
+    if (!paymentTarget) return
+    try {
+      await recordAgentPayment(paymentTarget.id, amount, paidAt, monthsCovered)
+      const allPayments = await getAllAgentPayments()
+      setRequests((prev) =>
+        prev.map((r) => ({
+          ...r,
+          paymentStatus: computeAgentPaymentStatus(
+            r,
+            allPayments.filter((p) => p.agentId === r.id)
+          ),
+        }))
+      )
+      setPayments(allPayments)
+      notify('Paiement enregistré', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
+
   const filtered = requests.filter((r) => {
     const matchStatus = (r.status || 'pending') === statusFilter
     if (!matchStatus) return false
@@ -163,6 +219,13 @@ export default function AgentsPage() {
         setOpen={setBlockModalOpen}
       />
 
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        setOpen={setPaymentModalOpen}
+        defaultAmount={subscriptionAmount}
+        onConfirm={handleRecordPayment}
+      />
+
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -171,26 +234,28 @@ export default function AgentsPage() {
               Candidatures pour devenir agent immobilier sur le site public
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative sm:w-64">
-              <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher nom, agence, téléphone..."
-                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-              />
+          {statusFilter !== REVENUE_TAB.value && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative sm:w-64">
+                <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher nom, agence, téléphone..."
+                  className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={() => setCreateDrawerOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter un Agent
+              </button>
             </div>
-            <button
-              onClick={() => setCreateDrawerOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter un Agent
-            </button>
-          </div>
+          )}
         </div>
 
         <CreateUserDrawer
@@ -198,21 +263,22 @@ export default function AgentsPage() {
           setOpen={setCreateDrawerOpen}
           defaultRole="agent"
           onCreate={() => {
-            getAgentRequests().then(setRequests).catch(console.error)
+            fetchAgentsData()
           }}
         />
 
-        <div className="mb-6 flex gap-2 border-b border-gray-200">
-          {STATUS_FILTERS.map((f) => {
-            const count = requests.filter(
-              (r) => (r.status || 'pending') === f.value
-            ).length
+        <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
+          {[...STATUS_FILTERS, REVENUE_TAB].map((f) => {
+            const isRevenueTab = f.value === REVENUE_TAB.value
+            const count = isRevenueTab
+              ? null
+              : requests.filter((r) => (r.status || 'pending') === f.value).length
             const active = statusFilter === f.value
             return (
               <button
                 key={f.value}
                 onClick={() => setStatusFilter(f.value)}
-                className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+                className="flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
                 style={
                   active
                     ? { borderColor: colors.primary, color: colors.primary }
@@ -220,28 +286,32 @@ export default function AgentsPage() {
                 }
               >
                 {f.label}
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-xs"
-                  style={
-                    active
-                      ? {
-                          backgroundColor: colors.primaryVeryLight,
-                          color: colors.primary,
-                        }
-                      : {
-                          backgroundColor: colors.gray100,
-                          color: colors.gray500,
-                        }
-                  }
-                >
-                  {count}
-                </span>
+                {count !== null && (
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-xs"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: colors.primaryVeryLight,
+                            color: colors.primary,
+                          }
+                        : {
+                            backgroundColor: colors.gray100,
+                            color: colors.gray500,
+                          }
+                    }
+                  >
+                    {count}
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
 
-        {isLoading ? (
+        {statusFilter === REVENUE_TAB.value ? (
+          <AgentRevenueChart payments={payments} isLoading={isLoading} />
+        ) : isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader color="#111827" />
           </div>
@@ -264,6 +334,7 @@ export default function AgentsPage() {
                       'Commune',
                       'Types de biens',
                       'Statut',
+                      'Abonnement',
                       'Actions',
                     ].map((h) => (
                       <th
@@ -347,6 +418,29 @@ export default function AgentsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
+                        {request.paymentStatus?.status !== 'unknown' && (
+                          <>
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                              style={{
+                                backgroundColor:
+                                  PAYMENT_STATUS_CONFIG[request.paymentStatus.status].bg,
+                                color: PAYMENT_STATUS_CONFIG[request.paymentStatus.status].color,
+                              }}
+                            >
+                              {PAYMENT_STATUS_CONFIG[request.paymentStatus.status].label}
+                            </span>
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              {request.paymentStatus.status === 'trial'
+                                ? `Essai jusqu'au ${firebaseDateFormat(request.paymentStatus.trialEndAt)}`
+                                : request.paymentStatus.nextDueAt
+                                ? `Échéance ${firebaseDateFormat(request.paymentStatus.nextDueAt)}`
+                                : ''}
+                            </p>
+                          </>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
                         {actioningId === request.id ? (
                           <Loader color="#111827" />
                         ) : (
@@ -385,6 +479,24 @@ export default function AgentsPage() {
                                       Rejeter la candidature
                                     </button>
                                   </>
+                                )}
+
+                                {request.status === 'approved' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMenuOpenId(null)
+                                      setPaymentTarget(request)
+                                      setPaymentModalOpen(true)
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                  >
+                                    <RiMoneyDollarCircleLine
+                                      className="h-4 w-4"
+                                      style={{ color: colors.primary }}
+                                    />
+                                    Enregistrer un paiement
+                                  </button>
                                 )}
 
                                 {request.status === 'approved' &&

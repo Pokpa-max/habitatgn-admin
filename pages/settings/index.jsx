@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RiContactsLine, RiPriceTag3Line, RiHammerLine } from 'react-icons/ri'
+import { RiContactsLine, RiPriceTag3Line, RiHammerLine, RiBriefcaseLine } from 'react-icons/ri'
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
@@ -12,11 +12,13 @@ import { useColors } from '@/contexts/ColorContext'
 import ContactTab from '../../components/siteSettings/ContactTab'
 import ServicePricingTab from '@/components/Settings/ServicePricingTab'
 import WorkerSubscriptionTab from '@/components/Settings/WorkerSubscriptionTab'
+import AgentSubscriptionTab from '@/components/Settings/AgentSubscriptionTab'
 
 const TABS = [
   { value: 'contact', label: 'Contact', icon: RiContactsLine },
   { value: 'pricing', label: 'Tarifs des services', icon: RiPriceTag3Line },
   { value: 'workers', label: 'Abonnement ouvriers', icon: RiHammerLine },
+  { value: 'agents', label: 'Abonnement agents', icon: RiBriefcaseLine },
 ]
 
 function Settings() {
@@ -51,6 +53,7 @@ function Settings() {
       {activeTab === 'contact' && <ContactTab />}
       {activeTab === 'pricing' && <ServicePricingTab />}
       {activeTab === 'workers' && <WorkerSubscriptionTab />}
+      {activeTab === 'agents' && <AgentSubscriptionTab />}
     </Scaffold>
   )
 }
