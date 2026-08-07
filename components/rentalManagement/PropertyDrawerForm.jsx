@@ -5,22 +5,139 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import DrawerForm from '@/components/DrawerForm'
-import { addManagedProperty, editManagedProperty } from '@/lib/services/managedProperties'
+import {
+  addManagedProperty,
+  editManagedProperty,
+} from '@/lib/services/managedProperties'
 import { addPropertyOwner } from '@/lib/services/propertyOwners'
+import { addProperty, updateProperty } from '@/lib/services/propertyService'
 
 const PROPERTY_TYPES = ['Appartement', 'Maison', 'Studio', 'Commerce']
 
 // Formulaire de création/édition d'un bien, partagé entre BiensTab (choix libre du
 // propriétaire) et la page détail propriétaire (propriétaire imposé par lockedOwnerId).
-export default function PropertyDrawerForm({ open, setOpen, selected, owners, lockedOwnerId, onSaved, onOwnerCreated }) {
+export default function PropertyDrawerForm({
+  open,
+  setOpen,
+  selected,
+  owners,
+  lockedOwnerId,
+  onSaved,
+  onOwnerCreated,
+}) {
   const colors = useColors()
   const [saving, setSaving] = useState(false)
   const [creatingOwner, setCreatingOwner] = useState(false)
+
+  const resolveCategory = (selectedItem) => {
+    const rawCategory =
+      selectedItem?.category || selectedItem?.propertyCategory || ''
+    const normalized = String(rawCategory).trim().toLowerCase()
+    if (['houses', 'lands', 'daily_rentals'].includes(normalized)) {
+      return normalized
+    }
+    return 'houses'
+  }
+
+  const resolveTypeValue = (value) => {
+    if (!value) return 'Appartement'
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (normalized.includes('maison') || normalized.includes('house'))
+        return 'Maison'
+      if (normalized.includes('studio')) return 'Studio'
+      if (
+        normalized.includes('commerce') ||
+        normalized.includes('boutique') ||
+        normalized.includes('commercial')
+      )
+        return 'Commerce'
+      if (
+        normalized.includes('appartement') ||
+        normalized.includes('appart') ||
+        normalized.includes('apartment')
+      )
+        return 'Appartement'
+      return value
+    }
+
+    if (typeof value === 'object') {
+      const candidate = value.property || value.transaction || value.type || ''
+      return resolveTypeValue(candidate)
+    }
+
+    return 'Appartement'
+  }
+
+  const resolveAddressValue = (selectedItem) => {
+    if (
+      typeof selectedItem?.address === 'string' &&
+      selectedItem.address.trim()
+    ) {
+      return selectedItem.address
+    }
+    if (selectedItem?.location && typeof selectedItem.location === 'object') {
+      const parts = [
+        selectedItem.location.neighborhood,
+        selectedItem.location.municipality,
+        selectedItem.location.landmark,
+      ].filter(Boolean)
+      return parts.join(', ')
+    }
+    return ''
+  }
+
+  const resolveCityValue = (selectedItem) => {
+    if (typeof selectedItem?.city === 'string' && selectedItem.city.trim()) {
+      return selectedItem.city
+    }
+    if (selectedItem?.location && typeof selectedItem.location === 'object') {
+      return (
+        selectedItem.location.region || selectedItem.location.municipality || ''
+      )
+    }
+    return ''
+  }
+
+  const resolveSurfaceValue = (selectedItem) => {
+    const direct = Number(selectedItem?.surface)
+    if (!Number.isNaN(direct) && direct > 0) return direct
+    const fromFeatures = Number(selectedItem?.features?.area)
+    if (!Number.isNaN(fromFeatures) && fromFeatures > 0) return fromFeatures
+    return ''
+  }
+
+  const resolveRoomValue = (selectedItem) => {
+    const direct = Number(selectedItem?.nbRooms)
+    if (!Number.isNaN(direct) && direct > 0) return direct
+    const fromFeatures = Number(selectedItem?.features?.bedrooms)
+    if (!Number.isNaN(fromFeatures) && fromFeatures > 0) return fromFeatures
+    return ''
+  }
+
+  const resolveRentValue = (selectedItem) => {
+    if (
+      typeof selectedItem?.rentAmount === 'number' ||
+      typeof selectedItem?.rentAmount === 'string'
+    ) {
+      const numeric = Number(selectedItem.rentAmount)
+      if (!Number.isNaN(numeric)) return numeric
+    }
+    if (
+      typeof selectedItem?.price === 'object' &&
+      selectedItem.price !== null
+    ) {
+      const numeric = Number(selectedItem.price.amount)
+      if (!Number.isNaN(numeric)) return numeric
+    }
+    return ''
+  }
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
@@ -28,18 +145,23 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
     if (!open) return
     setCreatingOwner(false)
     if (selected) {
-      reset({
-        type: selected.type,
-        address: selected.address,
-        city: selected.city || '',
+      const formValues = {
+        type: resolveTypeValue(selected.type),
+        address: resolveAddressValue(selected),
+        city: resolveCityValue(selected),
         unitLabel: selected.unitLabel || '',
         description: selected.description || '',
-        surface: selected.surface || '',
-        nbRooms: selected.nbRooms || '',
+        surface: resolveSurfaceValue(selected),
+        nbRooms: resolveRoomValue(selected),
         ownerId: selected.ownerId || lockedOwnerId || owners?.[0]?.id || '',
         commissionRate: selected.commissionRate,
-        rentAmount: selected.rentAmount,
+        rentAmount: resolveRentValue(selected),
         status: selected.status,
+      }
+      reset(formValues)
+      setValue('type', formValues.type, {
+        shouldDirty: true,
+        shouldTouch: true,
       })
     } else {
       reset({
@@ -78,6 +200,7 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
       }
 
       const payload = {
+        title: data.title || data.address,
         type: data.type,
         address: data.address,
         city: data.city,
@@ -88,12 +211,17 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         commissionRate: Number(data.commissionRate) || 0,
         rentAmount: Number(data.rentAmount) || 0,
         status: data.status,
+        category: resolveCategory(selected),
+        active: data.status !== 'inactive',
+        published: true,
+        verified: false,
       }
 
       if (selected) {
         const updated = { ...payload, unitLabel: data.unitLabel || '' }
-        await editManagedProperty(selected.id, updated)
-        onSaved({ ...selected, ...updated })
+        const targetCategory = resolveCategory(selected)
+        const saved = await updateProperty(selected.id, updated, targetCategory)
+        onSaved({ ...selected, ...updated, ...saved })
         notify('Bien modifié avec succès', 'success')
       } else {
         const unitCount = Math.max(1, Number(data.unitCount) || 1)
@@ -102,7 +230,7 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         if (unitCount > 1) {
           for (let i = 1; i <= unitCount; i += 1) {
             const reference = `BIEN-${base}-${String(i).padStart(2, '0')}`
-            const saved = await addManagedProperty({
+            const saved = await addProperty({
               ...payload,
               unitLabel: `Appt ${i}`,
               reference,
@@ -112,7 +240,11 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
           notify(`${unitCount} appartements créés avec succès`, 'success')
         } else {
           const reference = `BIEN-${base}`
-          const saved = await addManagedProperty({ ...payload, unitLabel: data.unitLabel || '', reference })
+          const saved = await addProperty({
+            ...payload,
+            unitLabel: data.unitLabel || '',
+            reference,
+          })
           onSaved(saved)
           notify('Bien ajouté avec succès', 'success')
         }
@@ -130,7 +262,11 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
       setOpen={setOpen}
       onSubmit={handleSubmit(onSubmit)}
       title={selected ? 'Modifier le bien' : 'Ajouter un bien'}
-      description={selected ? 'Mettez à jour les informations du bien' : 'Enregistrer un nouveau bien géré'}
+      description={
+        selected
+          ? 'Mettez à jour les informations du bien'
+          : 'Enregistrer un nouveau bien géré'
+      }
       footerButtons={
         <>
           {saving ? (
@@ -204,7 +340,11 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
             className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
             placeholder="Ex: Kaloum, rue KA-025"
           />
-          {errors.address && <p className="mt-1 text-xs font-semibold text-red-500">{errors.address.message}</p>}
+          {errors.address && (
+            <p className="mt-1 text-xs font-semibold text-red-500">
+              {errors.address.message}
+            </p>
+          )}
         </div>
 
         {selected ? (
@@ -219,7 +359,8 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
               placeholder="Ex: Appt 3"
             />
             <p className="mt-1 text-xs text-gray-400">
-              Utile si ce bien fait partie d'un immeuble à plusieurs appartements.
+              Utile si ce bien fait partie d'un immeuble à plusieurs
+              appartements.
             </p>
           </div>
         ) : (
@@ -231,12 +372,14 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
               type="number"
               min="1"
               {...register('unitCount')}
-              className="w-full max-w-32 rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="max-w-32 w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
               placeholder="1"
             />
             <p className="mt-1 text-xs text-gray-400">
-              Pour un immeuble de plusieurs appartements, indiquez le nombre à créer d'un coup (ex: 20). Chacun
-              sera étiqueté "Appt 1", "Appt 2"... et modifiable individuellement ensuite (loyer, statut, locataire).
+              Pour un immeuble de plusieurs appartements, indiquez le nombre à
+              créer d'un coup (ex: 20). Chacun sera étiqueté "Appt 1", "Appt
+              2"... et modifiable individuellement ensuite (loyer, statut,
+              locataire).
             </p>
           </div>
         )}
@@ -289,14 +432,18 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         {!lockedOwnerId && (
           <div className="border-t border-gray-100 pt-5">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Propriétaire</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Propriétaire
+              </p>
               <button
                 type="button"
                 onClick={() => setCreatingOwner((v) => !v)}
                 className="text-xs font-semibold"
                 style={{ color: colors.primary }}
               >
-                {creatingOwner ? 'Choisir un propriétaire existant' : '+ Nouveau propriétaire'}
+                {creatingOwner
+                  ? 'Choisir un propriétaire existant'
+                  : '+ Nouveau propriétaire'}
               </button>
             </div>
 
@@ -308,11 +455,15 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
                   </label>
                   <input
                     type="text"
-                    {...register('newOwnerName', { required: creatingOwner ? 'Requis' : false })}
+                    {...register('newOwnerName', {
+                      required: creatingOwner ? 'Requis' : false,
+                    })}
                     className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
                   />
                   {errors.newOwnerName && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.newOwnerName.message}</p>
+                    <p className="mt-1 text-xs font-semibold text-red-500">
+                      {errors.newOwnerName.message}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -321,12 +472,16 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
                   </label>
                   <input
                     type="text"
-                    {...register('newOwnerPhone', { required: creatingOwner ? 'Requis' : false })}
+                    {...register('newOwnerPhone', {
+                      required: creatingOwner ? 'Requis' : false,
+                    })}
                     className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
                     placeholder="+224 6XX XX XX XX"
                   />
                   {errors.newOwnerPhone && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.newOwnerPhone.message}</p>
+                    <p className="mt-1 text-xs font-semibold text-red-500">
+                      {errors.newOwnerPhone.message}
+                    </p>
                   )}
                 </div>
                 <div className="col-span-2">
@@ -342,10 +497,14 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
               </div>
             ) : (
               <select
-                {...register('ownerId', { required: !creatingOwner ? 'Requis' : false })}
+                {...register('ownerId', {
+                  required: !creatingOwner ? 'Requis' : false,
+                })}
                 className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
               >
-                {owners?.length === 0 && <option value="">Aucun propriétaire — créez-en un</option>}
+                {owners?.length === 0 && (
+                  <option value="">Aucun propriétaire — créez-en un</option>
+                )}
                 {owners?.map((o) => (
                   <option key={o.id} value={o.id}>
                     {o.name} — {o.phone}
@@ -368,7 +527,9 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
               placeholder="Ex: 1500000"
             />
             {errors.rentAmount && (
-              <p className="mt-1 text-xs font-semibold text-red-500">{errors.rentAmount.message}</p>
+              <p className="mt-1 text-xs font-semibold text-red-500">
+                {errors.rentAmount.message}
+              </p>
             )}
           </div>
           <div>

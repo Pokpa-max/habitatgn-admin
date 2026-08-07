@@ -5,10 +5,14 @@ import { auth } from '@/lib/firebase/client_config'
 import { agentRequestsCollectionRef } from '@/lib/services/agentRequests'
 import { workersCollectionRef } from '@/lib/services/workers'
 import { contactMessagesCollectionRef } from '@/lib/services/contactMessages'
-import { movingRequestsCollectionRef } from '@/lib/services/movingRequests'
-import { rentalManagementRequestsCollectionRef } from '@/lib/services/rentalManagementRequests'
-import { legalSecurityRequestsCollectionRef } from '@/lib/services/legalSecurityRequests'
+import { serviceRequestsCollectionRef, MAIN_CATEGORIES } from '@/lib/services/serviceRequests'
 import { notify } from '@/utils/toast'
+
+const CATEGORY_LABELS = {
+  demenagement: 'de déménagement',
+  'gestion-locative': 'de gestion locative',
+  'securisation-fonciere': 'de sécurisation foncière',
+}
 
 const NotificationsContext = createContext({
   pendingAgents: 0,
@@ -17,6 +21,7 @@ const NotificationsContext = createContext({
   pendingMovingRequests: 0,
   pendingRentalRequests: 0,
   pendingLegalRequests: 0,
+  pendingArtisanRequests: 0,
   pendingServiceRequests: 0,
 })
 
@@ -27,22 +32,19 @@ export function NotificationsProvider({ children }) {
   const [pendingMovingRequests, setPendingMovingRequests] = useState(0)
   const [pendingRentalRequests, setPendingRentalRequests] = useState(0)
   const [pendingLegalRequests, setPendingLegalRequests] = useState(0)
+  const [pendingArtisanRequests, setPendingArtisanRequests] = useState(0)
 
   // null = not yet initialized (first snapshot = baseline, no toast)
   const knownAgentIds = useRef(null)
   const knownWorkerIds = useRef(null)
   const knownMessageIds = useRef(null)
-  const knownMovingIds = useRef(null)
-  const knownRentalIds = useRef(null)
-  const knownLegalIds = useRef(null)
+  const knownServiceRequestIds = useRef(null)
 
   useEffect(() => {
     let unsubAgents = null
     let unsubWorkers = null
     let unsubMessages = null
-    let unsubMoving = null
-    let unsubRental = null
-    let unsubLegal = null
+    let unsubServiceRequests = null
 
     // Start Firestore listeners only once the user is authenticated
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -50,15 +52,11 @@ export function NotificationsProvider({ children }) {
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()
       if (unsubMessages) unsubMessages()
-      if (unsubMoving) unsubMoving()
-      if (unsubRental) unsubRental()
-      if (unsubLegal) unsubLegal()
+      if (unsubServiceRequests) unsubServiceRequests()
       knownAgentIds.current = null
       knownWorkerIds.current = null
       knownMessageIds.current = null
-      knownMovingIds.current = null
-      knownRentalIds.current = null
-      knownLegalIds.current = null
+      knownServiceRequestIds.current = null
 
       if (!user) {
         setPendingAgents(0)
@@ -67,6 +65,7 @@ export function NotificationsProvider({ children }) {
         setPendingMovingRequests(0)
         setPendingRentalRequests(0)
         setPendingLegalRequests(0)
+        setPendingArtisanRequests(0)
         return
       }
 
@@ -143,75 +142,35 @@ export function NotificationsProvider({ children }) {
         }
       })
 
-      const qMoving = query(
-        movingRequestsCollectionRef,
+      const qServiceRequests = query(
+        serviceRequestsCollectionRef,
         where('status', '==', 'pending')
       )
 
-      unsubMoving = onSnapshot(qMoving, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingMovingRequests(ids.size)
+      unsubServiceRequests = onSnapshot(qServiceRequests, (snapshot) => {
+        const docs = snapshot.docs.map((d) => ({ id: d.id, category: d.data().category }))
+        const ids = new Set(docs.map((d) => d.id))
 
-        if (knownMovingIds.current === null) {
-          knownMovingIds.current = ids
+        setPendingMovingRequests(docs.filter((d) => d.category === 'demenagement').length)
+        setPendingRentalRequests(docs.filter((d) => d.category === 'gestion-locative').length)
+        setPendingLegalRequests(docs.filter((d) => d.category === 'securisation-fonciere').length)
+        setPendingArtisanRequests(docs.filter((d) => !MAIN_CATEGORIES.includes(d.category)).length)
+
+        if (knownServiceRequestIds.current === null) {
+          knownServiceRequestIds.current = ids
         } else {
-          const newOnes = [...ids].filter((id) => !knownMovingIds.current.has(id))
+          const newOnes = docs.filter((d) => !knownServiceRequestIds.current.has(d.id))
           if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de déménagement !`,
-              'success'
-            )
+            const byCategory = newOnes.reduce((acc, d) => {
+              const label = CATEGORY_LABELS[d.category] || "d'intervention"
+              acc[label] = (acc[label] || 0) + 1
+              return acc
+            }, {})
+            Object.entries(byCategory).forEach(([label, n]) => {
+              notify(`${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} ${label} !`, 'success')
+            })
           }
-          knownMovingIds.current = ids
-        }
-      })
-
-      const qRental = query(
-        rentalManagementRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
-
-      unsubRental = onSnapshot(qRental, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingRentalRequests(ids.size)
-
-        if (knownRentalIds.current === null) {
-          knownRentalIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownRentalIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de gestion locative !`,
-              'success'
-            )
-          }
-          knownRentalIds.current = ids
-        }
-      })
-
-      const qLegal = query(
-        legalSecurityRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
-
-      unsubLegal = onSnapshot(qLegal, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingLegalRequests(ids.size)
-
-        if (knownLegalIds.current === null) {
-          knownLegalIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownLegalIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de sécurisation foncière !`,
-              'success'
-            )
-          }
-          knownLegalIds.current = ids
+          knownServiceRequestIds.current = ids
         }
       })
     })
@@ -221,13 +180,12 @@ export function NotificationsProvider({ children }) {
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()
       if (unsubMessages) unsubMessages()
-      if (unsubMoving) unsubMoving()
-      if (unsubRental) unsubRental()
-      if (unsubLegal) unsubLegal()
+      if (unsubServiceRequests) unsubServiceRequests()
     }
   }, [])
 
-  const pendingServiceRequests = pendingMovingRequests + pendingRentalRequests + pendingLegalRequests
+  const pendingServiceRequests =
+    pendingMovingRequests + pendingRentalRequests + pendingLegalRequests + pendingArtisanRequests
 
   return (
     <NotificationsContext.Provider
@@ -238,6 +196,7 @@ export function NotificationsProvider({ children }) {
         pendingMovingRequests,
         pendingRentalRequests,
         pendingLegalRequests,
+        pendingArtisanRequests,
         pendingServiceRequests,
       }}
     >

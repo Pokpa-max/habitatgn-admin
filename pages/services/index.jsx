@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { RiTruckLine, RiHomeGearLine, RiFileShieldLine, RiMoneyDollarCircleLine } from 'react-icons/ri'
+import {
+  RiTruckLine,
+  RiHomeGearLine,
+  RiFileShieldLine,
+  RiMoneyDollarCircleLine,
+  RiToolsLine,
+} from 'react-icons/ri'
 import {
   AuthAction,
   withAuthUser,
@@ -14,6 +20,7 @@ import { useNotifications } from '@/contexts/NotificationsContext'
 import MovingTab from '@/components/services/MovingTab'
 import RentalManagementTab from '@/components/services/RentalManagementTab'
 import LegalSecurityTab from '@/components/services/LegalSecurityTab'
+import ArtisanRequestsTab from '@/components/services/ArtisanRequestsTab'
 import ServiceRevenuesTab from '@/components/services/ServiceRevenuesTab'
 
 function Services() {
@@ -25,6 +32,7 @@ function Services() {
     { value: 'moving', label: 'Déménagement', icon: RiTruckLine, badgeCount: notifications.pendingMovingRequests },
     { value: 'rental', label: 'Gestion locative', icon: RiHomeGearLine, badgeCount: notifications.pendingRentalRequests },
     { value: 'legal', label: 'Sécurisation foncière', icon: RiFileShieldLine, badgeCount: notifications.pendingLegalRequests },
+    { value: 'artisan', label: 'Artisans / Autres demandes', icon: RiToolsLine, badgeCount: notifications.pendingArtisanRequests },
     { value: 'revenues', label: 'Revenus des services', icon: RiMoneyDollarCircleLine },
   ]
 
@@ -61,6 +69,7 @@ function Services() {
       {activeTab === 'moving' && <MovingTab />}
       {activeTab === 'rental' && <RentalManagementTab />}
       {activeTab === 'legal' && <LegalSecurityTab />}
+      {activeTab === 'artisan' && <ArtisanRequestsTab />}
       {activeTab === 'revenues' && <ServiceRevenuesTab />}
     </Scaffold>
   )

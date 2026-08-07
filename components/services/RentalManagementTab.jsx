@@ -1,9 +1,6 @@
 import { useCallback } from 'react'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
-import {
-  getRentalManagementRequests,
-  updateRentalManagementRequestStatus,
-} from '@/lib/services/rentalManagementRequests'
+import { getServiceRequestsByCategory, updateServiceRequestStatus } from '@/lib/services/serviceRequests'
 
 const columns = [
   {
@@ -21,18 +18,17 @@ const detailFields = [
   { label: 'Type de bien', accessor: 'propertyType' },
   { label: 'Nombre de pièces', accessor: 'rooms' },
   { label: 'Loyer mensuel', render: (r) => (r.monthlyRent ? `${r.monthlyRent} GNF` : null) },
-  { label: 'Offre sélectionnée', accessor: 'selectedPackage' },
-  { label: 'Notes', accessor: 'notes' },
+  { label: 'Description', accessor: 'description' },
 ]
 
 export default function RentalManagementTab() {
-  const fetchRequests = useCallback(() => getRentalManagementRequests(), [])
+  const fetchRequests = useCallback(() => getServiceRequestsByCategory('gestion-locative'), [])
 
   return (
     <ServiceRequestsPanel
       description="Demandes envoyées depuis le formulaire de gestion locative du site public"
       fetchRequests={fetchRequests}
-      updateStatus={updateRentalManagementRequestStatus}
+      updateStatus={updateServiceRequestStatus}
       columns={columns}
       detailFields={detailFields}
       searchFn={(r, lower) =>

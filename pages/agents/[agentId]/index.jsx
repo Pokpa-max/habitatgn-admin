@@ -16,6 +16,7 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
+import { formatGNF } from '@/utils/format'
 import Loader from '@/components/Loader'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import { getAgentRequestByUserId } from '@/lib/services/agentRequests'
@@ -24,6 +25,8 @@ import {
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
+import { getPropertiesByOwner } from '@/lib/services/managedProperties'
+import BiensTab from '@/components/rentalManagement/BiensTab'
 
 const PROPERTY_TYPE_LABELS = {
   location: 'Location',
@@ -32,12 +35,24 @@ const PROPERTY_TYPE_LABELS = {
   terrain: 'Terrain',
 }
 
+function StatCard({ label, value, color, bgColor }) {
+  return (
+    <div className="rounded-xl border border-gray-100 p-4 shadow-sm" style={{ backgroundColor: bgColor || '#F9FAFB' }}>
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
+      <p className="mt-1 text-xl font-extrabold" style={{ color }}>
+        {value}
+      </p>
+    </div>
+  )
+}
+
 function AgentDetail() {
   const colors = useColors()
   const router = useRouter()
   const { agentId } = router.query
 
   const [agent, setAgent] = useState(null)
+  const [properties, setProperties] = useState([])
   const [isAvailable, setIsAvailable] = useState(true)
   const [isLoading, setIsLoading] = useState(true)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
@@ -53,6 +68,21 @@ function AgentDetail() {
         ])
         setAgent(profile)
         setIsAvailable(available)
+
+        const candidateIds = Array.from(
+          new Set([agentId, profile?.userId, profile?.id].filter(Boolean))
+        )
+
+        const propLists = await Promise.all(
+          candidateIds.map((id) => getPropertiesByOwner(id))
+        )
+
+        const map = new Map()
+        propLists.flat().forEach((p) => {
+          if (p && p.id) map.set(p.id, p)
+        })
+
+        setProperties(Array.from(map.values()))
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -74,9 +104,12 @@ function AgentDetail() {
     }
   }
 
+  const totalRent = properties.reduce((sum, p) => sum + (p.rentAmount || 0), 0)
+  const occupiedCount = properties.filter((p) => p.status === 'occupied').length
+
   return (
     <Scaffold>
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <button
           onClick={() => router.back()}
           className="mb-4 flex items-center text-sm text-gray-600 hover:text-gray-900"
@@ -103,57 +136,69 @@ function AgentDetail() {
             <Loader color="#111827" />
           </div>
         ) : (
-          <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {agent?.fullName || 'Agent'}
-                </h1>
-                <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
-                  {agent?.accountType === 'agence'
-                    ? `Agence — ${agent?.agencyName || ''}`
-                    : 'Particulier'}
-                </p>
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                  {agent?.email && (
-                    <span className="flex items-center gap-1.5">
-                      <RiMailLine className="h-4 w-4 text-gray-400" /> {agent.email}
-                    </span>
-                  )}
-                  {agent?.phone && (
-                    <span className="flex items-center gap-1.5">
-                      <RiPhoneLine className="h-4 w-4 text-gray-400" /> {agent.phone}
-                    </span>
-                  )}
-                  {agent?.commune && (
-                    <span className="flex items-center gap-1.5 capitalize">
-                      <RiMapPinLine className="h-4 w-4 text-gray-400" /> {agent.commune}
-                    </span>
+          <>
+            {/* Profil de l'agent */}
+            <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {agent?.fullName || 'Agent'}
+                  </h1>
+                  <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
+                    {agent?.accountType === 'agence'
+                      ? `Agence — ${agent?.agencyName || ''}`
+                      : 'Particulier'}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                    {agent?.email && (
+                      <span className="flex items-center gap-1.5">
+                        <RiMailLine className="h-4 w-4 text-gray-400" /> {agent.email}
+                      </span>
+                    )}
+                    {agent?.phone && (
+                      <span className="flex items-center gap-1.5">
+                        <RiPhoneLine className="h-4 w-4 text-gray-400" /> {agent.phone}
+                      </span>
+                    )}
+                    {agent?.commune && (
+                      <span className="flex items-center gap-1.5 capitalize">
+                        <RiMapPinLine className="h-4 w-4 text-gray-400" /> {agent.commune}
+                      </span>
+                    )}
+                  </div>
+                  {agent?.propertyTypes?.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {agent.propertyTypes.map((t) => (
+                        <span key={t} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                          {PROPERTY_TYPE_LABELS[t] || t}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-                {agent?.propertyTypes?.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {agent.propertyTypes.map((t) => (
-                      <span key={t} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                        {PROPERTY_TYPE_LABELS[t] || t}
-                      </span>
-                    ))}
-                  </div>
-                )}
+
+                <button
+                  onClick={() => setBlockModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700"
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: isAvailable ? colors.primary : colors.gray700 }}
+                  />
+                  {isAvailable ? 'Actif' : 'Bloqué'}
+                </button>
               </div>
 
-              <button
-                onClick={() => setBlockModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700"
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: isAvailable ? colors.primary : colors.gray700 }}
-                />
-                {isAvailable ? 'Actif' : 'Bloqué'}
-              </button>
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
+                <StatCard label="Occupés" value={occupiedCount} color="#065F46" bgColor="#ECFDF5" />
+                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" bgColor="#FFFBEB" />
+              </div>
             </div>
-          </div>
+
+            {/* Section Gestion des Biens de l'agent */}
+            <BiensTab ownerId={agentId} onPropertiesChange={setProperties} />
+          </>
         )}
       </div>
     </Scaffold>

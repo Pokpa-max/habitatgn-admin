@@ -11,6 +11,7 @@ import {
   RiProfileLine,
   RiSearchLine,
   RiAddLine,
+  RiMoneyDollarCircleLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -22,8 +23,18 @@ import {
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
+import {
+  getAllWorkerPayments,
+  getWorkerSubscriptionAmount,
+  recordWorkerPayment,
+  computeWorkerPaymentStatus,
+} from '@/lib/services/workerPayments'
+import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
+import RecordPaymentModal from './RecordPaymentModal'
+import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import PaginationButton from '@/components/Orders/PaginationButton'
+import { firebaseDateFormat } from '@/utils/date'
 
 const PAGE_SIZE = 10
 
@@ -33,6 +44,8 @@ const STATUS_FILTERS = [
   { value: 'rejected', label: 'Rejetés' },
 ]
 
+const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
+
 function ActionsModal({
   worker,
   open,
@@ -40,6 +53,7 @@ function ActionsModal({
   onApprove,
   onReject,
   onToggleBlock,
+  onRecordPayment,
 }) {
   const colors = useColors()
   if (!worker) return null
@@ -111,6 +125,19 @@ function ActionsModal({
                     </>
                   )}
 
+                  {status === 'approved' && (
+                    <button
+                      onClick={onRecordPayment}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      <RiMoneyDollarCircleLine
+                        className="h-4 w-4"
+                        style={{ color: colors.primary }}
+                      />
+                      Enregistrer un paiement
+                    </button>
+                  )}
+
                   {status === 'approved' && worker.userId && (
                     <button
                       onClick={onToggleBlock}
@@ -167,22 +194,35 @@ export default function WorkersPage() {
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [subscriptionAmount, setSubscriptionAmount] = useState(0)
+  const [paymentTarget, setPaymentTarget] = useState(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [payments, setPayments] = useState([])
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
   }, [statusFilter, searchTerm])
 
+  useEffect(() => {
+    getWorkerSubscriptionAmount().then(setSubscriptionAmount).catch(() => {})
+  }, [])
+
   const fetchWorkersData = async () => {
     setIsLoading(true)
     try {
-      const data = await getWorkers()
+      const [data, allPayments] = await Promise.all([getWorkers(), getAllWorkerPayments()])
       const withAvailability = await Promise.all(
         data.map(async (w) => ({
           ...w,
           isAvailable: await getUserAvailability(w.userId),
+          paymentStatus: computeWorkerPaymentStatus(
+            w,
+            allPayments.filter((p) => p.workerId === w.id)
+          ),
         }))
       )
       setWorkers(withAvailability)
+      setPayments(allPayments)
     } catch (err) {
       console.error(err)
       notify('Erreur lors du chargement des ouvriers', 'error')
@@ -199,8 +239,18 @@ export default function WorkersPage() {
     setActioningId(worker.id)
     try {
       await approveWorker(worker.id, worker.userId)
+      const approvedAt = new Date()
       setWorkers((prev) =>
-        prev.map((w) => (w.id === worker.id ? { ...w, status: 'approved' } : w))
+        prev.map((w) =>
+          w.id === worker.id
+            ? {
+                ...w,
+                status: 'approved',
+                approvedAt,
+                paymentStatus: computeWorkerPaymentStatus({ ...w, status: 'approved', approvedAt }, []),
+              }
+            : w
+        )
       )
       notify('Ouvrier approuvé', 'success')
     } catch (e) {
@@ -238,6 +288,27 @@ export default function WorkersPage() {
       )
       notify('Action effectuée avec succès', 'success')
       setBlockModalOpen(false)
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
+
+  const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
+    if (!paymentTarget) return
+    try {
+      await recordWorkerPayment(paymentTarget.id, amount, paidAt, monthsCovered)
+      const allPayments = await getAllWorkerPayments()
+      setWorkers((prev) =>
+        prev.map((w) => ({
+          ...w,
+          paymentStatus: computeWorkerPaymentStatus(
+            w,
+            allPayments.filter((p) => p.workerId === w.id)
+          ),
+        }))
+      )
+      setPayments(allPayments)
+      notify('Paiement enregistré', 'success')
     } catch (e) {
       notify('Une erreur est survenue', 'error')
     }
@@ -283,6 +354,18 @@ export default function WorkersPage() {
           setBlockTarget(actionsTarget)
           setBlockModalOpen(true)
         }}
+        onRecordPayment={() => {
+          setActionsModalOpen(false)
+          setPaymentTarget(actionsTarget)
+          setPaymentModalOpen(true)
+        }}
+      />
+
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        setOpen={setPaymentModalOpen}
+        defaultAmount={subscriptionAmount}
+        onConfirm={handleRecordPayment}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -293,26 +376,28 @@ export default function WorkersPage() {
               Profils d'artisans/ouvriers inscrits depuis le site public
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative sm:w-64">
-              <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher nom, spécialité, zone..."
-                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-              />
+          {statusFilter !== REVENUE_TAB.value && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative sm:w-64">
+                <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher nom, spécialité, zone..."
+                  className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+              <button
+                onClick={() => setCreateDrawerOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter un Ouvrier
+              </button>
             </div>
-            <button
-              onClick={() => setCreateDrawerOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter un Ouvrier
-            </button>
-          </div>
+          )}
         </div>
 
         <CreateUserDrawer
@@ -324,17 +409,18 @@ export default function WorkersPage() {
           }}
         />
 
-        <div className="mb-6 flex gap-2 border-b border-gray-200">
-          {STATUS_FILTERS.map((f) => {
-            const count = workers.filter(
-              (w) => (w.status || 'pending') === f.value
-            ).length
+        <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
+          {[...STATUS_FILTERS, REVENUE_TAB].map((f) => {
+            const isRevenueTab = f.value === REVENUE_TAB.value
+            const count = isRevenueTab
+              ? null
+              : workers.filter((w) => (w.status || 'pending') === f.value).length
             const active = statusFilter === f.value
             return (
               <button
                 key={f.value}
                 onClick={() => setStatusFilter(f.value)}
-                className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+                className="flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
                 style={
                   active
                     ? { borderColor: colors.primary, color: colors.primary }
@@ -342,28 +428,32 @@ export default function WorkersPage() {
                 }
               >
                 {f.label}
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-xs"
-                  style={
-                    active
-                      ? {
-                          backgroundColor: colors.primaryVeryLight,
-                          color: colors.primary,
-                        }
-                      : {
-                          backgroundColor: colors.gray100,
-                          color: colors.gray500,
-                        }
-                  }
-                >
-                  {count}
-                </span>
+                {count !== null && (
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-xs"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: colors.primaryVeryLight,
+                            color: colors.primary,
+                          }
+                        : {
+                            backgroundColor: colors.gray100,
+                            color: colors.gray500,
+                          }
+                    }
+                  >
+                    {count}
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
 
-        {isLoading ? (
+        {statusFilter === REVENUE_TAB.value ? (
+          <WorkerRevenueChart payments={payments} isLoading={isLoading} />
+        ) : isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader color="#111827" />
           </div>
@@ -386,6 +476,7 @@ export default function WorkersPage() {
                       'Zones',
                       'Contact',
                       'Statut',
+                      'Abonnement',
                       'Actions',
                     ].map((h) => (
                       <th
@@ -481,6 +572,29 @@ export default function WorkersPage() {
                           />
                           {worker.isAvailable ? 'Actif' : 'Bloqué'}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {worker.paymentStatus?.status !== 'unknown' && (
+                          <>
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                              style={{
+                                backgroundColor:
+                                  PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].bg,
+                                color: PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].color,
+                              }}
+                            >
+                              {PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].label}
+                            </span>
+                            <p className="mt-1 text-[11px] text-gray-400">
+                              {worker.paymentStatus.status === 'trial'
+                                ? `Essai jusqu'au ${firebaseDateFormat(worker.paymentStatus.trialEndAt)}`
+                                : worker.paymentStatus.nextDueAt
+                                ? `Échéance ${firebaseDateFormat(worker.paymentStatus.nextDueAt)}`
+                                : ''}
+                            </p>
+                          </>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {actioningId === worker.id ? (

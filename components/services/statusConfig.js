@@ -1,8 +1,8 @@
+// Alignés sur les statuts affichés côté site public (page "Mes demandes de service")
 export const REQUEST_STATUSES = [
   { value: 'pending', label: 'En attente' },
-  { value: 'contacted', label: 'Contacté' },
   { value: 'confirmed', label: 'Confirmé' },
-  { value: 'done', label: 'Terminé' },
+  { value: 'completed', label: 'Terminé' },
   { value: 'cancelled', label: 'Annulé' },
 ]
 

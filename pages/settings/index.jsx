@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RiContactsLine, RiPriceTag3Line } from 'react-icons/ri'
+import { RiContactsLine, RiPriceTag3Line, RiHammerLine } from 'react-icons/ri'
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
@@ -10,10 +10,13 @@ import {
 } from 'next-firebase-auth'
 import { useColors } from '@/contexts/ColorContext'
 import ContactTab from '../../components/siteSettings/ContactTab'
+import ServicePricingTab from '@/components/Settings/ServicePricingTab'
+import WorkerSubscriptionTab from '@/components/Settings/WorkerSubscriptionTab'
 
 const TABS = [
   { value: 'contact', label: 'Contact', icon: RiContactsLine },
   { value: 'pricing', label: 'Tarifs des services', icon: RiPriceTag3Line },
+  { value: 'workers', label: 'Abonnement ouvriers', icon: RiHammerLine },
 ]
 
 function Settings() {
@@ -47,6 +50,7 @@ function Settings() {
 
       {activeTab === 'contact' && <ContactTab />}
       {activeTab === 'pricing' && <ServicePricingTab />}
+      {activeTab === 'workers' && <WorkerSubscriptionTab />}
     </Scaffold>
   )
 }

@@ -312,7 +312,7 @@ export default function ServiceRequestsPanel({
                               backgroundColor:
                                 status === 'cancelled'
                                   ? colors.gray400
-                                  : status === 'done'
+                                  : status === 'completed'
                                   ? colors.primary
                                   : colors.gray700,
                             }}

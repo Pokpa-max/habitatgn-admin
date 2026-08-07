@@ -9,6 +9,7 @@ import {
   RiStarFill,
   RiDeleteBinLine,
   RiImageFill,
+  RiMoneyDollarCircleLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -31,6 +32,16 @@ import {
   getUserAvailability,
 } from '@/lib/services/managers'
 import { getWorkerReviews, deleteWorkerReview } from '@/lib/services/workerReviews'
+import {
+  getWorkerPayments,
+  getWorkerSubscriptionAmount,
+  recordWorkerPayment,
+  computeWorkerPaymentStatus,
+} from '@/lib/services/workerPayments'
+import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Workers/paymentStatusConfig'
+import RecordPaymentModal from '@/components/Users/Workers/RecordPaymentModal'
+import { firebaseDateFormat } from '@/utils/date'
+import { formatGNF } from '@/utils/format'
 
 const PAGE_SIZE = 10
 
@@ -46,6 +57,9 @@ function WorkerDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [reviewToDelete, setReviewToDelete] = useState(null)
+  const [payments, setPayments] = useState([])
+  const [subscriptionAmount, setSubscriptionAmount] = useState(0)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
 
   useEffect(() => {
     if (!workerId) return
@@ -54,13 +68,17 @@ function WorkerDetail() {
       try {
         const workerData = await getWorkerById(workerId)
         setWorker(workerData)
-        const [available, reviewsData] = await Promise.all([
+        const [available, reviewsData, paymentsData, amount] = await Promise.all([
           getUserAvailability(workerData?.userId),
           getWorkerReviews(workerId),
+          getWorkerPayments(workerId),
+          getWorkerSubscriptionAmount(),
         ])
         setIsAvailable(available)
         setReviews(reviewsData)
         setVisibleReviewsCount(PAGE_SIZE)
+        setPayments(paymentsData)
+        setSubscriptionAmount(amount)
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -68,6 +86,19 @@ function WorkerDetail() {
     }
     load()
   }, [workerId])
+
+  const paymentStatus = worker ? computeWorkerPaymentStatus(worker, payments) : null
+
+  const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
+    try {
+      await recordWorkerPayment(workerId, amount, paidAt, monthsCovered)
+      const refreshed = await getWorkerPayments(workerId)
+      setPayments(refreshed)
+      notify('Paiement enregistré', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
 
   const handleToggleBlock = async () => {
     const nextAvailable = !isAvailable
@@ -153,6 +184,13 @@ function WorkerDetail() {
           cancelFuction={() => {}}
         />
 
+        <RecordPaymentModal
+          open={paymentModalOpen}
+          setOpen={setPaymentModalOpen}
+          defaultAmount={subscriptionAmount}
+          onConfirm={handleRecordPayment}
+        />
+
         {/* Profil */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -226,6 +264,70 @@ function WorkerDetail() {
             </p>
           )}
         </div>
+
+        {/* Abonnement */}
+        {worker.status === 'approved' && paymentStatus && (
+          <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+                  Abonnement
+                </h2>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={{
+                      backgroundColor: PAYMENT_STATUS_CONFIG[paymentStatus.status].bg,
+                      color: PAYMENT_STATUS_CONFIG[paymentStatus.status].color,
+                    }}
+                  >
+                    {PAYMENT_STATUS_CONFIG[paymentStatus.status].label}
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    {paymentStatus.status === 'trial'
+                      ? `Essai gratuit jusqu'au ${firebaseDateFormat(paymentStatus.trialEndAt)}`
+                      : paymentStatus.nextDueAt
+                      ? `Prochaine échéance : ${firebaseDateFormat(paymentStatus.nextDueAt)}`
+                      : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiMoneyDollarCircleLine className="h-4 w-4" />
+                Enregistrer un paiement
+              </button>
+            </div>
+
+            <div className="mt-5 border-t border-gray-100 pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Historique des paiements
+              </p>
+              {payments.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {payments.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+                      <span className="text-gray-600">
+                        {firebaseDateFormat(p.paidAt)}
+                        {p.monthsCovered > 1 && (
+                          <span className="ml-2 text-xs text-gray-400">
+                            ({p.monthsCovered} mois)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-semibold text-gray-900">{formatGNF(p.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">Aucun paiement enregistré</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Réalisations */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">

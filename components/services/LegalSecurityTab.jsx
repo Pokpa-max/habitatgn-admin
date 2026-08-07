@@ -1,9 +1,6 @@
 import { useCallback } from 'react'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
-import {
-  getLegalSecurityRequests,
-  updateLegalSecurityRequestStatus,
-} from '@/lib/services/legalSecurityRequests'
+import { getServiceRequestsByCategory, updateServiceRequestStatus } from '@/lib/services/serviceRequests'
 
 const columns = [
   {
@@ -20,17 +17,17 @@ const detailFields = [
   { label: 'Offre demandée', accessor: 'serviceType' },
   { label: 'Adresse du bien', accessor: 'propertyAddress' },
   { label: 'Email', accessor: 'email' },
-  { label: 'Notes', accessor: 'notes' },
+  { label: 'Description', accessor: 'description' },
 ]
 
 export default function LegalSecurityTab() {
-  const fetchRequests = useCallback(() => getLegalSecurityRequests(), [])
+  const fetchRequests = useCallback(() => getServiceRequestsByCategory('securisation-fonciere'), [])
 
   return (
     <ServiceRequestsPanel
       description="Demandes envoyées depuis le formulaire de sécurisation foncière du site public"
       fetchRequests={fetchRequests}
-      updateStatus={updateLegalSecurityRequestStatus}
+      updateStatus={updateServiceRequestStatus}
       columns={columns}
       detailFields={detailFields}
       searchFn={(r, lower) =>

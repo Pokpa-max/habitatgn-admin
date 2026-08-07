@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   RiCheckLine,
@@ -45,128 +44,6 @@ const PROPERTY_TYPE_LABELS = {
   terrain: 'Terrain',
 }
 
-function ActionsModal({
-  request,
-  open,
-  setOpen,
-  onApprove,
-  onReject,
-  onToggleBlock,
-}) {
-  const colors = useColors()
-  if (!request) return null
-  const status = request.status || 'pending'
-
-  return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
-                <div className="border-b border-gray-200 px-5 py-4">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {request.fullName}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Choisir une action
-                  </p>
-                </div>
-
-                <div className="space-y-1 p-2">
-                  {status === 'pending' && (
-                    <>
-                      <button
-                        onClick={onApprove}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiCheckLine
-                          className="h-4 w-4"
-                          style={{ color: colors.primary }}
-                        />
-                        Approuver la candidature
-                      </button>
-                      <button
-                        onClick={onReject}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiCloseLine className="h-4 w-4 text-gray-400" />
-                        Rejeter la candidature
-                      </button>
-                    </>
-                  )}
-
-                  {status === 'approved' && request.userId && (
-                    <>
-                      <Link href={`/agents/${request.userId}`}>
-                        <a className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                          <RiProfileLine className="h-4 w-4 text-gray-400" />
-                          Voir détail et ses biens
-                        </a>
-                      </Link>
-                      <button
-                        onClick={onToggleBlock}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{
-                            backgroundColor: request.isAvailable
-                              ? colors.gray700
-                              : colors.primary,
-                          }}
-                        />
-                        {request.isAvailable
-                          ? 'Bloquer le compte'
-                          : 'Débloquer le compte'}
-                      </button>
-                    </>
-                  )}
-
-                  {status === 'rejected' && (
-                    <p className="px-3 py-2.5 text-sm text-gray-400">
-                      Aucune action disponible
-                    </p>
-                  )}
-                </div>
-
-                <div className="border-t border-gray-200 p-2">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
-  )
-}
-
 export default function AgentsPage() {
   const colors = useColors()
   const [requests, setRequests] = useState([])
@@ -176,8 +53,7 @@ export default function AgentsPage() {
   const [actioningId, setActioningId] = useState(null)
   const [blockTarget, setBlockTarget] = useState(null)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
-  const [actionsTarget, setActionsTarget] = useState(null)
-  const [actionsModalOpen, setActionsModalOpen] = useState(false)
+  const [menuOpenId, setMenuOpenId] = useState(null)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
@@ -219,7 +95,7 @@ export default function AgentsPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setActionsModalOpen(false)
+    setMenuOpenId(null)
   }
 
   const handleReject = async (request) => {
@@ -236,7 +112,7 @@ export default function AgentsPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setActionsModalOpen(false)
+    setMenuOpenId(null)
   }
 
   const handleToggleBlock = async () => {
@@ -285,19 +161,6 @@ export default function AgentsPage() {
         confirmFunction={handleToggleBlock}
         open={blockModalOpen}
         setOpen={setBlockModalOpen}
-      />
-
-      <ActionsModal
-        request={actionsTarget}
-        open={actionsModalOpen}
-        setOpen={setActionsModalOpen}
-        onApprove={() => handleApprove(actionsTarget)}
-        onReject={() => handleReject(actionsTarget)}
-        onToggleBlock={() => {
-          setActionsModalOpen(false)
-          setBlockTarget(actionsTarget)
-          setBlockModalOpen(true)
-        }}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -390,7 +253,7 @@ export default function AgentsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200">
+          <div className="overflow-visible rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
@@ -487,16 +350,87 @@ export default function AgentsPage() {
                         {actioningId === request.id ? (
                           <Loader color="#111827" />
                         ) : (
-                          <button
-                            onClick={() => {
-                              setActionsTarget(request)
-                              setActionsModalOpen(true)
-                            }}
-                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                            title="Actions"
-                          >
-                            <RiMore2Fill className="h-4 w-4" />
-                          </button>
+                          <div className="relative flex justify-end">
+                            <button
+                              onClick={() =>
+                                setMenuOpenId((prev) =>
+                                  prev === request.id ? null : request.id
+                                )
+                              }
+                              className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                              title="Actions"
+                            >
+                              <RiMore2Fill className="h-4 w-4" />
+                            </button>
+
+                            {menuOpenId === request.id && (
+                              <div className="absolute right-0 top-full z-[60] mt-2 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                                {request.status === 'pending' && (
+                                  <>
+                                    <button
+                                      onClick={() => handleApprove(request)}
+                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <RiCheckLine
+                                        className="h-4 w-4"
+                                        style={{ color: colors.primary }}
+                                      />
+                                      Approuver la candidature
+                                    </button>
+                                    <button
+                                      onClick={() => handleReject(request)}
+                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <RiCloseLine className="h-4 w-4 text-gray-400" />
+                                      Rejeter la candidature
+                                    </button>
+                                  </>
+                                )}
+
+                                {request.status === 'approved' &&
+                                  request.userId && (
+                                    <>
+                                      <Link href={`/agents/${request.userId}`}>
+                                        <a
+                                          onClick={() => setMenuOpenId(null)}
+                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                        >
+                                          <RiProfileLine className="h-4 w-4 text-gray-400" />
+                                          Voir détail et ses biens
+                                        </a>
+                                      </Link>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setMenuOpenId(null)
+                                          setBlockTarget(request)
+                                          setBlockModalOpen(true)
+                                        }}
+                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                      >
+                                        <span
+                                          className="h-2 w-2 rounded-full"
+                                          style={{
+                                            backgroundColor: request.isAvailable
+                                              ? colors.gray700
+                                              : colors.primary,
+                                          }}
+                                        />
+                                        {request.isAvailable
+                                          ? 'Bloquer le compte'
+                                          : 'Débloquer le compte'}
+                                      </button>
+                                    </>
+                                  )}
+
+                                {request.status === 'rejected' && (
+                                  <p className="px-3 py-2.5 text-sm text-gray-400">
+                                    Aucune action disponible
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

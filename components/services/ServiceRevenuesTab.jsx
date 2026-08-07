@@ -13,9 +13,7 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import { formatGNF } from '@/utils/format'
-import { getMovingRequests } from '@/lib/services/movingRequests'
-import { getRentalManagementRequests } from '@/lib/services/rentalManagementRequests'
-import { getLegalSecurityRequests } from '@/lib/services/legalSecurityRequests'
+import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
 import { getManagedProperties } from '@/lib/services/managedProperties'
 
@@ -86,13 +84,14 @@ export default function ServiceRevenuesTab() {
     const loadRevenues = async () => {
       setIsLoading(true)
       try {
-        const [moving, rental, legal, payments, properties] = await Promise.all([
-          getMovingRequests(),
-          getRentalManagementRequests(),
-          getLegalSecurityRequests(),
+        const [allRequests, payments, properties] = await Promise.all([
+          getAllServiceRequests(),
           getRentPayments(),
           getManagedProperties(),
         ])
+        const moving = allRequests.filter((r) => r.category === 'demenagement')
+        const rental = allRequests.filter((r) => r.category === 'gestion-locative')
+        const legal = allRequests.filter((r) => r.category === 'securisation-fonciere')
         const propertiesById = Object.fromEntries(properties.map((p) => [p.id, p]))
 
         // Calculs Déménagement
@@ -100,7 +99,7 @@ export default function ServiceRevenuesTab() {
         let movingDoneCount = 0
         const movingItems = moving.map((r) => {
           const amount = Number(r.price || r.estimatedPrice || r.amount || 0)
-          if (r.status === 'done' || r.status === 'completed') {
+          if (r.status === 'completed') {
             movingRev += amount
             movingDoneCount++
           }
@@ -112,7 +111,7 @@ export default function ServiceRevenuesTab() {
             phone: r.phone || '—',
             amount: amount,
             grossAmount: amount,
-            status: r.status === 'done' ? 'Payé' : 'En attente',
+            status: r.status === 'completed' ? 'Payé' : 'En attente',
             date: r.createdAt,
           }
         })
@@ -144,7 +143,7 @@ export default function ServiceRevenuesTab() {
 
         rental.forEach((r) => {
           const amount = Number(r.amount || r.fee || 0)
-          if (r.status === 'done') {
+          if (r.status === 'completed') {
             rentalRev += amount
             rentalGross += amount
             rentalDoneCount++
@@ -158,7 +157,7 @@ export default function ServiceRevenuesTab() {
               phone: r.phone || '—',
               amount: amount,
               grossAmount: amount,
-              status: r.status === 'done' ? 'Payé' : 'En attente',
+              status: r.status === 'completed' ? 'Payé' : 'En attente',
               date: r.createdAt,
             })
           }
@@ -169,7 +168,7 @@ export default function ServiceRevenuesTab() {
         let legalDoneCount = 0
         const legalItems = legal.map((r) => {
           const amount = Number(r.price || r.fee || r.amount || 0)
-          if (r.status === 'done') {
+          if (r.status === 'completed') {
             legalRev += amount
             legalDoneCount++
           }
@@ -181,7 +180,7 @@ export default function ServiceRevenuesTab() {
             phone: r.phone || '—',
             amount: amount,
             grossAmount: amount,
-            status: r.status === 'done' ? 'Payé' : 'En attente',
+            status: r.status === 'completed' ? 'Payé' : 'En attente',
             date: r.createdAt,
           }
         })
