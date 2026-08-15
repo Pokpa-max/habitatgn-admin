@@ -26,7 +26,11 @@ import {
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
-import { getPropertiesByOwner } from '@/lib/services/managedProperties'
+import {
+  getPropertiesByOwner,
+  deactivatePropertiesForOwner,
+  reactivatePropertiesForOwner,
+} from '@/lib/services/managedProperties'
 import {
   getAgentPayments,
   getAgentSubscriptionAmount,
@@ -128,7 +132,23 @@ function AgentDetail() {
       await desableUser(agentId, !nextAvailable)
       await desableUserFirestore(agentId, nextAvailable)
       setIsAvailable(nextAvailable)
-      notify('Action effectuée avec succès', 'success')
+
+      const count = nextAvailable
+        ? await reactivatePropertiesForOwner(agentId)
+        : await deactivatePropertiesForOwner(agentId)
+
+      if (count > 0) {
+        const refreshed = await getPropertiesByOwner(agentId)
+        setProperties(refreshed)
+        notify(
+          nextAvailable
+            ? `Agent réactivé — ${count} bien${count > 1 ? 's' : ''} republié${count > 1 ? 's' : ''}`
+            : `Agent suspendu — ${count} bien${count > 1 ? 's' : ''} masqué${count > 1 ? 's' : ''}`,
+          'success'
+        )
+      } else {
+        notify('Action effectuée avec succès', 'success')
+      }
       setBlockModalOpen(false)
     } catch (e) {
       notify('Une erreur est survenue', 'error')
@@ -308,7 +328,7 @@ function AgentDetail() {
 }
 
 const AgentDetailPage = () => (
-  <Page name="Agent | BâtiServices Admin">
+  <Page name="Agent | BâtiMoo Admin">
     <AgentDetail />
   </Page>
 )
@@ -316,7 +336,7 @@ const AgentDetailPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }

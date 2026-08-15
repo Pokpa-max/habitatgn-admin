@@ -15,6 +15,7 @@ import {
   RiMailLine,
   RiBuildingLine,
   RiShoppingBag3Line,
+  RiCalendarCheckLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -51,20 +52,27 @@ const navigation = [
     name: 'Agents',
     href: '/agents',
     icon: RiBriefcaseLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
     badgeKey: 'pendingAgents',
   },
   {
     name: 'Gestion locative',
     href: '/gestion-locative',
     icon: RiBuildingLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
+  },
+  {
+    name: 'Réservations',
+    href: '/reservations',
+    icon: RiCalendarCheckLine,
+    claims: ['admin', 'manager'],
+    badgeKey: 'pendingBookings',
   },
   {
     name: 'Ouvriers',
     href: '/workers',
     icon: RiHammerLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
     badgeKey: 'pendingWorkers',
   },
   {
@@ -77,14 +85,14 @@ const navigation = [
     name: 'Services',
     href: '/services',
     icon: RiTruckLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
     badgeKey: 'pendingServiceRequests',
   },
   {
     name: 'Messages',
     href: '/messages',
     icon: RiMailLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
     badgeKey: 'unreadMessages',
   },
   {
@@ -127,7 +135,7 @@ export default function Scaffold({ children, title, subNav }) {
           background-color: ${colors.primaryVeryLight};
           font-weight: 600;
           border-left: 3px solid ${colors.primary};
-          box-shadow: 0 1px 2px 0 rgba(189, 91, 55, 0.08);
+          box-shadow: 0 1px 2px 0 rgba(10, 77, 156, 0.08);
         }
 
         .nav-item-inactive {
@@ -221,7 +229,7 @@ export default function Scaffold({ children, title, subNav }) {
                   </div>
                   <div>
                     <p className="text-sm font-bold tracking-tight leading-none" style={{ color: colors.gray900 }}>
-                      BâtiServices
+                      BâtiMoo
                     </p>
                     <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: colors.primary }}>
                       Tableau de bord
@@ -297,7 +305,7 @@ export default function Scaffold({ children, title, subNav }) {
               </div>
               <div>
                 <p className="text-sm font-bold tracking-tight leading-none" style={{ color: colors.gray900 }}>
-                  BâtiServices
+                  BâtiMoo
                 </p>
 
                 <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: colors.primary }}>
@@ -381,7 +389,7 @@ export default function Scaffold({ children, title, subNav }) {
               <RiMenuLine className="h-5 w-5" aria-hidden="true" />
             </button>
             <p className="ml-2 text-sm font-bold" style={{ color: colors.gray900 }}>
-              BâtiServices Admin
+              BâtiMoo Admin
             </p>
           </div>
 

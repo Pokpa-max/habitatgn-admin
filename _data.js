@@ -323,4 +323,100 @@ export const getQuartiersByCommune = (communeValue) => {
   return CONAKRY_QUARTIERS[communeValue] || []
 }
 
+// Les listes ci-dessous reprennent à l'identique les constantes du site public
+// (habitatgnweb/src/lib/constants/communes.ts, devenir-agent/page.tsx,
+// devenir-ouvrier/page.tsx) pour que les comptes créés depuis l'admin aient
+// exactement la même forme que ceux créés par les utilisateurs eux-mêmes.
+
+export const REGIONS = [
+  { name: 'Conakry', communes: CONAKRY_COMMUNES },
+  {
+    name: 'Boke',
+    communes: [
+      { label: 'Boké', value: 'boke' },
+      { label: 'Fria', value: 'fria' },
+      { label: 'Kamsar', value: 'kamsar' },
+    ],
+  },
+  {
+    name: 'Kindia',
+    communes: [
+      { label: 'Kindia', value: 'kindia' },
+      { label: 'Coyah', value: 'coyah' },
+      { label: 'Dubréka', value: 'dubreka' },
+    ],
+  },
+  {
+    name: 'Mamou',
+    communes: [
+      { label: 'Mamou', value: 'mamou' },
+      { label: 'Pita', value: 'pita' },
+      { label: 'Dalaba', value: 'dalaba' },
+    ],
+  },
+  { name: 'Labe', communes: [{ label: 'Labé', value: 'labe' }] },
+  {
+    name: 'Faranah',
+    communes: [
+      { label: 'Faranah', value: 'faranah' },
+      { label: 'Kissidougou', value: 'kissidougou' },
+    ],
+  },
+  {
+    name: 'Kankan',
+    communes: [
+      { label: 'Kankan', value: 'kankan' },
+      { label: 'Siguiri', value: 'siguiri' },
+    ],
+  },
+  {
+    name: "N'Zerekore",
+    communes: [
+      { label: "N'Zérékoré", value: 'nzerekore' },
+      { label: 'Macenta', value: 'macenta' },
+      { label: 'Guéckédou', value: 'gueckedou' },
+    ],
+  },
+]
+
+// Groupes {label, options} pour un sélecteur multi-commune (ouvrier) — même
+// forme que LOCATION_GROUPS côté site public.
+export const LOCATION_GROUPS = REGIONS.map((r) => ({
+  label: r.name === 'Conakry' ? 'Conakry (Communes)' : r.name,
+  options: r.communes,
+}))
+
+// Liste plate, toutes régions confondues — pour un sélecteur commune unique (agent).
+export const ALL_COMMUNES = LOCATION_GROUPS.flatMap((group) => group.options)
+
+export const AGENT_PROPERTY_TYPES = [
+  { label: 'Location', value: 'location' },
+  { label: 'Location journalière', value: 'journaliere' },
+  { label: 'Vente', value: 'vente' },
+  { label: 'Terrain', value: 'terrain' },
+]
+
+export const WORKER_SPECIALTIES = [
+  { value: 'plomberie', label: 'Plomberie' },
+  { value: 'electricite', label: 'Électricité' },
+  { value: 'peinture', label: 'Peinture' },
+  { value: 'menuiserie', label: 'Menuiserie' },
+  { value: 'maconnerie', label: 'Maçonnerie' },
+  { value: 'climatisation', label: 'Climatisation' },
+  { value: 'nettoyage', label: 'Nettoyage' },
+  { value: 'jardinage', label: 'Jardinage' },
+  { value: 'carrelage', label: 'Carrelage' },
+  { value: 'serrurerie', label: 'Serrurerie' },
+  { value: 'autre', label: 'Autre' },
+]
+
+export const WORKER_PRICE_RANGES = [
+  'Moins de 50 000 GNF',
+  '50 000 - 100 000 GNF',
+  '100 000 - 200 000 GNF',
+  '200 000 - 500 000 GNF',
+  'Plus de 500 000 GNF',
+  'Sur devis',
+]
+
 

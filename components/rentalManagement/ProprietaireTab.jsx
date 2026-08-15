@@ -112,7 +112,7 @@ export default function ProprietaireTab({ ownerId, ownerName }) {
           <select
             value={propertyId}
             onChange={(e) => setPropertyId(e.target.value)}
-            className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
@@ -125,7 +125,7 @@ export default function ProprietaireTab({ ownerId, ownerName }) {
             type="month"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>

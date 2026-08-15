@@ -17,7 +17,13 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
-import { getWorkers, approveWorker, rejectWorker } from '@/lib/services/workers'
+import {
+  getWorkers,
+  approveWorker,
+  rejectWorker,
+  hideWorkerFromPublic,
+  restoreWorkerVisibility,
+} from '@/lib/services/workers'
 import {
   desableUser,
   desableUserFirestore,
@@ -71,7 +77,7 @@ function ActionsModal({
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" />
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -85,8 +91,8 @@ function ActionsModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
-                <div className="border-b border-gray-200 px-5 py-4">
+              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
+                <div className="border-b border-gray-100 px-6 py-5">
                   <Dialog.Title className="text-sm font-bold text-gray-900">
                     {worker.name}
                   </Dialog.Title>
@@ -138,7 +144,7 @@ function ActionsModal({
                     </button>
                   )}
 
-                  {status === 'approved' && worker.userId && (
+                  {(status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
                     <button
                       onClick={onToggleBlock}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -157,17 +163,17 @@ function ActionsModal({
                     </button>
                   )}
 
-                  {status === 'rejected' && (
+                  {status === 'rejected' && !worker.suspendedByAdmin && (
                     <p className="px-3 py-2.5 text-sm text-gray-400">
                       Aucune action disponible
                     </p>
                   )}
                 </div>
 
-                <div className="border-t border-gray-200 p-2">
+                <div className="border-t border-gray-100 bg-gray-50/80 p-2">
                   <button
                     onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
+                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
                   >
                     Fermer
                   </button>
@@ -281,9 +287,24 @@ export default function WorkersPage() {
     try {
       await desableUser(blockTarget.userId, !nextAvailable)
       await desableUserFirestore(blockTarget.userId, nextAvailable)
+
+      if (nextAvailable) {
+        await restoreWorkerVisibility(blockTarget.id)
+      } else {
+        await hideWorkerFromPublic(blockTarget.id)
+      }
+
       setWorkers((prev) =>
         prev.map((w) =>
-          w.id === blockTarget.id ? { ...w, isAvailable: nextAvailable } : w
+          w.id === blockTarget.id
+            ? {
+                ...w,
+                isAvailable: nextAvailable,
+                ...(nextAvailable
+                  ? { status: 'approved', suspendedByAdmin: false }
+                  : { status: 'rejected', suspendedByAdmin: true }),
+              }
+            : w
         )
       )
       notify('Action effectuée avec succès', 'success')
@@ -551,27 +572,38 @@ export default function WorkersPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{
-                            backgroundColor: worker.isAvailable
-                              ? colors.primaryVeryLight
-                              : colors.gray100,
-                            color: worker.isAvailable
-                              ? colors.primaryDark
-                              : colors.gray600,
-                          }}
-                        >
+                        {worker.suspendedByAdmin ? (
                           <span
-                            className="h-1.5 w-1.5 rounded-full"
+                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                            style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
+                            title="Compte bloqué par un admin — masqué du site public, distinct d'une candidature rejetée"
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#D97706' }} />
+                            Suspendu
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
                             style={{
                               backgroundColor: worker.isAvailable
-                                ? colors.primary
-                                : colors.gray500,
+                                ? colors.primaryVeryLight
+                                : colors.gray100,
+                              color: worker.isAvailable
+                                ? colors.primaryDark
+                                : colors.gray600,
                             }}
-                          />
-                          {worker.isAvailable ? 'Actif' : 'Bloqué'}
-                        </span>
+                          >
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{
+                                backgroundColor: worker.isAvailable
+                                  ? colors.primary
+                                  : colors.gray500,
+                              }}
+                            />
+                            {worker.isAvailable ? 'Actif' : 'Bloqué'}
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {worker.paymentStatus?.status !== 'unknown' && (

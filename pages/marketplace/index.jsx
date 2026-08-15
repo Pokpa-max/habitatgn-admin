@@ -19,7 +19,7 @@ function Marketplace() {
 }
 
 const MarketplacePage = () => (
-  <Page name="Marketplace | BâtiServices Admin">
+  <Page name="Marketplace | BâtiMoo Admin">
     <Marketplace />
   </Page>
 )

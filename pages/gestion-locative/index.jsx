@@ -19,7 +19,7 @@ function GestionLocative() {
 }
 
 const GestionLocativePage = () => (
-  <Page name="Gestion locative | BâtiServices Admin">
+  <Page name="Gestion locative | BâtiMoo Admin">
     <GestionLocative />
   </Page>
 )
@@ -27,7 +27,7 @@ const GestionLocativePage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }

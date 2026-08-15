@@ -95,108 +95,13 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
   return (
     <>
       <style>{`
-        .form-section {
-          background-color: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          padding: 1.5rem;
-        }
-
-        .form-section-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1.25rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #e5e7eb;
-        }
-
-        .section-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 0.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-
-        .section-icon.advertising {
-          background-color: rgba(168, 85, 247, 0.15);
-          color: #a855f7;
-        }
-
         .form-section-title {
-          font-size: 0.95rem;
+          font-size: 0.75rem;
           font-weight: 700;
-          color: #111827;
+          color: ${colors.gray500 || '#6b7280'};
           text-transform: uppercase;
           letter-spacing: 0.03em;
           margin: 0;
-        }
-
-        .form-label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #1f2937;
-          margin-bottom: 0.4rem;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .form-input {
-          width: 100%;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.375rem;
-          padding: 0.6rem 0.85rem;
-          font-size: 0.875rem;
-          color: #111827;
-          background-color: #fff;
-          transition: all 0.2s ease;
-        }
-
-        .form-input:focus {
-          border-color: ${colors.primary || '#BD5B37'};
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(189, 91, 55, 0.1);
-        }
-
-        .form-error {
-          font-size: 0.7rem;
-          color: #dc2626;
-          margin-top: 0.2rem;
-          font-weight: 600;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .form-row:last-child {
-          margin-bottom: 0;
-        }
-
-        .form-group {
-          grid-column: span 6;
-        }
-
-        .form-group.col-2 {
-          grid-column: span 2;
-        }
-
-        .form-group.col-3 {
-          grid-column: span 3;
-        }
-
-        @media (max-width: 640px) {
-          .form-group.col-2, .form-group.col-3 {
-            grid-column: span 6;
-          }
         }
 
         .image-upload-area {
@@ -210,8 +115,8 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
         }
 
         .image-upload-area:hover {
-          border-color: ${colors.primary || '#BD5B37'};
-          background-color: rgba(189, 91, 55, 0.02);
+          border-color: ${colors.primary || '#0A4D9C'};
+          background-color: ${colors.primaryVeryLight || '#F2F6FC'};
         }
 
         .image-preview {
@@ -238,7 +143,7 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
             {loading ? (
               <div
                 className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: colors.primary || '#BD5B37' }}
+                style={{ backgroundColor: colors.primary || '#0A4D9C' }}
               >
                 <Loader />
               </div>
@@ -254,7 +159,7 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                 <button
                   type="submit"
                   className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
-                  style={{ backgroundColor: colors.primary || '#BD5B37' }}
+                  style={{ backgroundColor: colors.primary || '#0A4D9C' }}
                 >
                   <RiCheckLine className="h-4 w-4" />
                   Enregistrer
@@ -265,56 +170,50 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
         }
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
-          {/* SECTION: Informations Publicitaires */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon advertising">📢</div>
-              <h3 className="form-section-title">Informations Publicitaires</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Titre
+              </label>
+              <input
+                type="text"
+                {...register('title', {
+                  required: 'Champs requis',
+                })}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Titre de la publicité"
+              />
+              {errors?.title && (
+                <p className="mt-1 text-xs font-semibold text-red-500">{errors.title.message}</p>
+              )}
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Titre</label>
-                <input
-                  type="text"
-                  {...register('title', {
-                    required: 'Champs requis',
-                  })}
-                  className="form-input"
-                  placeholder="Titre de la publicité"
-                />
-                {errors?.title && (
-                  <span className="form-error">{errors.title.message}</span>
-                )}
-              </div>
-
-              <div className="form-group col-3">
-                <label className="form-label">Slogan</label>
-                <input
-                  type="text"
-                  {...register('slogan', {
-                    required: 'Champs requis',
-                  })}
-                  className="form-input"
-                  placeholder="Petit slogan"
-                />
-                {errors?.slogan && (
-                  <span className="form-error">{errors.slogan.message}</span>
-                )}
-              </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Slogan
+              </label>
+              <input
+                type="text"
+                {...register('slogan', {
+                  required: 'Champs requis',
+                })}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Petit slogan"
+              />
+              {errors?.slogan && (
+                <p className="mt-1 text-xs font-semibold text-red-500">{errors.slogan.message}</p>
+              )}
             </div>
           </div>
 
-          {/* SECTION: Image Publicitaire */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon advertising">🖼️</div>
-              <h3 className="form-section-title">Image Publicitaire</h3>
-            </div>
+          <div className="border-t border-gray-100 pt-5">
+            <p className="form-section-title mb-3">Image publicitaire</p>
 
-            <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Image</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Image
+                </label>
                 <div className="image-upload-area">
                   {previewUrl ? (
                     <img
@@ -323,15 +222,15 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                       className="mx-auto h-20 w-20 rounded object-cover"
                     />
                   ) : (
-                    <div className="text-3xl">📸</div>
+                    <RiImage2Fill className="mx-auto h-8 w-8 text-gray-300" />
                   )}
                   <div className="mt-2 flex justify-center">
                     <label
                       htmlFor="file-upload"
                       className="cursor-pointer rounded px-3 py-1 text-xs font-semibold transition-all"
                       style={{
-                        color: colors.primary || '#BD5B37',
-                        backgroundColor: `rgba(189, 91, 55, 0.1)`,
+                        color: colors.primary || '#0A4D9C',
+                        backgroundColor: colors.primaryVeryLight || '#F2F6FC',
                       }}
                     >
                       Charger
@@ -349,12 +248,16 @@ function AdvertisingFormDrawer({ commercial, open, setOpen }) {
                   <p className="mt-1 text-xs text-gray-500">PNG, JPG, GIF</p>
                 </div>
                 {errors?.imageUrl && (
-                  <span className="form-error">Veuillez sélectionner une image</span>
+                  <p className="mt-1 text-xs font-semibold text-red-500">
+                    Veuillez sélectionner une image
+                  </p>
                 )}
               </div>
 
-              <div className="form-group col-3">
-                <label className="form-label">Aperçu</label>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Aperçu
+                </label>
                 <div className="image-preview">
                   {previewUrl ? (
                     <img

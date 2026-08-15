@@ -273,7 +273,7 @@ export default function MarketplaceProductsPage() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Titre du produit *
             </label>
             <input
@@ -281,7 +281,7 @@ export default function MarketplaceProductsPage() {
               {...register('title', {
                 required: 'Le titre du produit est requis',
               })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="ex: Machine a laver, Canapé 3 places"
             />
             {errors.title && (
@@ -293,12 +293,12 @@ export default function MarketplaceProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Catégorie *
               </label>
               <select
                 {...register('category')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {PRODUCT_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -309,13 +309,13 @@ export default function MarketplaceProductsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Prix (GNF) *
               </label>
               <input
                 type="number"
                 {...register('price', { required: 'Le prix est requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="ex: 2500000"
               />
               {errors.price && (
@@ -328,12 +328,12 @@ export default function MarketplaceProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Commune
               </label>
               <select
                 {...register('commune')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Sélectionner une commune</option>
                 {CONAKRY_COMMUNES.map((c) => (
@@ -345,20 +345,20 @@ export default function MarketplaceProductsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Téléphone
               </label>
               <input
                 type="text"
                 {...register('phone')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="ex: +224 626610357"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Images du produit
             </label>
             <div className="flex flex-wrap items-center gap-3">
@@ -414,13 +414,13 @@ export default function MarketplaceProductsPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Description
             </label>
             <textarea
               rows={3}
               {...register('description')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Description détaillée des caractéristiques du produit..."
             />
           </div>
@@ -430,7 +430,8 @@ export default function MarketplaceProductsPage() {
               type="checkbox"
               id="active"
               {...register('active')}
-              className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              className="h-4 w-4 rounded border-gray-300 focus:ring-0 focus:ring-offset-0"
+              style={{ accentColor: colors.primary }}
             />
             <label
               htmlFor="active"

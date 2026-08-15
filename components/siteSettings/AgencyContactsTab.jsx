@@ -239,13 +239,13 @@ export default function AgencyContactsTab() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Opérateur / Plateforme *
             </label>
             <input
               type="text"
               {...register('operatorName', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: WhatsApp, Appel, Orange Money..."
             />
             {errors.operatorName && (
@@ -256,13 +256,13 @@ export default function AgencyContactsTab() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Numéro de téléphone *
             </label>
             <input
               type="tel"
               {...register('phoneNumber', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="+224 6XX XXX XXX"
             />
             {errors.phoneNumber && (

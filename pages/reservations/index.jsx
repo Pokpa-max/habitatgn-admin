@@ -1,32 +1,30 @@
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
-import Header from '@/components/Header'
 import {
   AuthAction,
   withAuthUser,
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
-import PartnersTab from '@/components/advertising/PartnersTab'
+import ReservationsPage from '@/components/Reservations/ReservationsPage'
 
-function Partners() {
+function Reservations() {
   return (
     <Scaffold>
-      <Header title="Partenaires" />
-      <PartnersTab />
+      <ReservationsPage />
     </Scaffold>
   )
 }
 
-const PartnersIndexPage = () => (
-  <Page name="Partenaires | BâtiMoo Admin">
-    <Partners />
+const ReservationsIndexPage = () => (
+  <Page name="Réservations | BâtiMoo Admin">
+    <Reservations />
   </Page>
 )
 
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }
@@ -34,4 +32,4 @@ export const getServerSideProps = withAuthUserTokenSSR({
 
 export default withAuthUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
-})(PartnersIndexPage)
+})(ReservationsIndexPage)

@@ -192,7 +192,7 @@ export default function FeaturedAdTab() {
                   value={ad.linkUrl}
                   onChange={(e) => updateLinkUrl(index, e.target.value)}
                   placeholder="/lands ou /contact"
-                  className="w-full max-w-32 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full max-w-32 rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 

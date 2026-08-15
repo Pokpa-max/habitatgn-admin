@@ -149,7 +149,7 @@ export default function PaiementsTab({ ownerId }) {
             <select
               value={propertyFilter}
               onChange={(e) => setPropertyFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">Tous les biens</option>
               {properties.map((p) => (
@@ -163,7 +163,7 @@ export default function PaiementsTab({ ownerId }) {
               type="month"
               value={periodFilter}
               onChange={(e) => setPeriodFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
               onClick={() => openAdd()}
@@ -354,12 +354,12 @@ export default function PaiementsTab({ ownerId }) {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Bail *
             </label>
             <select
               {...register('leaseId', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {activeLeases.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -370,36 +370,36 @@ export default function PaiementsTab({ ownerId }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Mois concerné *
             </label>
             <input
               type="month"
               {...register('period', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="mt-1 text-xs text-gray-400">Choisir un mois futur pour enregistrer une avance.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Montant dû (GNF)
               </label>
               <input
                 type="number"
                 {...register('amountDue')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Montant payé (GNF) *
               </label>
               <input
                 type="number"
                 {...register('amountPaid', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.amountPaid && (
                 <p className="mt-1 text-xs font-semibold text-red-500">{errors.amountPaid.message}</p>
@@ -409,22 +409,22 @@ export default function PaiementsTab({ ownerId }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Date du paiement *
               </label>
               <input
                 type="date"
                 {...register('paymentDate', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Méthode
               </label>
               <select
                 {...register('method')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {METHODS.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -436,13 +436,13 @@ export default function PaiementsTab({ ownerId }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Note
             </label>
             <textarea
               rows={2}
               {...register('note')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>

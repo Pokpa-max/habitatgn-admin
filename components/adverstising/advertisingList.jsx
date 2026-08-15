@@ -97,7 +97,7 @@ function CommercialsTable({
                 <input
                   id="search"
                   name="search"
-                  className="block w-full rounded-lg border border-gray-300 bg-white py-3 pl-10 pr-3 leading-5 placeholder-gray-500 focus:border-cyan-500 focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 sm:text-sm"
+                  className="block w-full rounded-lg border border-gray-200 bg-white py-3 pl-10 pr-3 leading-5 placeholder-gray-500 focus:border-gray-400 focus:placeholder-gray-400 focus:outline-none sm:text-sm"
                   placeholder="Rechercher une annonce..."
                   type="search"
                   value={searchTerm}
@@ -116,7 +116,7 @@ function CommercialsTable({
             type="button"
             className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-all hover:shadow-md active:translate-y-px"
             style={{
-              backgroundColor: colors.primary || '#BD5B37',
+              backgroundColor: colors.primary || '#0A4D9C',
             }}
           >
             <RiAddLine className="h-5 w-5" />
@@ -177,7 +177,7 @@ function CommercialsTable({
                           type="button"
                           className="inline-flex items-center justify-center rounded p-2 transition-all hover:shadow-md active:translate-y-px"
                           style={{
-                            backgroundColor: colors.primary || '#BD5B37',
+                            backgroundColor: colors.primary || '#0A4D9C',
                           }}
                           title="Modifier"
                         >

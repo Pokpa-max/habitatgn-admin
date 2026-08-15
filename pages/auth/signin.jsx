@@ -231,31 +231,13 @@ function SignIn() {
 
           {/* Content */}
           <div className="relative z-10 text-center text-white">
-            <div className="mb-12 flex items-center justify-center gap-3">
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white"
-                style={{ borderColor: colors.white }}
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2.423-1.053a7.477 7.477 0 0111.154 0l2.423 1.053M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-              </div>
-              <span className="text-lg font-bold uppercase tracking-widest">
-                BâtiServices Admin
-              </span>
+            <div className="mb-12">
+              <p className="text-3xl font-black tracking-tight">BâtiMoo</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.35em] opacity-80">
+                Gestion
+              </p>
             </div>
 
-            <p className="mb-6 text-sm opacity-90">Bienvenue,</p>
             <h1 className="mb-8 text-7xl font-black leading-tight md:text-8xl">
               Bienvenue
               <br />à vous
@@ -282,13 +264,16 @@ function SignIn() {
             {/* Mobile header */}
             <div className="mb-8 text-center md:hidden">
               <h2
-                className="mb-2 text-3xl font-bold"
+                className="mb-1 text-3xl font-black tracking-tight"
                 style={{ color: colors.gray900 }}
               >
-                BâtiServices Admin
+                BâtiMoo
               </h2>
-              <p className="text-sm" style={{ color: colors.gray500 }}>
-                Portail Administrateur
+              <p
+                className="text-xs font-semibold uppercase tracking-[0.35em]"
+                style={{ color: colors.primary }}
+              >
+                Gestion
               </p>
             </div>
 
@@ -592,7 +577,7 @@ function SignIn() {
 }
 
 const SignInPage = () => (
-  <Page name="BâtiServices Admin - Connexion">
+  <Page name="BâtiMoo Gestion - Connexion">
     {' '}
     <SignIn />
   </Page>

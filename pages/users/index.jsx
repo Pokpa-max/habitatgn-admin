@@ -86,7 +86,7 @@ function Users() {
 }
 
 const UsersPage = () => (
-  <Page name="Utilisateurs | BâtiServices Admin">
+  <Page name="Utilisateurs | BâtiMoo Admin">
     <Users />
   </Page>
 )

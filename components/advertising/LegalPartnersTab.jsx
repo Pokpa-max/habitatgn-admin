@@ -314,38 +314,38 @@ export default function LegalPartnersTab() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom du cabinet / entreprise *
             </label>
             <input
               type="text"
               {...register('name', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Étude Notariale Diallo & Associés"
             />
             {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Personne à contacter
             </label>
             <input
               type="text"
               {...register('contactPerson')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Me Mariama Diallo"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Type *
               </label>
               <select
                 {...register('type', { required: true })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="notaire">Cabinet Notarial</option>
                 <option value="juriste">Cabinet Juridique</option>
@@ -354,12 +354,12 @@ export default function LegalPartnersTab() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Commune *
               </label>
               <select
                 {...register('commune', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Sélectionner</option>
                 {CONAKRY_COMMUNES.map((c) => (
@@ -373,33 +373,33 @@ export default function LegalPartnersTab() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Spécialité *
             </label>
             <input
               type="text"
               {...register('specialty', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Transactions foncières & successions"
             />
             {errors.specialty && <p className="mt-1 text-xs font-semibold text-red-500">{errors.specialty.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Téléphone *
             </label>
             <input
               type="tel"
               {...register('phone', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="+224 6XX XXX XXX"
             />
             {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Logo (optionnel)
             </label>
             <div className="flex items-center gap-4">

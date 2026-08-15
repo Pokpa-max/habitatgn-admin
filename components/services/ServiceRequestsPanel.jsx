@@ -39,7 +39,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange }) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" />
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -53,8 +53,8 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange }) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
-                <div className="border-b border-gray-200 px-5 py-4">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
+                <div className="border-b border-gray-100 px-6 py-5">
                   <Dialog.Title className="text-sm font-bold text-gray-900">
                     {request.name}
                   </Dialog.Title>
@@ -114,10 +114,10 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange }) {
                   )}
                 </div>
 
-                <div className="border-t border-gray-200 p-2">
+                <div className="border-t border-gray-100 bg-gray-50/80 p-2">
                   <button
                     onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
+                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
                   >
                     Fermer
                   </button>

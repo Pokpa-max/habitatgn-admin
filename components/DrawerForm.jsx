@@ -50,28 +50,28 @@ export default function DrawerForm({
                   onSubmit={onSubmit}
                   className="flex h-full flex-col overflow-hidden bg-white shadow-2xl sm:rounded-l-2xl"
                 >
-                  <div
-                    className="relative border-b-2 px-6 py-6"
-                    style={{
-                      backgroundColor: colors.ink || '#12192B',
-                      borderBottomColor: colors.terracotta || '#BD5B37',
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Dialog.Title className="text-xl font-bold tracking-tight text-white">
-                          {title}
-                        </Dialog.Title>
-                        {description && (
-                          <p className="mt-1 text-sm font-medium text-gray-300">
-                            {description}
-                          </p>
-                        )}
+                  <div className="relative border-b border-gray-100 bg-white px-6 py-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="h-7 w-1.5 flex-shrink-0 rounded-full"
+                          style={{ backgroundColor: colors.primary }}
+                        />
+                        <div>
+                          <Dialog.Title className="text-lg font-bold tracking-tight text-gray-900">
+                            {title}
+                          </Dialog.Title>
+                          {description && (
+                            <p className="mt-0.5 text-sm text-gray-500">
+                              {description}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="ml-3 flex items-center">
+                      <div className="flex flex-shrink-0 items-center">
                         <button
                           type="button"
-                          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-gray-300 transition-all hover:bg-white/20 hover:text-white focus:outline-none"
+                          className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
                           onClick={() => setOpen(false)}
                         >
                           <span className="sr-only">Fermer</span>
@@ -80,7 +80,7 @@ export default function DrawerForm({
                       </div>
                     </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto bg-[#FDFCFA] p-6">
+                  <div className="flex-1 overflow-y-auto bg-white p-6">
                     {children}
                   </div>
                   <div className="flex flex-shrink-0 justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4">

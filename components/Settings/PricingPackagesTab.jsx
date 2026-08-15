@@ -264,13 +264,13 @@ export default function PricingPackagesTab({
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom de l'offre *
             </label>
             <input
               type="text"
               {...register('name', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Standard"
             />
             {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
@@ -278,13 +278,13 @@ export default function PricingPackagesTab({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 {priceLabel} *
               </label>
               <input
                 type="number"
                 {...register('priceGNF', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={priceSuffix === '%' ? 'Ex: 10' : 'Ex: 500000'}
               />
               {errors.priceGNF && (
@@ -293,13 +293,13 @@ export default function PricingPackagesTab({
             </div>
             {showDelayDays && (
               <div>
-                <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
                   Délai (jours)
                 </label>
                 <input
                   type="number"
                   {...register('delayDays')}
-                  className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Ex: 10"
                 />
               </div>
@@ -308,13 +308,13 @@ export default function PricingPackagesTab({
 
           {showPriceDisplay && (
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Texte affiché pour le prix *
               </label>
               <input
                 type="text"
                 {...register('priceDisplay', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Ex: 10% du loyer mensuel"
               />
               {errors.priceDisplay && (
@@ -324,13 +324,13 @@ export default function PricingPackagesTab({
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Description *
             </label>
             <textarea
               rows={2}
               {...register('description', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Description courte de l'offre"
             />
             {errors.description && (
@@ -339,13 +339,13 @@ export default function PricingPackagesTab({
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Caractéristiques (une par ligne)
             </label>
             <textarea
               rows={4}
               {...register('features')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder={'Ex:\nRecherche locataire\nRédaction du bail'}
             />
           </div>

@@ -1,319 +1,70 @@
-// import { useAuthUser } from 'next-firebase-auth'
-// import React from 'react'
-// import { useState } from 'react'
-// import { useForm } from 'react-hook-form'
-// import Loader from 'react-spinners/BeatLoader'
-// import { createAccount } from '../../lib/services/managers'
-// import { notify } from '../../utils/toast'
-// import { quartier, userRole, zones } from '../../_data'
-// import DrawerForm from '../DrawerForm'
-// import SimpleSelect from '../SimpleSelect'
-// import { useColors } from '../../contexts/ColorContext'
-// export default function CreateUserDrawer({ open, setOpen }) {
-//   const colors = useColors()
-//   const [loading, setLoading] = useState(false)
-
-//   const {
-//     handleSubmit,
-//     register,
-//     reset,
-//     setValue,
-//     watch,
-//     control,
-//     formState: { errors },
-//   } = useForm({
-//     mode: 'onBlur',
-//     defaultValues: {
-//       desabled: false,
-//     },
-//     reValidateMode: 'onChange',
-//     shouldUnregister: false,
-//   })
-
-//   const CreatedAccountSubmit = async (data) => {
-//     setLoading(true)
-//     try {
-//       await createAccount(data)
-//       notify('compte creer avec succès', 'success')
-//       reset()
-//     } catch (error) {
-//       notify('ce compte existe déja', 'error')
-//     }
-//     // setOpen(false)
-//   }
-//   return (
-//     <>
-//       <DrawerForm
-//         open={open}
-//         setOpen={setOpen}
-//         title={'Ajouter un Manager'}
-//         description={'Creation de compte manager'}
-//         onSubmit={handleSubmit(CreatedAccountSubmit)}
-//         loading={loading}
-//         footerButtons={
-//           <>
-//             <>
-//               <button
-//                 type="button"
-//                 className="border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-//                 onClick={() => setOpen(false)}
-//               >
-//                 Annuler
-//               </button>
-//               <button
-//                 style={{
-//                   backgroundColor: colors.primary,
-//                 }}
-//                 type="submit"
-//                 className="ml-4 inline-flex justify-center border border-transparent bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-//               >
-//                 Creer le compte
-//               </button>
-//             </>
-//           </>
-//         }
-//       >
-//         <div className="mt-5 md:col-span-2 md:mt-0">
-//           <div className="space-y-6 bg-white px-4 py-5 sm:p-6">
-//             <div className="grid grid-cols-3 gap-6">
-//               <div className="group col-span-3 sm:col-span-2">
-//                 <label
-//                   htmlFor="storename"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Nom de l'agence
-//                 </label>
-//                 <div className="mt-1 flex">
-//                   <input
-//                     type="text"
-//                     {...register('agence', {
-//                       required: 'Champs requis',
-//                     })}
-//                     id="agence"
-//                     className="block w-full flex-1 border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-//                     placeholder="Nom du manager"
-//                   />
-//                   <p className="pt-1 text-xs text-red-600">
-//                     {errors?.agence?.message}
-//                   </p>
-//                 </div>
-//               </div>
-//             </div>
-
-//             <h1 className="text-cyan-500">Manager</h1>
-
-//             <div className="grid grid-cols-6 gap-6 border-t pt-3">
-//               <div className="col-span-6 sm:col-span-3">
-//                 <label
-//                   htmlFor="firstname"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Nom
-//                 </label>
-//                 <input
-//                   type="text"
-//                   {...register('firstname', {
-//                     required: 'Champs requis',
-//                   })}
-//                   id="firstname"
-//                   autoComplete="given-name"
-//                   placeholder="votre nom"
-//                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-//                 />
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.firstname?.message}
-//                 </p>
-//               </div>
-
-//               <div className="col-span-6 sm:col-span-3">
-//                 <label
-//                   htmlFor="lastname"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Prenom
-//                 </label>
-//                 <input
-//                   type="text"
-//                   {...register('lastname', {
-//                     required: 'Champs requis',
-//                   })}
-//                   id="lastname"
-//                   autoComplete="family-name"
-//                   placeholder="votre prenom"
-//                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-//                 />
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.lastname?.message}
-//                 </p>
-//               </div>
-
-//               <div className="col-span-6 sm:col-span-3">
-//                 <label
-//                   htmlFor="phoneNumber"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Telephone
-//                 </label>
-//                 <div className="relative mt-1">
-//                   <div className="pointer-events-none absolute inset-y-0 left-0 mr-5 flex items-center pl-3">
-//                     <span className="text-gray-500 sm:text-sm">+224</span>
-//                   </div>
-//                   <input
-//                     type="tel"
-//                     {...register('phoneNumber', {
-//                       required: 'Champs requis',
-//                       pattern:
-//                         /^(\+\d{3}\s?)?\(?\d{3}\)?[\s-]*\d{2}[\s-]*\d{2}[\s-]*\d{2}$/i,
-//                     })}
-//                     id="phoneNumber"
-//                     className="block w-full border-gray-300 pl-12 pr-20 focus:border-primary focus:ring-primary sm:text-sm"
-//                     placeholder="Votre numero de telephone"
-//                   />
-//                   <p className="pt-1 text-xs text-red-600">
-//                     {errors?.phoneNumber?.type === 'pattern'
-//                       ? 'Entrez un numero valide'
-//                       : errors?.phoneNumber?.message}
-//                   </p>
-//                 </div>
-//               </div>
-
-//               <div className="col-span-6 sm:col-span-3">
-//                 <label
-//                   htmlFor="email"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Email
-//                 </label>
-//                 <input
-//                   type="email"
-//                   {...register('email', {
-//                     required: 'Champs requis',
-//                     pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
-//                   })}
-//                   id="email"
-//                   placeholder="meloger@gmail.com"
-//                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-//                 />
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.email?.type === 'pattern'
-//                     ? 'Entrez un email valide'
-//                     : errors?.email?.message}
-//                 </p>
-//               </div>
-
-//               <div className="col-span-12 sm:col-span-3">
-//                 <label
-//                   htmlFor="zone"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Rôle
-//                 </label>
-
-//                 <div className="mt-1">
-//                   <SimpleSelect
-//                     required={'Champs requis'}
-//                     name="userRole"
-//                     control={control}
-//                     options={userRole}
-//                     placeholder="Selectionner la commune"
-//                   />
-//                 </div>
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.userRole?.message}
-//                 </p>
-//               </div>
-
-//               <div className="col-span-6 sm:col-span-3">
-//                 <label
-//                   htmlFor="lastname"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Mot de passe
-//                 </label>
-//                 <input
-//                   type="text"
-//                   {...register('passWord', {
-//                     required: 'Champs requis',
-//                   })}
-//                   id="passWord"
-//                   autoComplete="passWord"
-//                   placeholder="le mot de passe "
-//                   className="mt-1 block w-full border-gray-300 focus:border-primary focus:ring-primary sm:text-sm"
-//                 />
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.passWord?.message}
-//                 </p>
-//               </div>
-//             </div>
-
-//             <h1 className="text-cyan-500">Adresse</h1>
-//             <div className="grid grid-cols-9 gap-6 border-t pt-3">
-//               <div className="col-span-12 sm:col-span-3">
-//                 <label
-//                   htmlFor="zone"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Commune
-//                 </label>
-
-//                 <div className="mt-1">
-//                   <SimpleSelect
-//                     required={'Champs requis'}
-//                     name="zone"
-//                     control={control}
-//                     options={zones}
-//                     placeholder="Selectionner la commune"
-//                   />
-//                 </div>
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.zone?.message}
-//                 </p>
-//               </div>
-//               <div className="col-span-12 sm:col-span-3">
-//                 <label
-//                   htmlFor="quartier"
-//                   className="block text-sm font-medium text-gray-700"
-//                 >
-//                   Quartier
-//                 </label>
-
-//                 <div className="mt-1">
-//                   <SimpleSelect
-//                     required={'Champs requis'}
-//                     name="quartier"
-//                     control={control}
-//                     options={quartier}
-//                     placeholder="Selectionner le quartier"
-//                   />
-//                 </div>
-//                 <p className="pt-1 text-xs text-red-600">
-//                   {errors?.quartier?.message}
-//                 </p>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </DrawerForm>
-//     </>
-//   )
-// }
 import { useAuthUser } from 'next-firebase-auth'
 import React from 'react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiCheckLine, RiEyeLine, RiEyeOffLine } from 'react-icons/ri'
+import { RiCheckLine, RiEyeLine, RiEyeOffLine, RiImageAddLine } from 'react-icons/ri'
 import Loader from '../Loader'
 import { createAccount } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
-import { quartier, userRole, zones } from '../../_data'
+import { uploadToCloudinary } from '../../utils/cloudinary'
+import {
+  quartier,
+  userRole,
+  zones,
+  REGIONS,
+  ALL_COMMUNES,
+  AGENT_PROPERTY_TYPES,
+  WORKER_SPECIALTIES,
+  WORKER_PRICE_RANGES,
+} from '../../_data'
 import DrawerForm from '../DrawerForm'
 import SimpleSelect from '../SimpleSelect'
+import MultiSelect from '../MultiSelect'
 import { useColors } from '../../contexts/ColorContext'
+
+// Communes multi-select : la valeur stockée doit être le libellé affiché
+// (ex: "Ratoma"), pas un slug, pour matcher exactement ce que le site public
+// écrit dans `communes` (voir devenir-ouvrier/page.tsx).
+const COMMUNE_MULTI_OPTIONS = ALL_COMMUNES.map((c) => ({ label: c.label, value: c.label }))
+
+const AccountTypeToggle = ({ options, value, onChange, colors }) => (
+  <div className="flex gap-3">
+    {options.map((opt) => {
+      const active = value === opt.value
+      return (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className="flex-1 rounded-xl border-2 p-3 text-left transition-all"
+          style={{
+            borderColor: active ? colors.primary : colors.gray200,
+            backgroundColor: active ? colors.primaryVeryLight : colors.white,
+          }}
+        >
+          <p
+            className="text-sm font-semibold"
+            style={{ color: active ? colors.primary : colors.gray700 }}
+          >
+            {opt.label}
+          </p>
+          {opt.desc && (
+            <p className="mt-0.5 text-xs" style={{ color: colors.gray400 }}>
+              {opt.desc}
+            </p>
+          )}
+        </button>
+      )
+    })}
+  </div>
+)
 
 export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props }) {
   const colors = useColors()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState(null)
 
   const {
     handleSubmit,
@@ -327,10 +78,17 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
     mode: 'onBlur',
     defaultValues: {
       desabled: false,
+      agentAccountType: 'particulier',
+      workerAccountType: 'individual',
     },
     reValidateMode: 'onChange',
-    shouldUnregister: false,
+    shouldUnregister: true,
   })
+
+  const role = watch('userRole')?.value
+  const agentAccountType = watch('agentAccountType')
+  const workerAccountType = watch('workerAccountType')
+  const workerSpecialty = watch('workerSpecialty')
 
   React.useEffect(() => {
     if (open && defaultRole) {
@@ -341,12 +99,26 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
     }
   }, [open, defaultRole, setValue])
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+  }
+
   const CreatedAccountSubmit = async (data) => {
     setLoading(true)
     try {
-      const newUser = await createAccount(data)
+      let imageUrl = ''
+      if (role === 'worker' && photoFile) {
+        imageUrl = await uploadToCloudinary(photoFile)
+      }
+
+      const newUser = await createAccount({ ...data, imageUrl })
       notify('Compte créé avec succès', 'success')
       reset()
+      setPhotoFile(null)
+      setPhotoPreview(null)
       setOpen(false)
       if (props.onCreate) {
         props.onCreate(newUser)
@@ -361,118 +133,13 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
   return (
     <>
       <style>{`
-        .form-section {
-          background-color: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          padding: 1.5rem;
-        }
-
-        .form-section-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 1.25rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #e5e7eb;
-        }
-
-        .section-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 0.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-
-        .section-icon.agency {
-          background-color: rgba(189, 91, 55, 0.15);
-          color: ${colors.primary || '#BD5B37'};
-        }
-
-        .section-icon.manager {
-          background-color: rgba(168, 85, 247, 0.15);
-          color: #a855f7;
-        }
-
-        .section-icon.address {
-          background-color: rgba(16, 185, 129, 0.15);
-          color: #10b981;
-        }
-
         .form-section-title {
-          font-size: 0.95rem;
+          font-size: 0.75rem;
           font-weight: 700;
-          color: #111827;
+          color: ${colors.gray500 || '#6b7280'};
           text-transform: uppercase;
           letter-spacing: 0.03em;
           margin: 0;
-        }
-
-        .form-label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: #1f2937;
-          margin-bottom: 0.4rem;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .form-input {
-          width: 100%;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.375rem;
-          padding: 0.6rem 0.85rem;
-          font-size: 0.875rem;
-          color: #111827;
-          background-color: #fff;
-          transition: all 0.2s ease;
-        }
-
-        .form-input:focus {
-          border-color: ${colors.primary || '#BD5B37'};
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(189, 91, 55, 0.1);
-        }
-
-        .form-error {
-          font-size: 0.7rem;
-          color: #dc2626;
-          margin-top: 0.2rem;
-          font-weight: 600;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: repeat(6, 1fr);
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .form-row:last-child {
-          margin-bottom: 0;
-        }
-
-        .form-group {
-          grid-column: span 6;
-        }
-
-        .form-group.col-2 {
-          grid-column: span 2;
-        }
-
-        .form-group.col-3 {
-          grid-column: span 3;
-        }
-
-        @media (max-width: 640px) {
-          .form-group.col-2, .form-group.col-3 {
-            grid-column: span 6;
-          }
         }
 
         .phone-prefix {
@@ -493,15 +160,21 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
       <DrawerForm
         open={open}
         setOpen={setOpen}
-        title="Ajouter un Manager"
-        description="Création de compte manager"
+        title={
+          role === 'agent'
+            ? 'Ajouter un Agent'
+            : role === 'worker'
+            ? 'Ajouter un Ouvrier'
+            : 'Ajouter un Manager'
+        }
+        description="Création de compte"
         onSubmit={handleSubmit(CreatedAccountSubmit)}
         footerButtons={
           <>
             {loading ? (
               <div
                 className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
-                style={{ backgroundColor: colors.primary || '#BD5B37' }}
+                style={{ backgroundColor: colors.primary || '#0A4D9C' }}
               >
                 <Loader />
               </div>
@@ -517,7 +190,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                 <button
                   type="submit"
                   className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
-                  style={{ backgroundColor: colors.primary || '#BD5B37' }}
+                  style={{ backgroundColor: colors.primary || '#0A4D9C' }}
                 >
                   <RiCheckLine className="h-4 w-4" />
                   Créer le compte
@@ -528,196 +201,452 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
         }
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
-          {/* SECTION 1: Agence */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon agency">🏢</div>
-              <h3 className="form-section-title">Informations Agence</h3>
+          {/* Rôle en premier : détermine les champs affichés en dessous */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
+              Rôle
+            </label>
+            <SimpleSelect
+              required="Champs requis"
+              name="userRole"
+              control={control}
+              options={userRole}
+              placeholder="Sélectionner le rôle"
+            />
+            {errors?.userRole && (
+              <p className="mt-1 text-xs font-semibold text-red-500">{errors.userRole.message}</p>
+            )}
+          </div>
+
+          {/* Champs communs à tous les rôles */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Email
+              </label>
+              <input
+                type="email"
+                {...register('email', {
+                  required: 'Champs requis',
+                  pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
+                })}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="meloger@gmail.com"
+              />
+              {errors?.email && (
+                <p className="mt-1 text-xs font-semibold text-red-500">
+                  {errors.email.type === 'pattern' ? 'Entrez un email valide' : errors.email.message}
+                </p>
+              )}
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Nom de l'Agence</label>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Téléphone
+              </label>
+              <div className="relative">
+                <span className="phone-prefix">+224</span>
                 <input
-                  type="text"
-                  {...register('agence', {
+                  type="tel"
+                  {...register('phoneNumber', {
                     required: 'Champs requis',
+                    pattern: /^(\+\d{3}\s?)?\(?\d{3}\)?[\s-]*\d{2}[\s-]*\d{2}[\s-]*\d{2}$/i,
                   })}
-                  className="form-input"
-                  placeholder="Nom du manager"
+                  className="phone-input w-full rounded-2xl border-0 bg-gray-100 py-3 pr-4 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="612345678"
                 />
-                {errors?.agence && (
-                  <span className="form-error">{errors.agence.message}</span>
-                )}
               </div>
+              {errors?.phoneNumber && (
+                <p className="mt-1 text-xs font-semibold text-red-500">
+                  {errors.phoneNumber.type === 'pattern' ? 'Entrez un numéro valide' : errors.phoneNumber.message}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* SECTION 2: Manager */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon manager">👤</div>
-              <h3 className="form-section-title">Informations Manager</h3>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
+              Mot de passe
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                {...register('passWord', { required: 'Champs requis' })}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 pr-10 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Mot de passe"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showPassword ? <RiEyeOffLine className="h-5 w-5" /> : <RiEyeLine className="h-5 w-5" />}
+              </button>
             </div>
+            {errors?.passWord && (
+              <p className="mt-1 text-xs font-semibold text-red-500">{errors.passWord.message}</p>
+            )}
+          </div>
 
-            <div className="form-row">
-              <div className="form-group col-2">
-                <label className="form-label">Nom</label>
+          {/* Manager / Admin : comptes internes, pas d'équivalent sur le site public */}
+          {(role === 'manager' || role === 'admin' || !role) && (
+            <div className="border-t border-gray-100 pt-5">
+              <p className="form-section-title mb-3">Informations {role === 'admin' ? 'administrateur' : 'manager'}</p>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Nom de l'agence
+                </label>
                 <input
                   type="text"
-                  {...register('firstname', {
-                    required: 'Champs requis',
-                  })}
-                  className="form-input"
-                  placeholder="Votre nom"
+                  {...register('agence')}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Nom de l'agence"
                 />
-                {errors?.firstname && (
-                  <span className="form-error">{errors.firstname.message}</span>
-                )}
               </div>
 
-              <div className="form-group col-2">
-                <label className="form-label">Prénom</label>
-                <input
-                  type="text"
-                  {...register('lastname', {
-                    required: 'Champs requis',
-                  })}
-                  className="form-input"
-                  placeholder="Votre prénom"
-                />
-                {errors?.lastname && (
-                  <span className="form-error">{errors.lastname.message}</span>
-                )}
-              </div>
-
-              <div className="form-group col-2">
-                <label className="form-label">Email</label>
-                <input
-                  type="email"
-                  {...register('email', {
-                    required: 'Champs requis',
-                    pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
-                  })}
-                  className="form-input"
-                  placeholder="meloger@gmail.com"
-                />
-                {errors?.email && (
-                  <span className="form-error">
-                    {errors.email.type === 'pattern'
-                      ? 'Entrez un email valide'
-                      : errors.email.message}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group col-2">
-                <label className="form-label">Téléphone</label>
-                <div className="relative">
-                  <span className="phone-prefix">+224</span>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Nom
+                  </label>
                   <input
-                    type="tel"
-                    {...register('phoneNumber', {
-                      required: 'Champs requis',
-                      pattern:
-                        /^(\+\d{3}\s?)?\(?\d{3}\)?[\s-]*\d{2}[\s-]*\d{2}[\s-]*\d{2}$/i,
-                    })}
-                    className="form-input phone-input"
-                    placeholder="612345678"
+                    type="text"
+                    {...register('firstname', { required: role !== 'agent' && role !== 'worker' ? 'Champs requis' : false })}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Votre nom"
                   />
+                  {errors?.firstname && (
+                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.firstname.message}</p>
+                  )}
                 </div>
-                {errors?.phoneNumber && (
-                  <span className="form-error">
-                    {errors.phoneNumber.type === 'pattern'
-                      ? 'Entrez un numéro valide'
-                      : errors.phoneNumber.message}
-                  </span>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Prénom
+                  </label>
+                  <input
+                    type="text"
+                    {...register('lastname', { required: role !== 'agent' && role !== 'worker' ? 'Champs requis' : false })}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Votre prénom"
+                  />
+                  {errors?.lastname && (
+                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.lastname.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Commune
+                  </label>
+                  <SimpleSelect name="zone" control={control} options={zones} placeholder="Sélectionner la commune" />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Quartier
+                  </label>
+                  <SimpleSelect name="quartier" control={control} options={quartier} placeholder="Sélectionner le quartier" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Agent immobilier : mêmes champs que /devenir-agent */}
+          {role === 'agent' && (
+            <div className="border-t border-gray-100 pt-5">
+              <p className="form-section-title mb-3">Informations agent</p>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Type de compte
+                </label>
+                <AccountTypeToggle
+                  colors={colors}
+                  value={agentAccountType}
+                  onChange={(v) => setValue('agentAccountType', v)}
+                  options={[
+                    { value: 'particulier', label: 'Particulier', desc: 'Agent indépendant' },
+                    { value: 'agence', label: 'Agence', desc: "Pour le compte d'une agence" },
+                  ]}
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Nom complet
+                </label>
+                <input
+                  type="text"
+                  {...register('fullName', { required: 'Champs requis' })}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Nom et prénom de l'agent"
+                />
+                {errors?.fullName && (
+                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.fullName.message}</p>
                 )}
               </div>
 
-              <div className="form-group col-2">
-                <label className="form-label">Mot de Passe</label>
-                <div className="relative">
+              {agentAccountType === 'agence' && (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Nom de l'agence
+                  </label>
                   <input
-                    type={showPassword ? 'text' : 'password'}
-                    {...register('passWord', {
-                      required: 'Champs requis',
-                    })}
-                    className="form-input pr-10"
-                    placeholder="Mot de passe"
+                    type="text"
+                    {...register('agencyName', { required: agentAccountType === 'agence' ? 'Champs requis' : false })}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Nom de l'agence"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  >
-                    {showPassword ? (
-                      <RiEyeOffLine className="h-5 w-5" />
+                  {errors?.agencyName && (
+                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.agencyName.message}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Commune
+                </label>
+                <select
+                  {...register('agentCommune', { required: 'Champs requis' })}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    Sélectionner une commune
+                  </option>
+                  {REGIONS.map((region) => (
+                    <optgroup key={region.name} label={region.name}>
+                      {region.communes.map((c) => (
+                        <option key={c.value} value={c.label}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                {errors?.agentCommune && (
+                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.agentCommune.message}</p>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Types de biens
+                </label>
+                <MultiSelect
+                  name="propertyTypes"
+                  control={control}
+                  options={AGENT_PROPERTY_TYPES}
+                  placeholder="Sélectionner les types de biens"
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Message (optionnel)
+                </label>
+                <textarea
+                  rows={3}
+                  {...register('message')}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Motivation, expérience..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Ouvrier / Artisan : mêmes champs que /devenir-ouvrier */}
+          {role === 'worker' && (
+            <div className="border-t border-gray-100 pt-5">
+              <p className="form-section-title mb-3">Informations ouvrier</p>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Photo (optionnel)
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-50">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Photo" className="h-full w-full object-cover" />
                     ) : (
-                      <RiEyeLine className="h-5 w-5" />
+                      <div className="flex h-full w-full items-center justify-center">
+                        <RiImageAddLine className="h-6 w-6 text-gray-300" />
+                      </div>
                     )}
-                  </button>
+                  </div>
+                  <label
+                    htmlFor="worker-photo-upload"
+                    className="cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+                    style={{ backgroundColor: colors.primary }}
+                  >
+                    Choisir une photo
+                    <input
+                      id="worker-photo-upload"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={handlePhotoChange}
+                    />
+                  </label>
                 </div>
-                {errors?.passWord && (
-                  <span className="form-error">{errors.passWord.message}</span>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Type de compte
+                </label>
+                <AccountTypeToggle
+                  colors={colors}
+                  value={workerAccountType}
+                  onChange={(v) => setValue('workerAccountType', v)}
+                  options={[
+                    { value: 'individual', label: 'Particulier', desc: '1 spécialité' },
+                    { value: 'enterprise', label: 'Entreprise', desc: 'Plusieurs spécialités' },
+                  ]}
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Nom complet
+                </label>
+                <input
+                  type="text"
+                  {...register('fullName', { required: 'Champs requis' })}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Nom et prénom de l'ouvrier"
+                />
+                {errors?.fullName && (
+                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.fullName.message}</p>
                 )}
               </div>
 
-              <div className="form-group col-2">
-                <label className="form-label">Rôle</label>
-                <SimpleSelect
-                  required="Champs requis"
-                  name="userRole"
-                  control={control}
-                  options={userRole}
-                  placeholder="Sélectionner le rôle"
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  WhatsApp (optionnel)
+                </label>
+                <input
+                  type="tel"
+                  {...register('whatsapp')}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="+224 6XX XXX XXX"
                 />
-                {errors?.userRole && (
-                  <span className="form-error">{errors.userRole.message}</span>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  {workerAccountType === 'enterprise' ? 'Spécialités' : 'Spécialité'}
+                </label>
+                {workerAccountType === 'enterprise' ? (
+                  <MultiSelect
+                    name="specialties"
+                    control={control}
+                    options={WORKER_SPECIALTIES}
+                    placeholder="Sélectionner les spécialités"
+                  />
+                ) : (
+                  <select
+                    {...register('workerSpecialty', { required: 'Champs requis' })}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Choisir une spécialité
+                    </option>
+                    {WORKER_SPECIALTIES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {errors?.workerSpecialty && (
+                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.workerSpecialty.message}</p>
+                )}
+              </div>
+
+              {(workerAccountType === 'enterprise' ? watch('specialties')?.includes('autre') : workerSpecialty === 'autre') && (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Préciser la spécialité
+                  </label>
+                  <input
+                    type="text"
+                    {...register('otherSpecialty', { required: 'Champs requis' })}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Ex: Vitrerie"
+                  />
+                </div>
+              )}
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Communes d'intervention
+                </label>
+                <MultiSelect
+                  name="communes"
+                  control={control}
+                  options={COMMUNE_MULTI_OPTIONS}
+                  placeholder="Sélectionner les communes"
+                />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Années d'expérience (optionnel)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    {...register('experienceYears')}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
+                    Tarif indicatif (optionnel)
+                  </label>
+                  <select
+                    {...register('priceRange')}
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    defaultValue=""
+                  >
+                    <option value="">Non précisé</option>
+                    {WORKER_PRICE_RANGES.map((p) => (
+                      <option key={p} value={p}>
+                        {p}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                  Description
+                </label>
+                <textarea
+                  rows={3}
+                  {...register('description', {
+                    required: 'Champs requis (20 caractères minimum)',
+                    minLength: { value: 20, message: 'Minimum 20 caractères' },
+                  })}
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Présentation, expérience, savoir-faire..."
+                />
+                {errors?.description && (
+                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.description.message}</p>
                 )}
               </div>
             </div>
-          </div>
-
-          {/* SECTION 3: Adresse */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <div className="section-icon address">📍</div>
-              <h3 className="form-section-title">Adresse</h3>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group col-3">
-                <label className="form-label">Commune</label>
-                <SimpleSelect
-                  required="Champs requis"
-                  name="zone"
-                  control={control}
-                  options={zones}
-                  placeholder="Sélectionner la commune"
-                />
-                {errors?.zone && (
-                  <span className="form-error">{errors.zone.message}</span>
-                )}
-              </div>
-
-              <div className="form-group col-3">
-                <label className="form-label">Quartier</label>
-                <SimpleSelect
-                  required="Champs requis"
-                  name="quartier"
-                  control={control}
-                  options={quartier}
-                  placeholder="Sélectionner le quartier"
-                />
-                {errors?.quartier && (
-                  <span className="form-error">{errors.quartier.message}</span>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </DrawerForm>
     </>

@@ -25,7 +25,11 @@ import Loader from '@/components/Loader'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import ConfirmModal from '@/components/ConfirmModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
-import { getWorkerById } from '@/lib/services/workers'
+import {
+  getWorkerById,
+  hideWorkerFromPublic,
+  restoreWorkerVisibility,
+} from '@/lib/services/workers'
 import {
   desableUser,
   desableUserFirestore,
@@ -87,7 +91,12 @@ function WorkerDetail() {
     load()
   }, [workerId])
 
-  const paymentStatus = worker ? computeWorkerPaymentStatus(worker, payments) : null
+  const paymentStatus = worker
+    ? computeWorkerPaymentStatus(
+        worker.suspendedByAdmin ? { ...worker, status: 'approved' } : worker,
+        payments
+      )
+    : null
 
   const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
     try {
@@ -105,6 +114,13 @@ function WorkerDetail() {
     try {
       await desableUser(worker.userId, !nextAvailable)
       await desableUserFirestore(worker.userId, nextAvailable)
+
+      if (nextAvailable) {
+        await restoreWorkerVisibility(workerId)
+      } else {
+        await hideWorkerFromPublic(workerId)
+      }
+
       setIsAvailable(nextAvailable)
       notify('Action effectuée avec succès', 'success')
       setBlockModalOpen(false)
@@ -266,7 +282,7 @@ function WorkerDetail() {
         </div>
 
         {/* Abonnement */}
-        {worker.status === 'approved' && paymentStatus && (
+        {(worker.status === 'approved' || worker.suspendedByAdmin) && paymentStatus && (
           <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -402,7 +418,7 @@ function WorkerDetail() {
 }
 
 const WorkerDetailPage = () => (
-  <Page name="Ouvrier | BâtiServices Admin">
+  <Page name="Ouvrier | BâtiMoo Admin">
     <WorkerDetail />
   </Page>
 )
@@ -410,7 +426,7 @@ const WorkerDetailPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }

@@ -5,14 +5,24 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import DrawerForm from '@/components/DrawerForm'
-import {
-  addManagedProperty,
-  editManagedProperty,
-} from '@/lib/services/managedProperties'
+import { editManagedProperty } from '@/lib/services/managedProperties'
 import { addPropertyOwner } from '@/lib/services/propertyOwners'
 import { addProperty, updateProperty } from '@/lib/services/propertyService'
 
-const PROPERTY_TYPES = ['Appartement', 'Maison', 'Studio', 'Commerce']
+const PROPERTY_TYPES = ['Appartement', 'Maison', 'Studio', 'Commerce', 'Terrain']
+
+// Catégories du site public (chacune = une collection Firestore distincte).
+// Un bien existant porte déjà sa vraie collection dans `_collection` (calculée par
+// getPropertiesByOwner) ; ce n'est qu'à la création qu'on doit demander le choix à l'admin.
+const CATEGORY_OPTIONS = [
+  { value: 'houses', label: 'Maison / Appartement (location ou vente)' },
+  { value: 'lands', label: 'Terrain' },
+  { value: 'daily_rentals', label: 'Location journalière' },
+]
+const KNOWN_COLLECTIONS = ['houses', 'lands', 'daily_rentals', 'managed_properties']
+// Les documents publiés depuis le site public stockent un `category` au singulier
+// (house/land/daily_rental) alors que les collections Firestore sont au pluriel.
+const SINGULAR_CATEGORY_MAP = { house: 'houses', land: 'lands', daily_rental: 'daily_rentals' }
 
 // Formulaire de création/édition d'un bien, partagé entre BiensTab (choix libre du
 // propriétaire) et la page détail propriétaire (propriétaire imposé par lockedOwnerId).
@@ -29,14 +39,18 @@ export default function PropertyDrawerForm({
   const [saving, setSaving] = useState(false)
   const [creatingOwner, setCreatingOwner] = useState(false)
 
-  const resolveCategory = (selectedItem) => {
+  // Détermine la VRAIE collection Firestore d'un bien existant, pour éditer le bon
+  // document (managed_properties / houses / lands / daily_rentals) au lieu de le
+  // dupliquer ou d'échouer silencieusement sur un id inexistant dans la mauvaise collection.
+  const resolveTargetCollection = (selectedItem) => {
+    if (KNOWN_COLLECTIONS.includes(selectedItem?._collection)) {
+      return selectedItem._collection
+    }
     const rawCategory =
       selectedItem?.category || selectedItem?.propertyCategory || ''
     const normalized = String(rawCategory).trim().toLowerCase()
-    if (['houses', 'lands', 'daily_rentals'].includes(normalized)) {
-      return normalized
-    }
-    return 'houses'
+    if (KNOWN_COLLECTIONS.includes(normalized)) return normalized
+    return SINGULAR_CATEGORY_MAP[normalized] || 'houses'
   }
 
   const resolveTypeValue = (value) => {
@@ -166,6 +180,7 @@ export default function PropertyDrawerForm({
     } else {
       reset({
         type: 'Appartement',
+        category: 'houses',
         address: '',
         city: '',
         unitLabel: '',
@@ -211,7 +226,6 @@ export default function PropertyDrawerForm({
         commissionRate: Number(data.commissionRate) || 0,
         rentAmount: Number(data.rentAmount) || 0,
         status: data.status,
-        category: resolveCategory(selected),
         active: data.status !== 'inactive',
         published: true,
         verified: false,
@@ -219,13 +233,20 @@ export default function PropertyDrawerForm({
 
       if (selected) {
         const updated = { ...payload, unitLabel: data.unitLabel || '' }
-        const targetCategory = resolveCategory(selected)
-        const saved = await updateProperty(selected.id, updated, targetCategory)
-        onSaved({ ...selected, ...updated, ...saved })
+        const targetCollection = resolveTargetCollection(selected)
+        if (targetCollection === 'managed_properties') {
+          await editManagedProperty(selected.id, updated, 'managed_properties')
+          onSaved({ ...selected, ...updated })
+        } else {
+          updated.category = targetCollection
+          const saved = await updateProperty(selected.id, updated, targetCollection)
+          onSaved({ ...selected, ...updated, ...saved })
+        }
         notify('Bien modifié avec succès', 'success')
       } else {
         const unitCount = Math.max(1, Number(data.unitCount) || 1)
         const base = String(Date.now()).slice(-6)
+        payload.category = data.category || 'houses'
 
         if (unitCount > 1) {
           for (let i = 1; i <= unitCount; i += 1) {
@@ -299,14 +320,36 @@ export default function PropertyDrawerForm({
       }
     >
       <div className="space-y-5 px-6 py-6 sm:p-8">
+        {!selected && (
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
+              Catégorie
+            </label>
+            <select
+              {...register('category')}
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-400">
+              Détermine où le bien sera publié sur le site public. Ce choix ne pourra plus être
+              changé après la création.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Type de bien
             </label>
             <select
               {...register('type')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {PROPERTY_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -316,12 +359,12 @@ export default function PropertyDrawerForm({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Statut
             </label>
             <select
               {...register('status')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="vacant">Vacant</option>
               <option value="occupied">Occupé</option>
@@ -331,13 +374,13 @@ export default function PropertyDrawerForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+          <label className="mb-2 block text-sm font-semibold text-gray-900">
             Adresse *
           </label>
           <input
             type="text"
             {...register('address', { required: 'Requis' })}
-            className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Ex: Kaloum, rue KA-025"
           />
           {errors.address && (
@@ -349,13 +392,13 @@ export default function PropertyDrawerForm({
 
         {selected ? (
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Étiquette de l'unité
             </label>
             <input
               type="text"
               {...register('unitLabel')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Appt 3"
             />
             <p className="mt-1 text-xs text-gray-400">
@@ -365,14 +408,14 @@ export default function PropertyDrawerForm({
           </div>
         ) : (
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nombre d'appartements identiques à créer
             </label>
             <input
               type="number"
               min="1"
               {...register('unitCount')}
-              className="max-w-32 w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="max-w-32 w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="1"
             />
             <p className="mt-1 text-xs text-gray-400">
@@ -386,46 +429,46 @@ export default function PropertyDrawerForm({
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Ville
             </label>
             <input
               type="text"
               {...register('city')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Conakry"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Surface (m²)
             </label>
             <input
               type="number"
               {...register('surface')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Pièces
             </label>
             <input
               type="number"
               {...register('nbRooms')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+          <label className="mb-2 block text-sm font-semibold text-gray-900">
             Description
           </label>
           <textarea
             rows={2}
             {...register('description')}
-            className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+            className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 
@@ -450,7 +493,7 @@ export default function PropertyDrawerForm({
             {creatingOwner ? (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
                     Nom *
                   </label>
                   <input
@@ -458,7 +501,7 @@ export default function PropertyDrawerForm({
                     {...register('newOwnerName', {
                       required: creatingOwner ? 'Requis' : false,
                     })}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   {errors.newOwnerName && (
                     <p className="mt-1 text-xs font-semibold text-red-500">
@@ -467,7 +510,7 @@ export default function PropertyDrawerForm({
                   )}
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
                     Téléphone *
                   </label>
                   <input
@@ -475,7 +518,7 @@ export default function PropertyDrawerForm({
                     {...register('newOwnerPhone', {
                       required: creatingOwner ? 'Requis' : false,
                     })}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="+224 6XX XX XX XX"
                   />
                   {errors.newOwnerPhone && (
@@ -485,13 +528,13 @@ export default function PropertyDrawerForm({
                   )}
                 </div>
                 <div className="col-span-2">
-                  <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                  <label className="mb-2 block text-sm font-semibold text-gray-900">
                     Email
                   </label>
                   <input
                     type="email"
                     {...register('newOwnerEmail')}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                    className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
@@ -500,7 +543,7 @@ export default function PropertyDrawerForm({
                 {...register('ownerId', {
                   required: !creatingOwner ? 'Requis' : false,
                 })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {owners?.length === 0 && (
                   <option value="">Aucun propriétaire — créez-en un</option>
@@ -517,13 +560,13 @@ export default function PropertyDrawerForm({
 
         <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Loyer mensuel (GNF) *
             </label>
             <input
               type="number"
               {...register('rentAmount', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: 1500000"
             />
             {errors.rentAmount && (
@@ -533,13 +576,13 @@ export default function PropertyDrawerForm({
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Commission agence (%)
             </label>
             <input
               type="number"
               {...register('commissionRate')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: 10"
             />
           </div>

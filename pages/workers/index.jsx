@@ -16,7 +16,7 @@ function Workers() {
 }
 
 const WorkersIndexPage = () => (
-  <Page name="Ouvriers | BâtiServices Admin">
+  <Page name="Ouvriers | BâtiMoo Admin">
     <Workers />
   </Page>
 )
@@ -24,7 +24,7 @@ const WorkersIndexPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }

@@ -17,6 +17,9 @@ function Home() {
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+    return { notFound: true }
+  }
   return {
     props: {},
   }

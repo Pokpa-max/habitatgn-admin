@@ -6,6 +6,7 @@ import { agentRequestsCollectionRef } from '@/lib/services/agentRequests'
 import { workersCollectionRef } from '@/lib/services/workers'
 import { contactMessagesCollectionRef } from '@/lib/services/contactMessages'
 import { serviceRequestsCollectionRef, MAIN_CATEGORIES } from '@/lib/services/serviceRequests'
+import { bookingsCollectionRef } from '@/lib/services/bookings'
 import { notify } from '@/utils/toast'
 
 const CATEGORY_LABELS = {
@@ -23,6 +24,7 @@ const NotificationsContext = createContext({
   pendingLegalRequests: 0,
   pendingArtisanRequests: 0,
   pendingServiceRequests: 0,
+  pendingBookings: 0,
 })
 
 export function NotificationsProvider({ children }) {
@@ -33,18 +35,21 @@ export function NotificationsProvider({ children }) {
   const [pendingRentalRequests, setPendingRentalRequests] = useState(0)
   const [pendingLegalRequests, setPendingLegalRequests] = useState(0)
   const [pendingArtisanRequests, setPendingArtisanRequests] = useState(0)
+  const [pendingBookings, setPendingBookings] = useState(0)
 
   // null = not yet initialized (first snapshot = baseline, no toast)
   const knownAgentIds = useRef(null)
   const knownWorkerIds = useRef(null)
   const knownMessageIds = useRef(null)
   const knownServiceRequestIds = useRef(null)
+  const knownBookingIds = useRef(null)
 
   useEffect(() => {
     let unsubAgents = null
     let unsubWorkers = null
     let unsubMessages = null
     let unsubServiceRequests = null
+    let unsubBookings = null
 
     // Start Firestore listeners only once the user is authenticated
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -53,10 +58,12 @@ export function NotificationsProvider({ children }) {
       if (unsubWorkers) unsubWorkers()
       if (unsubMessages) unsubMessages()
       if (unsubServiceRequests) unsubServiceRequests()
+      if (unsubBookings) unsubBookings()
       knownAgentIds.current = null
       knownWorkerIds.current = null
       knownMessageIds.current = null
       knownServiceRequestIds.current = null
+      knownBookingIds.current = null
 
       if (!user) {
         setPendingAgents(0)
@@ -66,6 +73,7 @@ export function NotificationsProvider({ children }) {
         setPendingRentalRequests(0)
         setPendingLegalRequests(0)
         setPendingArtisanRequests(0)
+        setPendingBookings(0)
         return
       }
 
@@ -173,6 +181,30 @@ export function NotificationsProvider({ children }) {
           knownServiceRequestIds.current = ids
         }
       })
+
+      const qBookings = query(
+        bookingsCollectionRef,
+        where('status', '==', 'pending')
+      )
+
+      unsubBookings = onSnapshot(qBookings, (snapshot) => {
+        const ids = new Set(snapshot.docs.map((d) => d.id))
+        setPendingBookings(ids.size)
+
+        if (knownBookingIds.current === null) {
+          knownBookingIds.current = ids
+        } else {
+          const newOnes = [...ids].filter((id) => !knownBookingIds.current.has(id))
+          if (newOnes.length > 0) {
+            const n = newOnes.length
+            notify(
+              `${n} nouvelle${n > 1 ? 's' : ''} réservation${n > 1 ? 's' : ''} !`,
+              'success'
+            )
+          }
+          knownBookingIds.current = ids
+        }
+      })
     })
 
     return () => {
@@ -181,6 +213,7 @@ export function NotificationsProvider({ children }) {
       if (unsubWorkers) unsubWorkers()
       if (unsubMessages) unsubMessages()
       if (unsubServiceRequests) unsubServiceRequests()
+      if (unsubBookings) unsubBookings()
     }
   }, [])
 
@@ -198,6 +231,7 @@ export function NotificationsProvider({ children }) {
         pendingLegalRequests,
         pendingArtisanRequests,
         pendingServiceRequests,
+        pendingBookings,
       }}
     >
       {children}

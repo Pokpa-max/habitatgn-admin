@@ -109,8 +109,8 @@ function UserTable({
 
         .search-input:focus {
           outline: none;
-          border-color: ${colors.primary || '#BD5B37'};
-          box-shadow: 0 0 0 3px rgba(189, 91, 55, 0.1);
+          border-color: ${colors.primary || '#0A4D9C'};
+          box-shadow: 0 0 0 3px rgba(10, 77, 156, 0.1);
         }
 
         .table-header {

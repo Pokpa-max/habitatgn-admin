@@ -33,6 +33,10 @@ import {
   recordAgentPayment,
   computeAgentPaymentStatus,
 } from '@/lib/services/agentPayments'
+import {
+  deactivatePropertiesForOwner,
+  reactivatePropertiesForOwner,
+} from '@/lib/services/managedProperties'
 import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
 import RecordPaymentModal from './RecordPaymentModal'
 import AgentRevenueChart from './AgentRevenueChart'
@@ -161,7 +165,19 @@ export default function AgentsPage() {
           r.id === blockTarget.id ? { ...r, isAvailable: nextAvailable } : r
         )
       )
-      notify('Action effectuée avec succès', 'success')
+
+      const count = nextAvailable
+        ? await reactivatePropertiesForOwner(blockTarget.userId)
+        : await deactivatePropertiesForOwner(blockTarget.userId)
+
+      notify(
+        count > 0
+          ? nextAvailable
+            ? `Agent réactivé — ${count} bien${count > 1 ? 's' : ''} republié${count > 1 ? 's' : ''}`
+            : `Agent suspendu — ${count} bien${count > 1 ? 's' : ''} masqué${count > 1 ? 's' : ''}`
+          : 'Action effectuée avec succès',
+        'success'
+      )
       setBlockModalOpen(false)
     } catch (e) {
       notify('Une erreur est survenue', 'error')

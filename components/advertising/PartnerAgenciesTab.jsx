@@ -89,7 +89,7 @@ export default function PartnerAgenciesTab() {
       specialty: '',
       phone: '',
       website: '',
-      color: '#BD5B37',
+      color: '#0A4D9C',
       ownerId: '',
     })
     setPreviewUrl(null)
@@ -103,7 +103,7 @@ export default function PartnerAgenciesTab() {
       specialty: agency.specialty || '',
       phone: agency.phone || '',
       website: agency.website || '',
-      color: agency.color || '#BD5B37',
+      color: agency.color || '#0A4D9C',
       ownerId: agency.ownerId || '',
     })
     setPreviewUrl(agency.logoUrl || null)
@@ -316,62 +316,62 @@ export default function PartnerAgenciesTab() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom de l'agence *
             </label>
             <input
               type="text"
               {...register('name', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Agence Immo Conakry"
             />
             {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Spécialité
             </label>
             <input
               type="text"
               {...register('specialty')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Location & vente résidentielle"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Téléphone
               </label>
               <input
                 type="tel"
                 {...register('phone')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="+224 6XX XXX XXX"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Site web
               </label>
               <input
                 type="text"
                 {...register('website')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="https://..."
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Agent lié (optionnel)
             </label>
             <select
               {...register('ownerId')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Aucun</option>
               {agents.map((a) => (
@@ -386,7 +386,7 @@ export default function PartnerAgenciesTab() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Couleur du badge
             </label>
             <input
@@ -397,7 +397,7 @@ export default function PartnerAgenciesTab() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Logo (optionnel)
             </label>
             <div className="flex items-center gap-4">

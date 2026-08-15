@@ -8,7 +8,28 @@ export default async function handler(
   res: NextApiResponse
 ) {
   try {
-    const { email, name, passWord, type, phoneNumber, agence } = req.body
+    const {
+      email,
+      name,
+      passWord,
+      type,
+      phoneNumber,
+      agence,
+      // Champs spécifiques agent (mêmes noms que agentRequestService.ts côté site public)
+      accountType,
+      agencyName,
+      commune,
+      propertyTypes,
+      message,
+      // Champs spécifiques ouvrier (mêmes noms que workerService.ts côté site public)
+      whatsapp,
+      specialties,
+      communes,
+      description,
+      experienceYears,
+      priceRange,
+      imageUrl,
+    } = req.body
 
     // 1. Create user in Firebase Auth
     const userRecord = await createUserAuth(email, passWord, name)
@@ -32,37 +53,54 @@ export default async function handler(
       createdAt: FieldValue.serverTimestamp(),
       phoneNumber: phoneNumber || '',
       agence: agence || '',
-      image_url: '',
+      image_url: userType === 'worker' ? imageUrl || '' : '',
       isAvailable: true,
       provider: 'email',
       uid: uid,
     })
 
-    // 4. Create approved entry for agent or worker if created directly by Admin
+    // 4. Créé directement par l'admin : mêmes champs qu'une demande soumise depuis le
+    // site public (agent_requests / workers), mais déjà "approved". Voir
+    // habitatgnweb/src/services/agentRequestService.ts et workerService.ts.
     if (userType === 'agent') {
       batch.set(
         dbAdmin.collection('agent_requests').doc(uid),
         {
           userId: uid,
-          name,
+          accountType: accountType || 'particulier',
+          fullName: name,
+          agencyName: accountType === 'agence' ? agencyName || '' : '',
           email,
           phone: phoneNumber || '',
-          agencyName: agence || '',
+          commune: commune || '',
+          propertyTypes: Array.isArray(propertyTypes) ? propertyTypes : [],
+          message: message || '',
           status: 'approved',
           createdAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       )
     } else if (userType === 'worker') {
+      const workerSpecialties = Array.isArray(specialties) ? specialties : []
+      const workerCommunes = Array.isArray(communes) ? communes : []
       batch.set(
         dbAdmin.collection('workers').doc(uid),
         {
           userId: uid,
           name,
-          email,
           phone: phoneNumber || '',
+          whatsapp: whatsapp || '',
+          specialties: workerSpecialties,
+          communes: workerCommunes,
+          description: description || '',
+          experienceYears: experienceYears !== undefined ? Number(experienceYears) : null,
+          priceRange: priceRange || '',
+          imageUrl: imageUrl || '',
+          accountType: accountType || 'individual',
+          specialtyCommunePairs: workerSpecialties.flatMap((s: string) =>
+            workerCommunes.map((c: string) => `${s}::${c}`)
+          ),
           status: 'approved',
-          isAvailable: true,
           createdAt: FieldValue.serverTimestamp(),
         },
         { merge: true }

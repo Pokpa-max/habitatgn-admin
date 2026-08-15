@@ -19,7 +19,7 @@ function Messages() {
 }
 
 const MessagesPage = () => (
-  <Page name="Messages | BâtiServices Admin">
+  <Page name="Messages | BâtiMoo Admin">
     <Messages />
   </Page>
 )
@@ -27,7 +27,7 @@ const MessagesPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }

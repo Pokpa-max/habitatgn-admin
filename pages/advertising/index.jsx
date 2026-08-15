@@ -57,7 +57,7 @@ function Advertising() {
 }
 
 const AdvertisingPage = () => (
-  <Page name="Publicité | BâtiServices Admin">
+  <Page name="Publicité | BâtiMoo Admin">
     <Advertising />
   </Page>
 )

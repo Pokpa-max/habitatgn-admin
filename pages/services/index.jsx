@@ -76,7 +76,7 @@ function Services() {
 }
 
 const ServicesPage = () => (
-  <Page name="Services | BâtiServices Admin">
+  <Page name="Services | BâtiMoo Admin">
     <Services />
   </Page>
 )
@@ -84,7 +84,7 @@ const ServicesPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
     return { notFound: true }
   }
   return { props: {} }

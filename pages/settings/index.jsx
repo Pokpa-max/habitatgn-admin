@@ -59,7 +59,7 @@ function Settings() {
 }
 
 const SettingsPage = () => (
-  <Page name="Paramètres | BâtiServices Admin">
+  <Page name="Paramètres | BâtiMoo Admin">
     <Settings />
   </Page>
 )

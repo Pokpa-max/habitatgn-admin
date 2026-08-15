@@ -81,7 +81,7 @@ export default function HeroTab() {
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+          <label className="mb-2 block text-sm font-semibold text-gray-900">
             Image actuelle
           </label>
           <div className="aspect-video overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
@@ -96,7 +96,7 @@ export default function HeroTab() {
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+          <label className="mb-2 block text-sm font-semibold text-gray-900">
             Nouvelle image (aperçu)
           </label>
           <div className="aspect-video overflow-hidden rounded-lg border-2 border-dashed border-gray-200 bg-gray-50">

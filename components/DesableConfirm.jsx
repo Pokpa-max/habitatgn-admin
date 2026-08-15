@@ -55,7 +55,7 @@ function DesableConfirmModal({
         }
 
         .btn-confirm {
-          background-color: ${desable ? '#dc2626' : colors.primary || '#BD5B37'};
+          background-color: ${desable ? '#dc2626' : colors.primary || '#0A4D9C'};
           transition: all 0.3s ease;
           font-weight: 600;
           display: inline-flex;
@@ -64,8 +64,8 @@ function DesableConfirmModal({
         }
 
         .btn-confirm:hover {
-          background-color: ${desable ? '#b91c1c' : colors.primaryHover || colors.primary || '#A44B2B'};
-          box-shadow: 0 4px 12px ${desable ? 'rgba(220, 38, 38, 0.2)' : 'rgba(189, 91, 55, 0.2)'};
+          background-color: ${desable ? '#b91c1c' : colors.primaryHover || colors.primary || '#083B78'};
+          box-shadow: 0 4px 12px ${desable ? 'rgba(220, 38, 38, 0.2)' : 'rgba(10, 77, 156, 0.2)'};
           transform: translateY(-1px);
         }
 

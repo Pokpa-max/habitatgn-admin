@@ -72,7 +72,7 @@ export default function WorkerSubscriptionTab() {
       </div>
 
       <div className="max-w-xs">
-        <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+        <label className="mb-2 block text-sm font-semibold text-gray-900">
           Montant mensuel (GNF)
         </label>
         <input
@@ -82,7 +82,7 @@ export default function WorkerSubscriptionTab() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="Ex: 50000"
-          className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+          className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 

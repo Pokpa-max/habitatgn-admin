@@ -32,11 +32,40 @@ export const desableUser = async (userId, desableAccount) => {
 }
 
 export const createAccount = async (data) => {
-  //creating account
+  const { passWord } = data
+  const type = data.userRole?.value || 'manager'
 
-  const { firstname, lastname, passWord } = data
-  const name = `${firstname} ${lastname}`
-  /* 
+  let name = `${data.firstname || ''} ${data.lastname || ''}`.trim()
+  let roleFields = {}
+
+  if (type === 'agent') {
+    name = data.fullName
+    roleFields = {
+      accountType: data.agentAccountType,
+      agencyName: data.agentAccountType === 'agence' ? data.agencyName : undefined,
+      commune: data.agentCommune,
+      propertyTypes: data.propertyTypes || [],
+      message: data.message || '',
+    }
+  } else if (type === 'worker') {
+    name = data.fullName
+    const specialties =
+      data.workerAccountType === 'enterprise'
+        ? (data.specialties || []).map((s) => (s === 'autre' ? data.otherSpecialty : s))
+        : [data.workerSpecialty === 'autre' ? data.otherSpecialty : data.workerSpecialty].filter(Boolean)
+    roleFields = {
+      accountType: data.workerAccountType,
+      whatsapp: data.whatsapp || '',
+      specialties,
+      communes: data.communes || [],
+      description: data.description || '',
+      experienceYears: data.experienceYears ? Number(data.experienceYears) : undefined,
+      priceRange: data.priceRange || undefined,
+      imageUrl: data.imageUrl || '',
+    }
+  }
+
+  /*
     The API returns { uid: '...' } confirmed by previous step.
     We construct the object to return to the UI.
   */
@@ -46,7 +75,8 @@ export const createAccount = async (data) => {
     passWord: passWord,
     phoneNumber: data.phoneNumber,
     agence: data.agence,
-    type: data.userRole?.value // Assuming userRole is a select object
+    type,
+    ...roleFields,
   })
 
   if (response.code == 0) throw new Error()
@@ -56,11 +86,12 @@ export const createAccount = async (data) => {
     uid: response.uid,
     email: data.email,
     name,
-    firstname,
-    lastname,
+    firstname: data.firstname,
+    lastname: data.lastname,
     phoneNumber: data.phoneNumber,
     agence: data.agence,
-    type: data.userRole?.value || 'manager',
+    type,
+    ...roleFields,
     image_url: '',
     isAvailable: true,
     provider: 'email',

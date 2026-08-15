@@ -84,7 +84,7 @@ export default function RecordPaymentModal({ open, setOpen, defaultAmount, onCon
 
                     <div className="mt-5 space-y-4">
                       <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+                        <label className="mb-2 block text-sm font-semibold text-gray-900">
                           Nombre de mois payés
                         </label>
                         <input
@@ -94,14 +94,14 @@ export default function RecordPaymentModal({ open, setOpen, defaultAmount, onCon
                           required
                           value={monthsCovered}
                           onChange={(e) => handleMonthsChange(e.target.value)}
-                          className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                          className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <p className="mt-1 text-[11px] text-gray-400">
                           L'agent peut régler plusieurs mois d'avance en une seule fois
                         </p>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+                        <label className="mb-2 block text-sm font-semibold text-gray-900">
                           Montant total (GNF)
                         </label>
                         <input
@@ -111,11 +111,11 @@ export default function RecordPaymentModal({ open, setOpen, defaultAmount, onCon
                           required
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
-                          className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                          className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+                        <label className="mb-2 block text-sm font-semibold text-gray-900">
                           Date du paiement
                         </label>
                         <input
@@ -123,7 +123,7 @@ export default function RecordPaymentModal({ open, setOpen, defaultAmount, onCon
                           required
                           value={paidAt}
                           onChange={(e) => setPaidAt(e.target.value)}
-                          className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                          className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                     </div>
