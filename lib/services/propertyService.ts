@@ -65,7 +65,7 @@ export const addProperty = async (
     category
   )
   const ref = await addDoc(collection(db, category), payload)
-  return { id: ref.id, category, ...payload }
+  return { id: ref.id, ...payload }
 }
 
 export const updateProperty = async (
@@ -74,7 +74,7 @@ export const updateProperty = async (
   category?: string
 ) => {
   const targetCategory = normalizeCategory(category)
-  const payload = { ...data, category: targetCategory, updatedAt: new Date() }
+  const payload: Record<string, any> = { ...data, category: targetCategory, updatedAt: new Date() }
 
   const shouldRefreshSearchIndex = [
     'title',
@@ -95,5 +95,5 @@ export const updateProperty = async (
 
   const ref = doc(db, targetCategory, id)
   await updateDoc(ref, payload)
-  return { id, category: targetCategory, ...payload }
+  return { id, ...payload }
 }
