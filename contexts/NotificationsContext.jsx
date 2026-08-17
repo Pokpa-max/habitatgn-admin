@@ -7,6 +7,7 @@ import { workersCollectionRef } from '@/lib/services/workers'
 import { contactMessagesCollectionRef } from '@/lib/services/contactMessages'
 import { serviceRequestsCollectionRef, MAIN_CATEGORIES } from '@/lib/services/serviceRequests'
 import { bookingsCollectionRef } from '@/lib/services/bookings'
+import { careerApplicationsCollectionRef } from '@/lib/services/careerApplications'
 import { notify } from '@/utils/toast'
 
 const CATEGORY_LABELS = {
@@ -25,6 +26,7 @@ const NotificationsContext = createContext({
   pendingArtisanRequests: 0,
   pendingServiceRequests: 0,
   pendingBookings: 0,
+  pendingCareerApplications: 0,
 })
 
 export function NotificationsProvider({ children }) {
@@ -36,6 +38,7 @@ export function NotificationsProvider({ children }) {
   const [pendingLegalRequests, setPendingLegalRequests] = useState(0)
   const [pendingArtisanRequests, setPendingArtisanRequests] = useState(0)
   const [pendingBookings, setPendingBookings] = useState(0)
+  const [pendingCareerApplications, setPendingCareerApplications] = useState(0)
 
   // null = not yet initialized (first snapshot = baseline, no toast)
   const knownAgentIds = useRef(null)
@@ -43,6 +46,7 @@ export function NotificationsProvider({ children }) {
   const knownMessageIds = useRef(null)
   const knownServiceRequestIds = useRef(null)
   const knownBookingIds = useRef(null)
+  const knownCareerApplicationIds = useRef(null)
 
   useEffect(() => {
     let unsubAgents = null
@@ -50,6 +54,7 @@ export function NotificationsProvider({ children }) {
     let unsubMessages = null
     let unsubServiceRequests = null
     let unsubBookings = null
+    let unsubCareerApplications = null
 
     // Start Firestore listeners only once the user is authenticated
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -59,11 +64,13 @@ export function NotificationsProvider({ children }) {
       if (unsubMessages) unsubMessages()
       if (unsubServiceRequests) unsubServiceRequests()
       if (unsubBookings) unsubBookings()
+      if (unsubCareerApplications) unsubCareerApplications()
       knownAgentIds.current = null
       knownWorkerIds.current = null
       knownMessageIds.current = null
       knownServiceRequestIds.current = null
       knownBookingIds.current = null
+      knownCareerApplicationIds.current = null
 
       if (!user) {
         setPendingAgents(0)
@@ -74,6 +81,7 @@ export function NotificationsProvider({ children }) {
         setPendingLegalRequests(0)
         setPendingArtisanRequests(0)
         setPendingBookings(0)
+        setPendingCareerApplications(0)
         return
       }
 
@@ -205,6 +213,30 @@ export function NotificationsProvider({ children }) {
           knownBookingIds.current = ids
         }
       })
+
+      const qCareerApplications = query(
+        careerApplicationsCollectionRef,
+        where('status', '==', 'pending')
+      )
+
+      unsubCareerApplications = onSnapshot(qCareerApplications, (snapshot) => {
+        const ids = new Set(snapshot.docs.map((d) => d.id))
+        setPendingCareerApplications(ids.size)
+
+        if (knownCareerApplicationIds.current === null) {
+          knownCareerApplicationIds.current = ids
+        } else {
+          const newOnes = [...ids].filter((id) => !knownCareerApplicationIds.current.has(id))
+          if (newOnes.length > 0) {
+            const n = newOnes.length
+            notify(
+              `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} emploi !`,
+              'success'
+            )
+          }
+          knownCareerApplicationIds.current = ids
+        }
+      })
     })
 
     return () => {
@@ -214,6 +246,7 @@ export function NotificationsProvider({ children }) {
       if (unsubMessages) unsubMessages()
       if (unsubServiceRequests) unsubServiceRequests()
       if (unsubBookings) unsubBookings()
+      if (unsubCareerApplications) unsubCareerApplications()
     }
   }, [])
 
@@ -232,6 +265,7 @@ export function NotificationsProvider({ children }) {
         pendingArtisanRequests,
         pendingServiceRequests,
         pendingBookings,
+        pendingCareerApplications,
       }}
     >
       {children}

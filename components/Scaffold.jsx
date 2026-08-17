@@ -16,6 +16,7 @@ import {
   RiBuildingLine,
   RiShoppingBag3Line,
   RiCalendarCheckLine,
+  RiFileUserLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -94,6 +95,13 @@ const navigation = [
     icon: RiMailLine,
     claims: ['admin', 'manager'],
     badgeKey: 'unreadMessages',
+  },
+  {
+    name: 'Carrières',
+    href: '/carrieres',
+    icon: RiFileUserLine,
+    claims: ['admin'],
+    badgeKey: 'pendingCareerApplications',
   },
   {
     name: 'Paramètres',

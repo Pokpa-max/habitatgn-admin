@@ -12,6 +12,9 @@ import {
   RiSearchLine,
   RiAddLine,
   RiMoneyDollarCircleLine,
+  RiArrowRightSLine,
+  RiForbidLine,
+  RiLockUnlockLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
