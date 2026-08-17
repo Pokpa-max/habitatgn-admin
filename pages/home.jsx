@@ -12,14 +12,14 @@ import {
 function Home() {
   return (
     <Scaffold>
-      <Header title={'Acceuil'} />
+      <Header title={'Accueil'} />
       <DashbordCard />
     </Scaffold>
   )
 }
 
 const HomePage = () => (
-  <Page name="ConaLoge - Admin">
+  <Page name="Accueil | BâtiMoo Admin">
     <Home />
   </Page>
 )

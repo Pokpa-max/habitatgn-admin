@@ -3,6 +3,37 @@ import { authAdmin, dbAdmin } from 'lib/firebase-admin/admin_config'
 import { setCustomUserClaims } from '@/utils/firebase/auth'
 import { FieldValue } from 'firebase-admin/firestore'
 
+// Même logique que habitatgnweb/src/lib/workerSearchIndex.ts — nécessaire pour que
+// les ouvriers créés depuis l'admin soient trouvables dans la recherche libre du
+// site public (qui filtre sur workers/{id}.searchIndex.keywords).
+const normalizeForSearch = (value: unknown): string =>
+  String(value ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const buildWorkerSearchIndex = (worker: {
+  name?: string
+  specialties?: string[]
+  communes?: string[]
+}) => {
+  const name = normalizeForSearch(worker.name)
+  const specialties = (worker.specialties || []).map(normalizeForSearch)
+  const communes = (worker.communes || []).map(normalizeForSearch)
+
+  const keywords = Array.from(
+    new Set(
+      [name, ...specialties, ...communes]
+        .filter(Boolean)
+        .flatMap((term) => term.split(' ').filter((w) => w.length > 1))
+    )
+  )
+
+  return { keywords }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -100,6 +131,11 @@ export default async function handler(
           specialtyCommunePairs: workerSpecialties.flatMap((s: string) =>
             workerCommunes.map((c: string) => `${s}::${c}`)
           ),
+          searchIndex: buildWorkerSearchIndex({
+            name,
+            specialties: workerSpecialties,
+            communes: workerCommunes,
+          }),
           status: 'approved',
           createdAt: FieldValue.serverTimestamp(),
         },

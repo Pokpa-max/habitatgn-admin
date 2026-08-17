@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   Scale,
   Building2,
+  Home,
 } from 'lucide-react'
 
 const MONTHS_BACK = 6
@@ -228,6 +229,7 @@ function DashboardCard() {
     managers: 0,
     legalPartners: 0,
     agencies: { active: 0, total: 0 },
+    properties: { published: 0, draft: 0 },
   })
 
   useEffect(() => {
@@ -240,6 +242,9 @@ function DashboardCard() {
         const usersRef = collection(db, 'users')
         const legalPartnersRef = collection(db, 'legalPartners')
         const agenciesRef = collection(db, 'partner_agencies')
+        const housesRef = collection(db, 'houses')
+        const landsRef = collection(db, 'lands')
+        const dailyRentalsRef = collection(db, 'daily_rentals')
 
         const [
           snapAgentsApproved,
@@ -250,6 +255,9 @@ function DashboardCard() {
           snapManagers,
           snapLegalPartners,
           snapAgencies,
+          snapHouses,
+          snapLands,
+          snapDailyRentals,
         ] = await Promise.all([
           getDocs(query(agentRequestsRef, where('status', '==', 'approved'))),
           getDocs(query(agentRequestsRef, where('status', '==', 'pending'))),
@@ -259,7 +267,15 @@ function DashboardCard() {
           getDocs(query(usersRef, where('type', 'in', ['manager', 'admin']))),
           getDocs(legalPartnersRef),
           getDocs(agenciesRef),
+          getDocs(housesRef),
+          getDocs(landsRef),
+          getDocs(dailyRentalsRef),
         ])
+
+        const allProperties = [...snapHouses.docs, ...snapLands.docs, ...snapDailyRentals.docs]
+        const publishedProperties = allProperties.filter(
+          (d) => (d.data().status || 'available') === 'available'
+        ).length
 
         setStats({
           agents: { approved: snapAgentsApproved.size, pending: snapAgentsPending.size },
@@ -270,6 +286,10 @@ function DashboardCard() {
           agencies: {
             active: snapAgencies.docs.filter((d) => d.data().active).length,
             total: snapAgencies.size,
+          },
+          properties: {
+            published: publishedProperties,
+            draft: allProperties.length - publishedProperties,
           },
         })
       } catch (error) {
@@ -317,6 +337,12 @@ function DashboardCard() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
+          icon={Home}
+          label="Immobilier"
+          value={stats.properties.published}
+          subValue={`${stats.properties.draft} en brouillon`}
+        />
+        <StatCard
           icon={Briefcase}
           label="Agents"
           value={stats.agents.approved}
@@ -324,7 +350,7 @@ function DashboardCard() {
         />
         <StatCard
           icon={Hammer}
-          label="Ouvriers"
+          label="Ouvriers / Artisans"
           value={stats.workers.approved}
           subValue={`${stats.workers.pending} en attente de validation`}
         />
