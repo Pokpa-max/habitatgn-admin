@@ -55,6 +55,29 @@ const STATUS_FILTERS = [
 
 const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
 
+function ActionRow({ as = 'a', icon: Icon, iconColor, iconBg, label, tone, ...props }) {
+  const Tag = as
+  const labelColor = tone === 'danger' ? '#DC2626' : '#374151'
+  return (
+    <Tag
+      {...props}
+      type={as === 'button' ? 'button' : undefined}
+      className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+    >
+      <span
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4.5 w-4.5" style={{ color: iconColor }} />
+      </span>
+      <span className="flex-1 text-sm font-semibold" style={{ color: labelColor }}>
+        {label}
+      </span>
+      <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100" />
+    </Tag>
+  )
+}
+
 function ActionsModal({
   worker,
   open,
@@ -95,75 +118,76 @@ function ActionsModal({
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="border-b border-gray-100 px-6 py-5">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {worker.name}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Choisir une action
-                  </p>
+                <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-5">
+                  <div
+                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                    style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                  >
+                    {(worker.name?.[0] || 'O').toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <Dialog.Title className="truncate text-sm font-bold text-gray-900">
+                      {worker.name}
+                    </Dialog.Title>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      Choisir une action
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-1 p-2">
-                  <Link href={`/workers/${worker.id}`}>
-                    <a className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                      <RiProfileLine className="h-4 w-4 text-gray-400" />
-                      Voir détail (réalisations, avis)
-                    </a>
+                <div className="space-y-0.5 p-2">
+                  <Link href={`/workers/${worker.id}`} passHref legacyBehavior>
+                    <ActionRow
+                      icon={RiProfileLine}
+                      iconColor={colors.gray600}
+                      iconBg={colors.gray100}
+                      label="Voir détail (réalisations, avis)"
+                    />
                   </Link>
 
                   {status === 'pending' && (
                     <>
-                      <button
+                      <ActionRow
+                        as="button"
                         onClick={onApprove}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiCheckLine
-                          className="h-4 w-4"
-                          style={{ color: colors.primary }}
-                        />
-                        Approuver le profil
-                      </button>
-                      <button
+                        icon={RiCheckLine}
+                        iconColor={colors.primary}
+                        iconBg={colors.primaryVeryLight}
+                        label="Approuver le profil"
+                      />
+                      <ActionRow
+                        as="button"
                         onClick={onReject}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiCloseLine className="h-4 w-4 text-gray-400" />
-                        Rejeter le profil
-                      </button>
+                        icon={RiCloseLine}
+                        iconColor={colors.gray500}
+                        iconBg={colors.gray100}
+                        label="Rejeter le profil"
+                        tone="danger"
+                      />
                     </>
                   )}
 
                   {status === 'approved' && (
-                    <button
+                    <ActionRow
+                      as="button"
                       onClick={onRecordPayment}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      <RiMoneyDollarCircleLine
-                        className="h-4 w-4"
-                        style={{ color: colors.primary }}
-                      />
-                      Enregistrer un paiement
-                    </button>
+                      icon={RiMoneyDollarCircleLine}
+                      iconColor={colors.primary}
+                      iconBg={colors.primaryVeryLight}
+                      label="Enregistrer un paiement"
+                    />
                   )}
 
                   {(status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
-                    <button
+                    <ActionRow
+                      as="button"
                       onClick={onToggleBlock}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor: worker.isAvailable
-                            ? colors.gray700
-                            : colors.primary,
-                        }}
-                      />
-                      {worker.isAvailable
-                        ? 'Bloquer le compte'
-                        : 'Débloquer le compte'}
-                    </button>
+                      icon={worker.isAvailable ? RiForbidLine : RiLockUnlockLine}
+                      iconColor={worker.isAvailable ? '#D97706' : colors.primary}
+                      iconBg={worker.isAvailable ? '#FEF3C7' : colors.primaryVeryLight}
+                      label={worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+                      tone={worker.isAvailable ? 'danger' : undefined}
+                    />
                   )}
 
                   {status === 'rejected' && !worker.suspendedByAdmin && (

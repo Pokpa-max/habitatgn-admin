@@ -286,16 +286,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                     const statusCfg =
                       STATUS_CONFIG[property.status] || STATUS_CONFIG.vacant
                     const owner = ownerById(property.ownerId)
-                    const mainImage =
-                      property.imageUrl ||
-                      property.features?.imageUrl ||
-                      property.images?.cover ||
-                      (Array.isArray(property.imageUrls)
-                        ? property.imageUrls[0]
-                        : null) ||
-                      (Array.isArray(property.images?.gallery)
-                        ? property.images.gallery[0]
-                        : null)
+                    const mainImage = property.imageUrl
 
                     return (
                       <tr
@@ -548,21 +539,11 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               const statusCfg =
                 STATUS_CONFIG[detailProperty.status] || STATUS_CONFIG.vacant
               const owner = ownerById(detailProperty.ownerId)
-              const mainImage =
-                detailProperty.imageUrl ||
-                detailProperty.features?.imageUrl ||
-                detailProperty.images?.cover ||
-                (Array.isArray(detailProperty.imageUrls)
-                  ? detailProperty.imageUrls[0]
-                  : null) ||
-                (Array.isArray(detailProperty.images?.gallery)
-                  ? detailProperty.images.gallery[0]
-                  : null)
-              const gallery =
-                detailProperty.images?.gallery ||
-                (Array.isArray(detailProperty.imageUrls)
-                  ? detailProperty.imageUrls
-                  : [])
+              const mainImage = detailProperty.imageUrl
+              const gallery = Array.isArray(detailProperty.images)
+                ? detailProperty.images
+                : detailProperty.images?.gallery ||
+                  (Array.isArray(detailProperty.imageUrls) ? detailProperty.imageUrls : [])
 
               return (
                 <>

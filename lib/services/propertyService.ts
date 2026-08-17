@@ -1,20 +1,29 @@
 import { addDoc, collection, doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/client_config'
 
-const PROPERTY_COLLECTIONS = {
+const CATEGORY_TO_COLLECTION: Record<string, string> = {
   houses: 'houses',
+  house: 'houses',
   lands: 'lands',
+  land: 'lands',
   daily_rentals: 'daily_rentals',
-} as const
+  daily_rental: 'daily_rentals',
+}
+
+const COLLECTION_TO_SINGULAR: Record<string, string> = {
+  houses: 'house',
+  lands: 'land',
+  daily_rentals: 'daily_rental',
+}
 
 const normalizeCategory = (category?: string) => {
   if (!category) return 'houses'
   const normalized = String(category).trim().toLowerCase()
-  if (normalized in PROPERTY_COLLECTIONS) {
-    return PROPERTY_COLLECTIONS[normalized as keyof typeof PROPERTY_COLLECTIONS]
-  }
-  return 'houses'
+  return CATEGORY_TO_COLLECTION[normalized] || 'houses'
 }
+
+const toSingularCategory = (collectionName: string) =>
+  COLLECTION_TO_SINGULAR[collectionName] || 'house'
 
 const buildSearchIndex = (data: Record<string, any> = {}) => {
   const searchableFields = [
@@ -41,7 +50,7 @@ const buildPropertyPayload = (data: Record<string, any>, category: string) => {
   const now = new Date()
   const payload = {
     ...data,
-    category,
+    category: toSingularCategory(category),
     ownerId: data.ownerId || data.userId || '',
     published: data.published !== undefined ? Boolean(data.published) : true,
     verified: data.verified !== undefined ? Boolean(data.verified) : false,
@@ -74,7 +83,11 @@ export const updateProperty = async (
   category?: string
 ) => {
   const targetCategory = normalizeCategory(category)
-  const payload: Record<string, any> = { ...data, category: targetCategory, updatedAt: new Date() }
+  const payload: Record<string, any> = {
+    ...data,
+    category: toSingularCategory(targetCategory),
+    updatedAt: new Date(),
+  }
 
   const shouldRefreshSearchIndex = [
     'title',
