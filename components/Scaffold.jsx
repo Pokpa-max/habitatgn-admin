@@ -323,32 +323,34 @@ export default function Scaffold({ children, title, subNav }) {
             </div>
 
             {/* Navigation Desktop */}
-            <nav className="flex-1 space-y-0.5 px-3 py-4">
-              {navigation.map((item) => {
-                if (item.claims.includes(AuthUser.claims?.userType)) {
-                  const isActive = currentPath === item.href
-                  const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
-                  return (
-                    <Link key={item.name} href={item.href}>
-                      <a
-                        className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${
-                          isActive ? 'nav-item-active' : ''
-                        }`}
-                      >
-                        <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                        <span className="text-sm">{item.name}</span>
-                        {badgeCount > 0 && (
-                          <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                            {badgeCount}
-                          </span>
-                        )}
-                      </a>
-                    </Link>
-                  )
-                }
-                return null
-              })}
-            </nav>
+            <div className="h-0 flex-1 overflow-y-auto py-4">
+              <nav className="space-y-0.5 px-3">
+                {navigation.map((item) => {
+                  if (item.claims.includes(AuthUser.claims?.userType)) {
+                    const isActive = currentPath === item.href
+                    const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
+                    return (
+                      <Link key={item.name} href={item.href}>
+                        <a
+                          className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${
+                            isActive ? 'nav-item-active' : ''
+                          }`}
+                        >
+                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+                          <span className="text-sm">{item.name}</span>
+                          {badgeCount > 0 && (
+                            <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              {badgeCount}
+                            </span>
+                          )}
+                        </a>
+                      </Link>
+                    )
+                  }
+                  return null
+                })}
+              </nav>
+            </div>
 
             {/* User Section Desktop */}
             <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: colors.gray100 }}>
