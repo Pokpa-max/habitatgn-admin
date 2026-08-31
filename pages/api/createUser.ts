@@ -3,6 +3,7 @@ import { authAdmin, dbAdmin } from 'lib/firebase-admin/admin_config'
 import { setCustomUserClaims } from '@/utils/firebase/auth'
 import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 import { FieldValue } from 'firebase-admin/firestore'
+import { ALL_MANAGER_MODULE_KEYS } from '@/lib/constants/managerModules'
 
 // Même logique que habitatgnweb/src/lib/workerSearchIndex.ts — nécessaire pour que
 // les ouvriers créés depuis l'admin soient trouvables dans la recherche libre du
@@ -94,6 +95,10 @@ export default async function handler(
       isAvailable: true,
       provider: 'email',
       uid: uid,
+      // Tous les modules cochés par défaut : le manager est pleinement
+      // fonctionnel dès sa création, un admin peut ensuite le restreindre
+      // depuis l'écran "Permissions" (voir components/Users/UsersList.jsx).
+      ...(userType === 'manager' ? { permissions: ALL_MANAGER_MODULE_KEYS } : {}),
     })
 
     // 4. Créé directement par l'admin : mêmes champs qu'une demande soumise depuis le

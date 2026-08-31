@@ -1,4 +1,5 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
 import { Dialog, Transition } from '@headlessui/react'
 import {
   RiMenuLine,
@@ -23,6 +24,8 @@ import { useAuthUser } from 'next-firebase-auth'
 import { useColors } from '../contexts/ColorContext'
 import { useNotifications } from '../contexts/NotificationsContext'
 import { useRouter } from 'next/router'
+import { db } from '../lib/firebase/client_config'
+import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
 
 const navigation = [
   {
@@ -54,6 +57,7 @@ const navigation = [
     href: '/agents',
     icon: RiBriefcaseLine,
     claims: ['admin', 'manager'],
+    module: 'agents',
     badgeKey: 'pendingAgents',
   },
   {
@@ -61,12 +65,14 @@ const navigation = [
     href: '/gestion-locative',
     icon: RiBuildingLine,
     claims: ['admin', 'manager'],
+    module: 'properties',
   },
   {
     name: 'Réservations',
     href: '/reservations',
     icon: RiCalendarCheckLine,
     claims: ['admin', 'manager'],
+    module: 'reservations',
     badgeKey: 'pendingBookings',
   },
   {
@@ -74,6 +80,7 @@ const navigation = [
     href: '/workers',
     icon: RiHammerLine,
     claims: ['admin', 'manager'],
+    module: 'workers',
     badgeKey: 'pendingWorkers',
   },
   {
@@ -87,6 +94,7 @@ const navigation = [
     href: '/services',
     icon: RiTruckLine,
     claims: ['admin', 'manager'],
+    module: 'services',
     badgeKey: 'pendingServiceRequests',
   },
   {
@@ -94,6 +102,7 @@ const navigation = [
     href: '/messages',
     icon: RiMailLine,
     claims: ['admin', 'manager'],
+    module: 'messages',
     badgeKey: 'unreadMessages',
   },
   {
@@ -117,6 +126,34 @@ export default function Scaffold({ children, title, subNav }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const AuthUser = useAuthUser()
   const router = useRouter()
+  // Purement cosmétique (masque les items non autorisés) — la vraie barrière
+  // est le check SSR par page (voir utils/firebase/checkManagerAccess.js).
+  // null tant que non chargé = ne rien masquer, pour éviter un flash de nav
+  // incomplète le temps de la lecture Firestore.
+  const [managerPermissions, setManagerPermissions] = useState(null)
+
+  useEffect(() => {
+    if (AuthUser.claims?.userType !== 'manager' || !AuthUser.id) return
+    let cancelled = false
+    getDoc(doc(db, 'users', AuthUser.id))
+      .then((snap) => {
+        if (cancelled) return
+        setManagerPermissions(snap.data()?.permissions || ALL_MANAGER_MODULE_KEYS)
+      })
+      .catch(() => {
+        if (!cancelled) setManagerPermissions(ALL_MANAGER_MODULE_KEYS)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [AuthUser.claims?.userType, AuthUser.id])
+
+  const canSeeNavItem = (item) => {
+    if (!item.claims.includes(AuthUser.claims?.userType)) return false
+    if (AuthUser.claims?.userType !== 'manager' || !item.module) return true
+    if (managerPermissions === null) return true
+    return managerPermissions.includes(item.module)
+  }
 
   const currentPath = router.pathname
 
@@ -249,7 +286,7 @@ export default function Scaffold({ children, title, subNav }) {
                 <div className="h-0 flex-1 overflow-y-auto py-4">
                   <nav className="space-y-0.5 px-2">
                     {navigation.map((item) => {
-                      if (item.claims.includes(AuthUser.claims?.userType)) {
+                      if (canSeeNavItem(item)) {
                         const isActive = currentPath === item.href
                         const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
                         return (
@@ -326,7 +363,7 @@ export default function Scaffold({ children, title, subNav }) {
             <div className="h-0 flex-1 overflow-y-auto py-4">
               <nav className="space-y-0.5 px-3">
                 {navigation.map((item) => {
-                  if (item.claims.includes(AuthUser.claims?.userType)) {
+                  if (canSeeNavItem(item)) {
                     const isActive = currentPath === item.href
                     const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
                     return (

@@ -22,6 +22,7 @@ import RentalManagementTab from '@/components/services/RentalManagementTab'
 import LegalSecurityTab from '@/components/services/LegalSecurityTab'
 import ArtisanRequestsTab from '@/components/services/ArtisanRequestsTab'
 import ServiceRevenuesTab from '@/components/services/ServiceRevenuesTab'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function Services() {
   const colors = useColors()
@@ -84,7 +85,7 @@ const ServicesPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'services'))) {
     return { notFound: true }
   }
   return { props: {} }

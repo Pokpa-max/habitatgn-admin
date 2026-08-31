@@ -48,6 +48,7 @@ import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Workers/paymentStatusC
 import RecordPaymentModal from '@/components/Users/Workers/RecordPaymentModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { formatGNF } from '@/utils/format'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const PAGE_SIZE = 10
 
@@ -501,7 +502,7 @@ const WorkerDetailPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'workers'))) {
     return { notFound: true }
   }
   return { props: {} }

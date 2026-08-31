@@ -8,6 +8,12 @@ export const desableUserFirestore = async (userId, isAvailable) => {
   await updateDoc(userRef(userId), { isAvailable: isAvailable })
 }
 
+// Modules délégués à un manager (voir lib/constants/managerModules.js et
+// firestore.rules — isAdminOrManager). Sans effet sur un compte admin.
+export const updateUserPermissions = async (userId, permissions) => {
+  await updateDoc(userRef(userId), { permissions })
+}
+
 export const getUserAvailability = async (userId) => {
   if (!userId) return true
   const snap = await getDoc(userRef(userId))

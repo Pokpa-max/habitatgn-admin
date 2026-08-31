@@ -41,6 +41,7 @@ import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Agents/paymentStatusCo
 import RecordPaymentModal from '@/components/Users/Agents/RecordPaymentModal'
 import { firebaseDateFormat } from '@/utils/date'
 import BiensTab from '@/components/rentalManagement/BiensTab'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const PROPERTY_TYPE_LABELS = {
   location: 'Location',
@@ -336,7 +337,7 @@ const AgentDetailPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'agents'))) {
     return { notFound: true }
   }
   return { props: {} }

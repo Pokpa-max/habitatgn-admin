@@ -6,6 +6,7 @@ import {
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
 import ReservationsPage from '@/components/Reservations/ReservationsPage'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function Reservations() {
   return (
@@ -24,7 +25,7 @@ const ReservationsIndexPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'reservations'))) {
     return { notFound: true }
   }
   return { props: {} }

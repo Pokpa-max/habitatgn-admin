@@ -8,6 +8,7 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
 import ProprietairesTab from '@/components/rentalManagement/ProprietairesTab'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function GestionLocative() {
   return (
@@ -27,7 +28,7 @@ const GestionLocativePage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'properties'))) {
     return { notFound: true }
   }
   return { props: {} }

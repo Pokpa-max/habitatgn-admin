@@ -37,6 +37,7 @@ import EntretienTab from '@/components/rentalManagement/EntretienTab'
 import DepensesTab from '@/components/rentalManagement/DepensesTab'
 import { getPropertyOwnerById, editPropertyOwner, deletePropertyOwner } from '@/lib/services/propertyOwners'
 import { getPropertiesByOwner } from '@/lib/services/managedProperties'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const TABS = [
   { value: 'biens', label: 'Biens', icon: RiHome4Line },
@@ -354,7 +355,7 @@ const OwnerDetailPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'properties'))) {
     return { notFound: true }
   }
   return { props: {} }

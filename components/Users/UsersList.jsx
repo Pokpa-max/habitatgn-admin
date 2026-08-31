@@ -6,9 +6,11 @@ import { useState } from 'react'
 import {
   RiSearchLine,
   RiAddLine,
+  RiShieldKeyholeLine,
 } from 'react-icons/ri'
 import DesableConfirmModal from '../DesableConfirm'
-import { desableUser, desableUserFirestore } from '../../lib/services/managers'
+import ManagerPermissionsModal from './ManagerPermissionsModal'
+import { desableUser, desableUserFirestore, updateUserPermissions } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
 import CreateUserDrawer from './CreateUserDrawer'
 import { useColors } from '../../contexts/ColorContext'
@@ -58,6 +60,8 @@ function UserTable({
   const [selectUser, setSelectUser] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [permissionsTarget, setPermissionsTarget] = useState(null)
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false)
 
   data = data || {}
   const { users, lastElement } = data
@@ -168,6 +172,24 @@ function UserTable({
             setOpen={setOpenModal}
           />
 
+          <ManagerPermissionsModal
+            manager={permissionsTarget}
+            open={permissionsModalOpen}
+            setOpen={setPermissionsModalOpen}
+            onSave={async (manager, permissions) => {
+              try {
+                await updateUserPermissions(manager.id, permissions)
+                const managersCopy = managers.map((m) =>
+                  m.id === manager.id ? { ...m, permissions } : m
+                )
+                setData({ ...data, managers: managersCopy })
+                notify('Permissions mises à jour', 'success')
+              } catch (error) {
+                notify('Erreur lors de la mise à jour des permissions', 'error')
+              }
+            }}
+          />
+
           <CreateUserDrawer
             open={openDrawer}
             setOpen={setOpenDrawer}
@@ -274,19 +296,35 @@ function UserTable({
 
                         {/* Status Badge */}
                         <td className="px-6 py-4">
-                          <button
-                            onClick={() => {
-                              setSelectUser(row)
-                              setOpenModal(true)
-                            }}
-                            className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
-                          >
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{ backgroundColor: row.isAvailable ? colors.primary : colors.gray400 }}
-                            />
-                            {row.isAvailable ? 'Actif' : 'Inactif'}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                setSelectUser(row)
+                                setOpenModal(true)
+                              }}
+                              className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: row.isAvailable ? colors.primary : colors.gray400 }}
+                              />
+                              {row.isAvailable ? 'Actif' : 'Inactif'}
+                            </button>
+                            {isStaffTab && row.type === 'manager' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPermissionsTarget(row)
+                                  setPermissionsModalOpen(true)
+                                }}
+                                title="Permissions"
+                                className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
+                              >
+                                <RiShieldKeyholeLine className="h-3.5 w-3.5" style={{ color: colors.primary }} />
+                                Permissions
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))

@@ -8,6 +8,7 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
 import ContactMessagesPage from '@/components/messages/ContactMessagesPage'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function Messages() {
   return (
@@ -27,7 +28,7 @@ const MessagesPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'messages'))) {
     return { notFound: true }
   }
   return { props: {} }
