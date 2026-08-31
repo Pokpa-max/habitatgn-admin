@@ -15,6 +15,7 @@ import Header from '@/components/Header'
 import { useColors } from '@/contexts/ColorContext'
 import HeroTab from '@/components/advertising/HeroTab'
 import FeaturedAdTab from '@/components/advertising/FeaturedAdTab'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const TABS = [
   { value: 'hero', label: 'Section héro', icon: RiImageLine },
@@ -65,7 +66,7 @@ const AdvertisingPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'advertising'))) {
     return { notFound: true }
   }
   return { props: {} }

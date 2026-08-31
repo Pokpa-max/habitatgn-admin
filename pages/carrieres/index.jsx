@@ -6,6 +6,7 @@ import {
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
 import CareersPage from '@/components/Careers/CareersPage'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function Careers() {
   return (
@@ -24,7 +25,7 @@ const CareersIndexPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'careers'))) {
     return { notFound: true }
   }
   return { props: {} }

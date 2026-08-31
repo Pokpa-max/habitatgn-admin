@@ -7,6 +7,7 @@ import {
   withAuthUserTokenSSR,
 } from 'next-firebase-auth'
 import PartnersTab from '@/components/advertising/PartnersTab'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function Partners() {
   return (
@@ -26,7 +27,7 @@ const PartnersIndexPage = () => (
 export const getServerSideProps = withAuthUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'partners'))) {
     return { notFound: true }
   }
   return { props: {} }

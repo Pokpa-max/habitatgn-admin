@@ -38,13 +38,15 @@ const navigation = [
     name: 'Marketplace',
     href: '/marketplace',
     icon: RiShoppingBag3Line,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
+    module: 'marketplace',
   },
   {
     name: 'Publicité',
     href: '/advertising',
     icon: RiBookOpenLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
+    module: 'advertising',
   },
   {
     name: 'Utilisateurs',
@@ -87,7 +89,8 @@ const navigation = [
     name: 'Partenaires',
     href: '/partners',
     icon: RiTeamLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
+    module: 'partners',
   },
   {
     name: 'Services',
@@ -109,7 +112,8 @@ const navigation = [
     name: 'Carrières',
     href: '/carrieres',
     icon: RiFileUserLine,
-    claims: ['admin'],
+    claims: ['admin', 'manager'],
+    module: 'careers',
     badgeKey: 'pendingCareerApplications',
   },
   {
