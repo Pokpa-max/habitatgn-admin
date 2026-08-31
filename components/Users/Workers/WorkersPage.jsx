@@ -231,9 +231,12 @@ export default function WorkersPage() {
   const [paymentTarget, setPaymentTarget] = useState(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [payments, setPayments] = useState([])
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+    setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
 
   useEffect(() => {
@@ -308,19 +311,21 @@ export default function WorkersPage() {
     setActionsModalOpen(false)
   }
 
+  const setWorkerBlockedState = async (worker, blocked) => {
+    await desableUser(worker.userId, blocked)
+    await desableUserFirestore(worker.userId, !blocked)
+    if (blocked) {
+      await hideWorkerFromPublic(worker.id)
+    } else {
+      await restoreWorkerVisibility(worker.id)
+    }
+  }
+
   const handleToggleBlock = async () => {
     if (!blockTarget) return
     const nextAvailable = !blockTarget.isAvailable
     try {
-      await desableUser(blockTarget.userId, !nextAvailable)
-      await desableUserFirestore(blockTarget.userId, nextAvailable)
-
-      if (nextAvailable) {
-        await restoreWorkerVisibility(blockTarget.id)
-      } else {
-        await hideWorkerFromPublic(blockTarget.id)
-      }
-
+      await setWorkerBlockedState(blockTarget, !nextAvailable)
       setWorkers((prev) =>
         prev.map((w) =>
           w.id === blockTarget.id
@@ -339,6 +344,81 @@ export default function WorkersPage() {
     } catch (e) {
       notify('Une erreur est survenue', 'error')
     }
+  }
+
+  const handleBulkApprove = async () => {
+    const targets = filtered.filter((w) => selectedIds.has(w.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => approveWorker(w.id, w.userId)))
+      const approvedAt = new Date()
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) =>
+        prev.map((w) =>
+          targetIds.has(w.id)
+            ? {
+                ...w,
+                status: 'approved',
+                approvedAt,
+                paymentStatus: computeWorkerPaymentStatus({ ...w, status: 'approved', approvedAt }, []),
+              }
+            : w
+        )
+      )
+      notify(`${targets.length} ouvrier(s) approuvé(s)`, 'success')
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'approbation groupée", 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkReject = async () => {
+    const targets = filtered.filter((w) => selectedIds.has(w.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => rejectWorker(w.id)))
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) => prev.map((w) => (targetIds.has(w.id) ? { ...w, status: 'rejected' } : w)))
+      notify(`${targets.length} ouvrier(s) rejeté(s)`, 'success')
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors du rejet groupé', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkBlock = async (blocked) => {
+    const targets = filtered.filter((w) => selectedIds.has(w.id) && w.userId)
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => setWorkerBlockedState(w, blocked)))
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) =>
+        prev.map((w) =>
+          targetIds.has(w.id)
+            ? {
+                ...w,
+                isAvailable: !blocked,
+                ...(blocked
+                  ? { status: 'rejected', suspendedByAdmin: true }
+                  : { status: 'approved', suspendedByAdmin: false }),
+              }
+            : w
+        )
+      )
+      notify(
+        blocked ? `${targets.length} ouvrier(s) bloqué(s)` : `${targets.length} ouvrier(s) débloqué(s)`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'action groupée", 'error')
+    }
+    setBulkActing(false)
   }
 
   const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
@@ -375,6 +455,31 @@ export default function WorkersPage() {
     )
   })
   const visible = filtered.slice(0, visibleCount)
+
+  // Sélectionnable dépend de l'action groupée disponible pour l'onglet actif :
+  // pending -> approuver/rejeter, approved -> bloquer, rejected -> débloquer
+  // (uniquement les comptes bloqués par un admin, pas les vraies candidatures rejetées).
+  const isBulkSelectable = (w) => {
+    if (statusFilter === 'pending') return true
+    if (statusFilter === 'approved') return !!w.userId
+    if (statusFilter === 'rejected') return !!w.suspendedByAdmin && !!w.userId
+    return false
+  }
+  const selectableIds = filtered.filter(isBulkSelectable).map((w) => w.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
@@ -499,6 +604,69 @@ export default function WorkersPage() {
           })}
         </div>
 
+        {statusFilter !== REVENUE_TAB.value && selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} ouvrier{selectedIds.size > 1 ? 's' : ''} sélectionné
+              {selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {statusFilter === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={handleBulkApprove}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
+                    style={{ color: colors.primary }}
+                  >
+                    Approuver
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={handleBulkReject}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Rejeter
+                  </button>
+                </>
+              )}
+              {statusFilter === 'approved' && (
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkBlock(true)}
+                  className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+                >
+                  Bloquer
+                </button>
+              )}
+              {statusFilter === 'rejected' && (
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkBlock(false)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
+                  style={{ color: colors.primary }}
+                >
+                  Débloquer
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
         {statusFilter === REVENUE_TAB.value ? (
           <WorkerRevenueChart payments={payments} isLoading={isLoading} />
         ) : isLoading ? (
@@ -518,6 +686,18 @@ export default function WorkersPage() {
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-3">
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
+                    </th>
                     {[
                       'Ouvrier',
                       'Spécialités',
@@ -540,6 +720,17 @@ export default function WorkersPage() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {visible.map((worker) => (
                     <tr key={worker.id} className="hover:bg-gray-50">
+                      <td className="w-8 px-4 py-4">
+                        {isBulkSelectable(worker) && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(worker.id)}
+                            onChange={() => toggleSelect(worker.id)}
+                            className="h-4 w-4 cursor-pointer rounded"
+                            style={{ accentColor: colors.primary }}
+                          />
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-gray-100">

@@ -86,9 +86,12 @@ export default function AgentsPage() {
   const [paymentTarget, setPaymentTarget] = useState(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [payments, setPayments] = useState([])
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+    setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
 
   useEffect(() => {
@@ -178,21 +181,24 @@ export default function AgentsPage() {
     setMenuOpenId(null)
   }
 
+  const setAgentBlockedState = async (request, blocked) => {
+    await desableUser(request.userId, blocked)
+    await desableUserFirestore(request.userId, !blocked)
+    return blocked
+      ? await deactivatePropertiesForOwner(request.userId)
+      : await reactivatePropertiesForOwner(request.userId)
+  }
+
   const handleToggleBlock = async () => {
     if (!blockTarget) return
     const nextAvailable = !blockTarget.isAvailable
     try {
-      await desableUser(blockTarget.userId, !nextAvailable)
-      await desableUserFirestore(blockTarget.userId, nextAvailable)
+      const count = await setAgentBlockedState(blockTarget, !nextAvailable)
       setRequests((prev) =>
         prev.map((r) =>
           r.id === blockTarget.id ? { ...r, isAvailable: nextAvailable } : r
         )
       )
-
-      const count = nextAvailable
-        ? await reactivatePropertiesForOwner(blockTarget.userId)
-        : await deactivatePropertiesForOwner(blockTarget.userId)
 
       notify(
         count > 0
@@ -206,6 +212,75 @@ export default function AgentsPage() {
     } catch (e) {
       notify('Une erreur est survenue', 'error')
     }
+  }
+
+  const handleBulkApprove = async () => {
+    const targets = filtered.filter((r) => selectedIds.has(r.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((r) => approveAgentRequest(r.id, r.userId)))
+      const approvedAt = new Date()
+      const targetIds = new Set(targets.map((r) => r.id))
+      setRequests((prev) =>
+        prev.map((r) =>
+          targetIds.has(r.id)
+            ? {
+                ...r,
+                status: 'approved',
+                approvedAt,
+                paymentStatus: computeAgentPaymentStatus({ ...r, status: 'approved', approvedAt }, []),
+              }
+            : r
+        )
+      )
+      notify(`${targets.length} candidature(s) approuvée(s)`, 'success')
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'approbation groupée", 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkReject = async () => {
+    const targets = filtered.filter((r) => selectedIds.has(r.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((r) => rejectAgentRequest(r.id)))
+      const targetIds = new Set(targets.map((r) => r.id))
+      setRequests((prev) => prev.map((r) => (targetIds.has(r.id) ? { ...r, status: 'rejected' } : r)))
+      notify(`${targets.length} candidature(s) rejetée(s)`, 'success')
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors du rejet groupé', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkSetAvailable = async (available) => {
+    const targets = filtered.filter(
+      (r) => selectedIds.has(r.id) && r.userId && r.isAvailable !== available
+    )
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((r) => setAgentBlockedState(r, !available)))
+      const targetIds = new Set(targets.map((r) => r.id))
+      setRequests((prev) =>
+        prev.map((r) => (targetIds.has(r.id) ? { ...r, isAvailable: available } : r))
+      )
+      notify(
+        available
+          ? `${targets.length} agent(s) débloqué(s)`
+          : `${targets.length} agent(s) bloqué(s)`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'action groupée", 'error')
+    }
+    setBulkActing(false)
   }
 
   const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
@@ -243,6 +318,29 @@ export default function AgentsPage() {
     )
   })
   const visible = filtered.slice(0, visibleCount)
+
+  // Sélectionnable dépend de l'action groupée disponible pour l'onglet actif :
+  // pending -> approuver/rejeter, approved -> bloquer/débloquer, rejected -> aucune action.
+  const isBulkSelectable = (r) => {
+    if (statusFilter === 'pending') return true
+    if (statusFilter === 'approved') return !!r.userId
+    return false
+  }
+  const selectableIds = filtered.filter(isBulkSelectable).map((r) => r.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
@@ -349,6 +447,69 @@ export default function AgentsPage() {
           })}
         </div>
 
+        {statusFilter !== REVENUE_TAB.value && selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} agent{selectedIds.size > 1 ? 's' : ''} sélectionné
+              {selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {statusFilter === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={handleBulkApprove}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
+                    style={{ color: colors.primary }}
+                  >
+                    Approuver
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={handleBulkReject}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Rejeter
+                  </button>
+                </>
+              )}
+              {statusFilter === 'approved' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkSetAvailable(false)}
+                    className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+                  >
+                    Bloquer
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkSetAvailable(true)}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
+                    style={{ color: colors.primary }}
+                  >
+                    Débloquer
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
         {statusFilter === REVENUE_TAB.value ? (
           <AgentRevenueChart payments={payments} isLoading={isLoading} />
         ) : isLoading ? (
@@ -368,6 +529,18 @@ export default function AgentsPage() {
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-3">
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
+                    </th>
                     {[
                       'Agent',
                       'Contact',
@@ -391,6 +564,17 @@ export default function AgentsPage() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {visible.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
+                      <td className="w-8 px-4 py-4">
+                        {isBulkSelectable(request) && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(request.id)}
+                            onChange={() => toggleSelect(request.id)}
+                            className="h-4 w-4 cursor-pointer rounded"
+                            style={{ accentColor: colors.primary }}
+                          />
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <p className="text-sm font-semibold text-gray-900">
                           {request.fullName}
