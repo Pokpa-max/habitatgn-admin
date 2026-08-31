@@ -13,6 +13,7 @@ import {
   RiImageAddLine,
   RiCloseLine,
   RiRocketLine,
+  RiMore2Fill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -65,8 +66,36 @@ export default function MarketplaceProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
-  // Mise en avant (boost)
-  const [boostMenuId, setBoostMenuId] = useState(null)
+  // Menu d'actions groupées (par ligne)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+  const [menuAnchor, setMenuAnchor] = useState(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!menuOpenId) return
+      const target = event.target
+      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
+        setMenuOpenId(null)
+        setMenuAnchor(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
+
+  const openMenu = (event, productId) => {
+    event.stopPropagation()
+    if (menuOpenId === productId) {
+      setMenuOpenId(null)
+      setMenuAnchor(null)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const left = Math.max(16, Math.min(rect.right - 224, window.innerWidth - 240 - 16))
+    const top = Math.min(rect.bottom + 8, window.innerHeight - 260 - 16)
+    setMenuOpenId(productId)
+    setMenuAnchor({ left, top })
+  }
 
   const {
     register,
@@ -199,7 +228,8 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleSetProductBoost = async (prod, days) => {
-    setBoostMenuId(null)
+    setMenuOpenId(null)
+    setMenuAnchor(null)
     try {
       const boostedUntil = days
         ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
@@ -695,81 +725,19 @@ export default function MarketplaceProductsPage() {
                             {prod.active ? 'Actif' : 'Inactif'}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="relative flex items-center gap-2">
+                        <td
+                          className="px-6 py-4 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-end" data-menu-root>
                             <button
-                              onClick={() => handleOpenEdit(prod)}
-                              className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                              title="Modifier"
+                              type="button"
+                              onClick={(event) => openMenu(event, prod.id)}
+                              className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                              title="Actions"
                             >
-                              <RiEditLine className="h-4 w-4" />
+                              <RiMore2Fill className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => handleToggleStatus(prod)}
-                              className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                              title={prod.active ? 'Désactiver' : 'Activer'}
-                            >
-                              {prod.active ? (
-                                <RiCloseCircleLine className="h-4 w-4 text-amber-600" />
-                              ) : (
-                                <RiCheckboxCircleLine className="h-4 w-4 text-emerald-600" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() =>
-                                setBoostMenuId(boostMenuId === prod.id ? null : prod.id)
-                              }
-                              className="rounded-lg border p-1.5 hover:border-gray-300"
-                              style={{
-                                borderColor: isProductBoosted(prod) ? colors.primary : '#E5E7EB',
-                                color: isProductBoosted(prod) ? colors.primary : '#6B7280',
-                              }}
-                              title="Mettre en avant"
-                            >
-                              <RiRocketLine className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeleteTarget(prod)
-                                setDeleteModalOpen(true)
-                              }}
-                              className="rounded-lg border border-gray-200 p-1.5 text-red-500 hover:border-red-300 hover:bg-red-50"
-                              title="Supprimer"
-                            >
-                              <RiDeleteBinLine className="h-4 w-4" />
-                            </button>
-
-                            {boostMenuId === prod.id && (
-                              <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl">
-                                {isProductBoosted(prod) ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSetProductBoost(prod, null)}
-                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                                  >
-                                    Retirer la mise en avant
-                                  </button>
-                                ) : (
-                                  <>
-                                    <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                                      Booster pour
-                                    </p>
-                                    <div className="flex gap-1.5 px-2.5">
-                                      {[7, 15, 30].map((days) => (
-                                        <button
-                                          key={days}
-                                          type="button"
-                                          onClick={() => handleSetProductBoost(prod, days)}
-                                          className="flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                                        >
-                                          {days}j
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -786,6 +754,91 @@ export default function MarketplaceProductsPage() {
           </div>
         )}
       </div>
+
+      {menuOpenId && menuAnchor && (() => {
+        const prod = products.find((p) => p.id === menuOpenId)
+        if (!prod) return null
+        return (
+          <div
+            className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
+            style={{ left: menuAnchor.left, top: menuAnchor.top }}
+            data-menu-root
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                handleOpenEdit(prod)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <RiEditLine className="h-4 w-4 text-gray-400" />
+              Modifier
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                handleToggleStatus(prod)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              {prod.active ? (
+                <RiCloseCircleLine className="h-4 w-4 text-amber-600" />
+              ) : (
+                <RiCheckboxCircleLine className="h-4 w-4 text-emerald-600" />
+              )}
+              {prod.active ? 'Désactiver' : 'Activer'}
+            </button>
+
+            {isProductBoosted(prod) ? (
+              <button
+                type="button"
+                onClick={() => handleSetProductBoost(prod, null)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiRocketLine className="h-4 w-4 text-gray-400" />
+                Retirer la mise en avant
+              </button>
+            ) : (
+              <div className="px-3 py-1.5">
+                <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <RiRocketLine className="h-3.5 w-3.5" />
+                  Mettre en avant
+                </p>
+                <div className="flex gap-1.5">
+                  {[7, 15, 30].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => handleSetProductBoost(prod, days)}
+                      className="flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    >
+                      {days}j
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                setDeleteTarget(prod)
+                setDeleteModalOpen(true)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              <RiDeleteBinLine className="h-4 w-4" />
+              Supprimer
+            </button>
+          </div>
+        )
+      })()}
     </div>
   )
 }

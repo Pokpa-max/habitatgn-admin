@@ -7,6 +7,9 @@ import {
   RiTeamLine,
   RiCheckLine,
   RiImage2Fill,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiMore2Fill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -42,6 +45,35 @@ export default function PartnerAgenciesTab() {
   const [saving, setSaving] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+  const [menuAnchor, setMenuAnchor] = useState(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!menuOpenId) return
+      const target = event.target
+      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
+        setMenuOpenId(null)
+        setMenuAnchor(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
+
+  const openMenu = (event, agencyId) => {
+    event.stopPropagation()
+    if (menuOpenId === agencyId) {
+      setMenuOpenId(null)
+      setMenuAnchor(null)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const left = Math.max(16, Math.min(rect.right - 224, window.innerWidth - 240 - 16))
+    const top = Math.min(rect.bottom + 8, window.innerHeight - 200 - 16)
+    setMenuOpenId(agencyId)
+    setMenuAnchor({ left, top })
+  }
 
   const {
     register,
@@ -248,32 +280,16 @@ export default function PartnerAgenciesTab() {
                         </button>
                       </div>
                     ) : (
-                      <>
+                      <div data-menu-root>
                         <button
-                          onClick={() => handleToggleActive(agency)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
+                          type="button"
+                          onClick={(event) => openMenu(event, agency.id)}
+                          className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                          title="Actions"
                         >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: agency.active ? colors.primary : colors.gray400 }}
-                          />
-                          {agency.active ? 'Publiée' : 'Masquée'}
+                          <RiMore2Fill className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => openEdit(agency)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                          title="Modifier"
-                        >
-                          <RiEditLine className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(agency.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                          title="Supprimer"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -287,6 +303,59 @@ export default function PartnerAgenciesTab() {
           caption="Section de la page d'accueil, après la liste des biens et avant les bannières « Devenir ouvrier/agent »"
         />
       </div>
+
+      {menuOpenId && menuAnchor && (() => {
+        const agency = agencies.find((a) => a.id === menuOpenId)
+        if (!agency) return null
+        return (
+          <div
+            className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
+            style={{ left: menuAnchor.left, top: menuAnchor.top }}
+            data-menu-root
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                handleToggleActive(agency)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              {agency.active ? (
+                <RiEyeOffLine className="h-4 w-4 text-gray-400" />
+              ) : (
+                <RiEyeLine className="h-4 w-4 text-gray-400" />
+              )}
+              {agency.active ? 'Masquer' : 'Publier'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                openEdit(agency)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <RiEditLine className="h-4 w-4 text-gray-400" />
+              Modifier
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                setDeleteConfirm(agency.id)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              <RiDeleteBinLine className="h-4 w-4" />
+              Supprimer
+            </button>
+          </div>
+        )
+      })()}
 
       <DrawerForm
         open={drawerOpen}
