@@ -1,3 +1,5 @@
+import { auth } from '@/lib/firebase/client_config'
+
 const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 const FOLDER = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER ?? 'servicegn/images'
@@ -32,12 +34,16 @@ export async function deleteFromCloudinary(url) {
   const publicId = extractPublicId(url)
   if (!publicId) return
   try {
+    const idToken = await auth.currentUser?.getIdToken()
     await fetch('/api/cloudinary/delete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(idToken ? { Authorization: idToken } : {}),
+      },
       body: JSON.stringify({ publicId }),
     })
   } catch (e) {
-    console.log('error', e)
+    console.error('error', e)
   }
 }

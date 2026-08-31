@@ -1,10 +1,16 @@
 import crypto from 'crypto'
+import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 
 const ALLOWED_FOLDER = process.env.NEXT_PUBLIC_CLOUDINARY_FOLDER ?? 'servicegn/'
 
 const handler = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' })
+  }
+
+  const caller = await verifyAdminRequest(req)
+  if (!caller) {
+    return res.status(403).json({ error: 'Accès refusé.' })
   }
 
   const { publicId } = req.body || {}
