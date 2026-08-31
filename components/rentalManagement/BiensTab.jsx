@@ -53,6 +53,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [showDeleteLink, setShowDeleteLink] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [menuAnchor, setMenuAnchor] = useState(null)
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkBoosting, setBulkBoosting] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -277,6 +279,52 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     )
   })
 
+  // Sélection multiple : uniquement les vraies annonces (houses/lands/daily_rentals),
+  // la mise en avant ne concerne pas la gestion locative interne.
+  const selectableIds = filtered.filter(isPublicListing).map((p) => p.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkBoost = async (days) => {
+    const targets = filtered.filter((p) => selectedIds.has(p.id) && isPublicListing(p))
+    if (targets.length === 0) return
+    setBulkBoosting(true)
+    try {
+      const boostedUntil = days
+        ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+        : null
+      await Promise.all(
+        targets.map((p) => updateProperty(p.id, { boostedUntil }, p._collection))
+      )
+      const targetIds = new Set(targets.map((p) => p.id))
+      setProperties((prev) =>
+        prev.map((p) => (targetIds.has(p.id) ? { ...p, boostedUntil } : p))
+      )
+      notify(
+        days
+          ? `${targets.length} annonce(s) mise(s) en avant pour ${days} jours`
+          : `Mise en avant retirée sur ${targets.length} annonce(s)`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise en avant groupée', 'error')
+    }
+    setBulkBoosting(false)
+  }
+
   return (
     <>
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -308,6 +356,47 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
           </div>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} bien{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <RiRocketLine className="h-4 w-4" style={{ color: colors.primary }} />
+              <span className="text-xs font-semibold text-gray-600">Mettre en avant :</span>
+              {[7, 15, 30].map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  disabled={bulkBoosting}
+                  onClick={() => handleBulkBoost(days)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {days}j
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={bulkBoosting}
+                onClick={() => handleBulkBoost(null)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+              >
+                Retirer
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader color="#111827" />
@@ -323,12 +412,25 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               <table className="w-full text-left text-sm">
                 <thead className="bg-white">
                   <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <th className="w-8 py-2 pr-2">
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
+                    </th>
                     <th className="py-2 pr-4">Photo</th>
                     <th className="py-2 pr-4">Référence</th>
                     <th className="py-2 pr-4">Adresse</th>
                     {!ownerId && <th className="py-2 pr-4">Propriétaire</th>}
                     <th className="py-2 pr-4">Loyer</th>
                     <th className="py-2 pr-4">Statut</th>
+                    <th className="py-2 pr-4">Mise en avant</th>
                     <th className="py-2 pr-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -345,6 +447,17 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         onClick={() => openDetail(property)}
                         className="cursor-pointer transition-colors hover:bg-gray-50"
                       >
+                        <td className="w-8 py-3 pr-2" onClick={(e) => e.stopPropagation()}>
+                          {isPublicListing(property) && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(property.id)}
+                              onChange={() => toggleSelect(property.id)}
+                              className="h-4 w-4 cursor-pointer rounded"
+                              style={{ accentColor: colors.primary }}
+                            />
+                          )}
+                        </td>
                         <td className="py-3 pr-4">
                           {mainImage ? (
                             <img
@@ -429,6 +542,19 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           >
                             {statusCfg.label}
                           </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          {isCurrentlyBoosted(property) ? (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                            >
+                              <RiRocketLine className="h-3 w-3" />
+                              Jusqu'au {firebaseDateFormat(property.boostedUntil)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
                         </td>
                         <td
                           className="py-3 pr-4 text-right"
