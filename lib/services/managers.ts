@@ -1,4 +1,4 @@
-import { db } from '@/lib/firebase/client_config'
+import { auth, db } from '@/lib/firebase/client_config'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { fetchWithPost } from '../../utils/fetch'
 
@@ -16,10 +16,12 @@ export const getUserAvailability = async (userId) => {
 
 export const desableUser = async (userId, desableAccount) => {
   try {
+    const idToken = await auth.currentUser?.getIdToken()
     fetch('/api/userActivity/desableUser', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
+        ...(idToken ? { Authorization: idToken } : {}),
       },
       body: JSON.stringify({
         id: userId,
@@ -27,7 +29,7 @@ export const desableUser = async (userId, desableAccount) => {
       }),
     })
   } catch (error) {
-    console.log('error: ', error)
+    console.error('error: ', error)
   }
 }
 

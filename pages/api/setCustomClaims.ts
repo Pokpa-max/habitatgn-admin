@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { authAdmin, dbAdmin } from '@/lib/firebase-admin/admin_config'
+import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 
 export default async function handler(
   req: NextApiRequest,
@@ -7,6 +8,11 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' })
+  }
+
+  const caller = await verifyAdminRequest(req)
+  if (!caller) {
+    return res.status(403).json({ message: 'Accès refusé.' })
   }
 
   try {

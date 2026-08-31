@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { authAdmin, dbAdmin } from 'lib/firebase-admin/admin_config'
 import { setCustomUserClaims } from '@/utils/firebase/auth'
+import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 import { FieldValue } from 'firebase-admin/firestore'
 
 // Même logique que habitatgnweb/src/lib/workerSearchIndex.ts — nécessaire pour que
@@ -38,6 +39,11 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  const caller = await verifyAdminRequest(req)
+  if (!caller) {
+    return res.status(403).json({ code: 0, message: 'Accès refusé.' })
+  }
+
   try {
     const {
       email,
