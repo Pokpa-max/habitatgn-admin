@@ -10,6 +10,7 @@ import {
   RiDeleteBinLine,
   RiImageFill,
   RiMoneyDollarCircleLine,
+  RiVipCrownLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -29,6 +30,7 @@ import {
   getWorkerById,
   hideWorkerFromPublic,
   restoreWorkerVisibility,
+  updateWorkerPlan,
 } from '@/lib/services/workers'
 import {
   desableUser,
@@ -64,6 +66,9 @@ function WorkerDetail() {
   const [payments, setPayments] = useState([])
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [planValue, setPlanValue] = useState('free')
+  const [planExpiresAtValue, setPlanExpiresAtValue] = useState('')
+  const [savingPlan, setSavingPlan] = useState(false)
 
   useEffect(() => {
     if (!workerId) return
@@ -72,6 +77,15 @@ function WorkerDetail() {
       try {
         const workerData = await getWorkerById(workerId)
         setWorker(workerData)
+        setPlanValue(workerData?.plan || 'free')
+        const expiresAt = workerData?.planExpiresAt
+        setPlanExpiresAtValue(
+          expiresAt
+            ? (typeof expiresAt?.toDate === 'function' ? expiresAt.toDate() : new Date(expiresAt))
+                .toISOString()
+                .slice(0, 10)
+            : ''
+        )
         const [available, reviewsData, paymentsData, amount] = await Promise.all([
           getUserAvailability(workerData?.userId),
           getWorkerReviews(workerId),
@@ -107,6 +121,18 @@ function WorkerDetail() {
     } catch (e) {
       notify('Une erreur est survenue', 'error')
     }
+  }
+
+  const handleSavePlan = async () => {
+    setSavingPlan(true)
+    try {
+      await updateWorkerPlan(workerId, planValue, planExpiresAtValue || null)
+      setWorker((prev) => ({ ...prev, plan: planValue, planExpiresAt: planExpiresAtValue || null }))
+      notify('Plan mis à jour avec succès', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setSavingPlan(false)
   }
 
   const handleToggleBlock = async () => {
@@ -344,6 +370,55 @@ function WorkerDetail() {
             </div>
           </div>
         )}
+
+        {/* Plan payant (badge Pro/Premium sur le site public) */}
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <RiVipCrownLine className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-gray-500">
+              Plan
+            </h2>
+          </div>
+          <p className="mb-4 text-xs text-gray-500">
+            Détermine le badge affiché sur le profil public (distinct de l'abonnement de
+            référencement ci-dessus).
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Plan
+              </label>
+              <select
+                value={planValue}
+                onChange={(e) => setPlanValue(e.target.value)}
+                className="rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="free">Gratuit</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Expire le (optionnel)
+              </label>
+              <input
+                type="date"
+                value={planExpiresAtValue}
+                onChange={(e) => setPlanExpiresAtValue(e.target.value)}
+                className="rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={handleSavePlan}
+              disabled={savingPlan}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md disabled:opacity-60"
+              style={{ backgroundColor: colors.primary }}
+            >
+              {savingPlan ? <Loader /> : 'Enregistrer'}
+            </button>
+          </div>
+        </div>
 
         {/* Réalisations */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">

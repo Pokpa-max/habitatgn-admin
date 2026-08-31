@@ -91,6 +91,8 @@ export default function PartnerAgenciesTab() {
       website: '',
       color: '#0A4D9C',
       ownerId: '',
+      plan: '',
+      planExpiresAt: '',
     })
     setPreviewUrl(null)
     setDrawerOpen(true)
@@ -98,6 +100,7 @@ export default function PartnerAgenciesTab() {
 
   const openEdit = (agency) => {
     setSelected(agency)
+    const expiresAt = agency.planExpiresAt
     reset({
       name: agency.name,
       specialty: agency.specialty || '',
@@ -105,6 +108,12 @@ export default function PartnerAgenciesTab() {
       website: agency.website || '',
       color: agency.color || '#0A4D9C',
       ownerId: agency.ownerId || '',
+      plan: agency.plan || '',
+      planExpiresAt: expiresAt
+        ? (typeof expiresAt?.toDate === 'function' ? expiresAt.toDate() : new Date(expiresAt))
+            .toISOString()
+            .slice(0, 10)
+        : '',
     })
     setPreviewUrl(agency.logoUrl || null)
     setDrawerOpen(true)
@@ -121,6 +130,8 @@ export default function PartnerAgenciesTab() {
 
       const payload = {
         ...data,
+        plan: data.plan || null,
+        planExpiresAt: data.planExpiresAt || null,
         logoUrl,
         slug: slugify(data.name),
         initials: getInitials(data.name),
@@ -383,6 +394,32 @@ export default function PartnerAgenciesTab() {
             <p className="mt-1 text-xs text-gray-500">
               Associe cette carte à un compte agent approuvé
             </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Plan
+              </label>
+              <select
+                {...register('plan')}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Aucun</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Expire le (optionnel)
+              </label>
+              <input
+                type="date"
+                {...register('planExpiresAt')}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
           </div>
 
           <div>

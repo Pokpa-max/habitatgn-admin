@@ -364,7 +364,7 @@ export default function PropertyDrawerForm({
           status: data.status,
           active: data.status !== 'inactive',
           published: true,
-          verified: false,
+          verified: selected ? selected.verified : false,
           ...imageFields,
         }
 
@@ -442,7 +442,7 @@ export default function PropertyDrawerForm({
         commissionRate: Number(data.commissionRate) || 0,
         status: data.publishNow !== false ? 'available' : 'draft',
         published: true,
-        verified: false,
+        verified: selected ? selected.verified : false,
         isAvailable: true,
         ...imageFields,
       }

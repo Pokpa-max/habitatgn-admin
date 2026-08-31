@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useAuthUser } from 'next-firebase-auth'
+import { Timestamp } from 'firebase/firestore'
 import {
   RiAddLine,
   RiSearchLine,
@@ -11,6 +12,7 @@ import {
   RiCloseCircleLine,
   RiImageAddLine,
   RiCloseLine,
+  RiRocketLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -24,6 +26,7 @@ import {
   addProduct,
   updateProduct,
   toggleProductActive,
+  setProductBoost,
   deleteProduct,
 } from '@/lib/services/products'
 import { uploadToCloudinary } from '@/utils/cloudinary'
@@ -61,6 +64,9 @@ export default function MarketplaceProductsPage() {
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+
+  // Mise en avant (boost)
+  const [boostMenuId, setBoostMenuId] = useState(null)
 
   const {
     register,
@@ -182,6 +188,29 @@ export default function MarketplaceProductsPage() {
       )
     } catch (e) {
       notify('Erreur lors du changement de statut', 'error')
+    }
+  }
+
+  const isProductBoosted = (prod) => {
+    const until = prod?.boostedUntil
+    if (!until) return false
+    const untilDate = typeof until?.toDate === 'function' ? until.toDate() : new Date(until)
+    return untilDate.getTime() > Date.now()
+  }
+
+  const handleSetProductBoost = async (prod, days) => {
+    setBoostMenuId(null)
+    try {
+      const boostedUntil = days
+        ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+        : null
+      await setProductBoost(prod.id, boostedUntil)
+      setProducts((prev) =>
+        prev.map((p) => (p.id === prod.id ? { ...p, boostedUntil } : p))
+      )
+      notify(days ? `Produit mis en avant pour ${days} jours` : 'Mise en avant retirée', 'success')
+    } catch (e) {
+      notify('Erreur lors de la mise à jour de la mise en avant', 'error')
     }
   }
 
@@ -667,7 +696,7 @@ export default function MarketplaceProductsPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                          <div className="relative flex items-center gap-2">
                             <button
                               onClick={() => handleOpenEdit(prod)}
                               className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:text-gray-700"
@@ -687,6 +716,19 @@ export default function MarketplaceProductsPage() {
                               )}
                             </button>
                             <button
+                              onClick={() =>
+                                setBoostMenuId(boostMenuId === prod.id ? null : prod.id)
+                              }
+                              className="rounded-lg border p-1.5 hover:border-gray-300"
+                              style={{
+                                borderColor: isProductBoosted(prod) ? colors.primary : '#E5E7EB',
+                                color: isProductBoosted(prod) ? colors.primary : '#6B7280',
+                              }}
+                              title="Mettre en avant"
+                            >
+                              <RiRocketLine className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => {
                                 setDeleteTarget(prod)
                                 setDeleteModalOpen(true)
@@ -696,6 +738,38 @@ export default function MarketplaceProductsPage() {
                             >
                               <RiDeleteBinLine className="h-4 w-4" />
                             </button>
+
+                            {boostMenuId === prod.id && (
+                              <div className="absolute right-0 top-full z-20 mt-1 w-48 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl">
+                                {isProductBoosted(prod) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSetProductBoost(prod, null)}
+                                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                  >
+                                    Retirer la mise en avant
+                                  </button>
+                                ) : (
+                                  <>
+                                    <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                                      Booster pour
+                                    </p>
+                                    <div className="flex gap-1.5 px-2.5">
+                                      {[7, 15, 30].map((days) => (
+                                        <button
+                                          key={days}
+                                          type="button"
+                                          onClick={() => handleSetProductBoost(prod, days)}
+                                          className="flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                                        >
+                                          {days}j
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>

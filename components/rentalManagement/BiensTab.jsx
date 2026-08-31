@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Timestamp } from 'firebase/firestore'
 import {
   RiAddLine,
   RiEditLine,
@@ -8,6 +9,8 @@ import {
   RiEyeLine,
   RiEyeOffLine,
   RiMore2Fill,
+  RiShieldCheckLine,
+  RiRocketLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -211,6 +214,54 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     } catch (e) {
       notify('Erreur lors du changement de statut du bien', 'error')
     }
+  }
+
+  // Vérification/mise en avant : uniquement pour les vraies annonces publiques
+  // (houses/lands/daily_rentals), pas la gestion locative interne.
+  const isPublicListing = (property) =>
+    ['houses', 'lands', 'daily_rentals'].includes(property?._collection)
+
+  const handleToggleVerified = async (property) => {
+    if (!property || !isPublicListing(property)) return
+    const nextVerified = !property.verified
+    try {
+      await updateProperty(property.id, { verified: nextVerified }, property._collection)
+      setProperties((prev) =>
+        prev.map((p) => (p.id === property.id ? { ...p, verified: nextVerified } : p))
+      )
+      setDetailProperty((prev) =>
+        prev && prev.id === property.id ? { ...prev, verified: nextVerified } : prev
+      )
+      notify(nextVerified ? 'Annonce vérifiée' : 'Vérification retirée', 'success')
+    } catch (e) {
+      notify('Erreur lors de la mise à jour de la vérification', 'error')
+    }
+  }
+
+  const handleSetBoost = async (property, days) => {
+    if (!property || !isPublicListing(property)) return
+    try {
+      const boostedUntil = days
+        ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+        : null
+      await updateProperty(property.id, { boostedUntil }, property._collection)
+      setProperties((prev) =>
+        prev.map((p) => (p.id === property.id ? { ...p, boostedUntil } : p))
+      )
+      setDetailProperty((prev) =>
+        prev && prev.id === property.id ? { ...prev, boostedUntil } : prev
+      )
+      notify(days ? `Annonce mise en avant pour ${days} jours` : 'Mise en avant retirée', 'success')
+    } catch (e) {
+      notify('Erreur lors de la mise à jour de la mise en avant', 'error')
+    }
+  }
+
+  const isCurrentlyBoosted = (property) => {
+    const until = property?.boostedUntil
+    if (!until) return false
+    const untilDate = typeof until?.toDate === 'function' ? until.toDate() : new Date(until)
+    return untilDate.getTime() > Date.now()
   }
 
   const filtered = properties.filter((p) => {
@@ -456,6 +507,69 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               ? "Réactiver l'annonce"
               : 'Désactiver / Masquer'}
           </button>
+          {isPublicListing(
+            properties.find((property) => property.id === menuOpenId)
+          ) && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const property = properties.find((p) => p.id === menuOpenId)
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleToggleVerified(property)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiShieldCheckLine className="h-4 w-4 text-gray-400" />
+                {properties.find((property) => property.id === menuOpenId)
+                  ?.verified
+                  ? 'Retirer la vérification'
+                  : 'Marquer comme vérifiée'}
+              </button>
+              {isCurrentlyBoosted(
+                properties.find((property) => property.id === menuOpenId)
+              ) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const property = properties.find((p) => p.id === menuOpenId)
+                    setMenuOpenId(null)
+                    setMenuAnchor(null)
+                    handleSetBoost(property, null)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <RiRocketLine className="h-4 w-4 text-gray-400" />
+                  Retirer la mise en avant
+                </button>
+              ) : (
+                <div className="px-3 py-1.5">
+                  <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                    <RiRocketLine className="h-3.5 w-3.5" />
+                    Mettre en avant
+                  </p>
+                  <div className="flex gap-1.5">
+                    {[7, 15, 30].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => {
+                          const property = properties.find((p) => p.id === menuOpenId)
+                          setMenuOpenId(null)
+                          setMenuAnchor(null)
+                          handleSetBoost(property, days)
+                        }}
+                        className="flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                      >
+                        {days}j
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
           <button
             type="button"
             onClick={() => {
