@@ -12,6 +12,7 @@ import {
   RiSearchLine,
   RiAddLine,
   RiMoneyDollarCircleLine,
+  RiRocketLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -36,6 +37,7 @@ import {
 import {
   deactivatePropertiesForOwner,
   reactivatePropertiesForOwner,
+  getPropertiesByOwner,
 } from '@/lib/services/managedProperties'
 import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
 import RecordPaymentModal from './RecordPaymentModal'
@@ -53,6 +55,13 @@ const STATUS_FILTERS = [
 ]
 
 const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
+
+const isBoosted = (property) => {
+  const until = property?.boostedUntil
+  if (!until) return false
+  const untilDate = typeof until?.toDate === 'function' ? until.toDate() : new Date(until)
+  return untilDate.getTime() > Date.now()
+}
 
 const PROPERTY_TYPE_LABELS = {
   location: 'Location',
@@ -91,14 +100,29 @@ export default function AgentsPage() {
     try {
       const [data, allPayments] = await Promise.all([getAgentRequests(), getAllAgentPayments()])
       const withAvailability = await Promise.all(
-        data.map(async (r) => ({
-          ...r,
-          isAvailable: await getUserAvailability(r.userId),
-          paymentStatus: computeAgentPaymentStatus(
-            r,
-            allPayments.filter((p) => p.agentId === r.id)
-          ),
-        }))
+        data.map(async (r) => {
+          let boostedCount = 0
+          let listingsCount = 0
+          if (r.status === 'approved' && r.userId) {
+            try {
+              const properties = await getPropertiesByOwner(r.userId)
+              listingsCount = properties.length
+              boostedCount = properties.filter(isBoosted).length
+            } catch (e) {
+              // non bloquant : l'indicateur reste à 0 si la récupération échoue
+            }
+          }
+          return {
+            ...r,
+            isAvailable: await getUserAvailability(r.userId),
+            paymentStatus: computeAgentPaymentStatus(
+              r,
+              allPayments.filter((p) => p.agentId === r.id)
+            ),
+            boostedCount,
+            listingsCount,
+          }
+        })
       )
       setRequests(withAvailability)
       setPayments(allPayments)
@@ -351,6 +375,7 @@ export default function AgentsPage() {
                       'Types de biens',
                       'Statut',
                       'Abonnement',
+                      'Mise en avant',
                       'Actions',
                     ].map((h) => (
                       <th
@@ -454,6 +479,23 @@ export default function AgentsPage() {
                                 : ''}
                             </p>
                           </>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {request.status === 'approved' ? (
+                          request.boostedCount > 0 ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                              style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                            >
+                              <RiRocketLine className="h-3.5 w-3.5" />
+                              {request.boostedCount}/{request.listingsCount} annonce{request.boostedCount > 1 ? 's' : ''}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
