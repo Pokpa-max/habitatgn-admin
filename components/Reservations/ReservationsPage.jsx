@@ -11,6 +11,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
@@ -30,11 +31,11 @@ const STATUS_FILTERS = [
   { value: 'cancelled', label: 'Annulées' },
 ]
 
-const getStatusConfig = (colors) => ({
-  pending: { label: 'En attente', bg: '#FEF3C7', color: colors.warning },
-  confirmed: { label: 'Confirmée', bg: '#DCFCE7', color: colors.success },
-  cancelled: { label: 'Annulée', bg: '#FEE2E2', color: colors.error },
-})
+const STATUS_CONFIG = {
+  pending: { label: 'En attente', tone: 'warning' },
+  confirmed: { label: 'Confirmée', tone: 'success' },
+  cancelled: { label: 'Annulée', tone: 'error' },
+}
 
 function nightsBetween(checkIn, checkOut) {
   const a = new Date(checkIn)
@@ -47,7 +48,6 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
   const colors = useColors()
   if (!booking) return null
 
-  const STATUS_CONFIG = getStatusConfig(colors)
   const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending
   const nights = nightsBetween(booking.checkInDate, booking.checkOutDate)
 
@@ -96,12 +96,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
                         </p>
                       )}
                     </div>
-                    <span
-                      className="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                    >
-                      {statusCfg.label}
-                    </span>
+                    <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                   </div>
                 </div>
 
@@ -114,7 +109,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
                       <RiUserLine className="h-3.5 w-3.5 text-gray-400" />
                       {booking.guestName}
                     </p>
-                    <p className="flex items-center gap-1.5 text-gray-600">
+                    <p className="flex items-center gap-1.5 font-mono text-gray-600">
                       <RiPhoneLine className="h-3.5 w-3.5 text-gray-400" />
                       {booking.guestPhone}
                     </p>
@@ -138,11 +133,11 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
                   <div className="mt-5 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 text-sm">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Arrivée</p>
-                      <p className="text-gray-900">{firebaseDateFormat(booking.checkInDate)}</p>
+                      <p className="font-mono text-gray-900">{firebaseDateFormat(booking.checkInDate)}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Départ</p>
-                      <p className="text-gray-900">{firebaseDateFormat(booking.checkOutDate)}</p>
+                      <p className="font-mono text-gray-900">{firebaseDateFormat(booking.checkOutDate)}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voyageurs</p>
@@ -163,12 +158,12 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
 
                   <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Montant total</p>
-                    <p className="text-lg font-bold" style={{ color: colors.primary }}>
+                    <p className="font-mono text-lg font-bold" style={{ color: colors.primary }}>
                       {formatGNF(booking.totalPrice)}
                     </p>
                   </div>
 
-                  <p className="mt-3 text-xs text-gray-400">
+                  <p className="mt-3 font-mono text-xs text-gray-400">
                     Réservée le {firebaseDateFormat(booking.createdAt)}
                   </p>
                 </div>
@@ -216,7 +211,6 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
 
 export default function ReservationsPage() {
   const colors = useColors()
-  const STATUS_CONFIG = getStatusConfig(colors)
   const [bookings, setBookings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -412,10 +406,10 @@ export default function ReservationsPage() {
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-sm text-gray-800">{booking.guestName}</p>
-                          <p className="text-xs text-gray-500">{booking.guestPhone}</p>
+                          <p className="font-mono text-xs text-gray-500">{booking.guestPhone}</p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-xs text-gray-600">
+                          <p className="font-mono text-xs text-gray-600">
                             {firebaseDateFormat(booking.checkInDate)} → {firebaseDateFormat(booking.checkOutDate)}
                           </p>
                           {nights && (
@@ -425,16 +419,11 @@ export default function ReservationsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">{booking.numberOfGuests}</td>
-                        <td className="px-6 py-4 text-sm font-semibold" style={{ color: colors.primary }}>
+                        <td className="px-6 py-4 font-mono text-sm font-semibold" style={{ color: colors.primary }}>
                           {formatGNF(booking.totalPrice)}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                          >
-                            {statusCfg.label}
-                          </span>
+                          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
                       </tr>
                     )

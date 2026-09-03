@@ -17,6 +17,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
 import {
   getAgentRequests,
@@ -594,7 +595,7 @@ export default function AgentsPage() {
                           </p>
                         )}
                         {request.phone && (
-                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                          <p className="mt-1 flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" />{' '}
                             {request.phone}
                           </p>
@@ -621,42 +622,17 @@ export default function AgentsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{
-                            backgroundColor: request.isAvailable
-                              ? colors.primaryVeryLight
-                              : colors.gray100,
-                            color: request.isAvailable
-                              ? colors.primaryDark
-                              : colors.gray600,
-                          }}
-                        >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{
-                              backgroundColor: request.isAvailable
-                                ? colors.primary
-                                : colors.gray500,
-                            }}
-                          />
+                        <StatusPill tone={request.isAvailable ? 'success' : 'error'}>
                           {request.isAvailable ? 'Actif' : 'Bloqué'}
-                        </span>
+                        </StatusPill>
                       </td>
                       <td className="px-6 py-4">
                         {request.paymentStatus?.status !== 'unknown' && (
                           <>
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                              style={{
-                                backgroundColor:
-                                  PAYMENT_STATUS_CONFIG[request.paymentStatus.status].bg,
-                                color: PAYMENT_STATUS_CONFIG[request.paymentStatus.status].color,
-                              }}
-                            >
+                            <StatusPill tone={PAYMENT_STATUS_CONFIG[request.paymentStatus.status].tone}>
                               {PAYMENT_STATUS_CONFIG[request.paymentStatus.status].label}
-                            </span>
-                            <p className="mt-1 text-[11px] text-gray-400">
+                            </StatusPill>
+                            <p className="mt-1 font-mono text-[11px] text-gray-400">
                               {request.paymentStatus.status === 'trial'
                                 ? `Essai jusqu'au ${firebaseDateFormat(request.paymentStatus.trialEndAt)}`
                                 : request.paymentStatus.nextDueAt

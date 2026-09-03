@@ -18,6 +18,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import ConfirmModal from '@/components/ConfirmModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
@@ -704,31 +705,17 @@ export default function MarketplaceProductsPage() {
                           {prod.commune || '—'}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-gray-900">
+                          <span className="font-mono text-sm font-bold text-gray-900">
                             {formatGNF(prod.price)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
+                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
                           {prod.phone || '—'}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{
-                              backgroundColor: prod.active ? '#F0FDF4' : colors.gray100,
-                              color: prod.active ? colors.success : colors.gray600,
-                            }}
-                          >
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{
-                                backgroundColor: prod.active
-                                  ? colors.success
-                                  : colors.gray500,
-                              }}
-                            />
+                          <StatusPill tone={prod.active ? 'success' : 'error'}>
                             {prod.active ? 'Actif' : 'Inactif'}
-                          </span>
+                          </StatusPill>
                         </td>
                         <td
                           className="px-6 py-4 text-right"

@@ -19,6 +19,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
 import {
   getWorkers,
@@ -778,13 +779,13 @@ export default function WorkersPage() {
                       </td>
                       <td className="px-6 py-4">
                         {worker.phone && (
-                          <p className="flex items-center gap-1 text-xs text-gray-500">
+                          <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" />{' '}
                             {worker.phone}
                           </p>
                         )}
                         {worker.whatsapp && (
-                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                          <p className="mt-1 flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiWhatsappLine className="h-3.5 w-3.5" />{' '}
                             {worker.whatsapp}
                           </p>
@@ -792,52 +793,24 @@ export default function WorkersPage() {
                       </td>
                       <td className="px-6 py-4">
                         {worker.suspendedByAdmin ? (
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}
-                            title="Compte bloqué par un admin — masqué du site public, distinct d'une candidature rejetée"
+                          <StatusPill
+                            tone="warning"
                           >
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#D97706' }} />
                             Suspendu
-                          </span>
+                          </StatusPill>
                         ) : (
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{
-                              backgroundColor: worker.isAvailable
-                                ? colors.primaryVeryLight
-                                : colors.gray100,
-                              color: worker.isAvailable
-                                ? colors.primaryDark
-                                : colors.gray600,
-                            }}
-                          >
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{
-                                backgroundColor: worker.isAvailable
-                                  ? colors.primary
-                                  : colors.gray500,
-                              }}
-                            />
+                          <StatusPill tone={worker.isAvailable ? 'success' : 'error'}>
                             {worker.isAvailable ? 'Actif' : 'Bloqué'}
-                          </span>
+                          </StatusPill>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         {worker.paymentStatus?.status !== 'unknown' && (
                           <>
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                              style={{
-                                backgroundColor:
-                                  PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].bg,
-                                color: PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].color,
-                              }}
-                            >
+                            <StatusPill tone={PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].tone}>
                               {PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].label}
-                            </span>
-                            <p className="mt-1 text-[11px] text-gray-400">
+                            </StatusPill>
+                            <p className="mt-1 font-mono text-[11px] text-gray-400">
                               {worker.paymentStatus.status === 'trial'
                                 ? `Essai jusqu'au ${firebaseDateFormat(worker.paymentStatus.trialEndAt)}`
                                 : worker.paymentStatus.nextDueAt

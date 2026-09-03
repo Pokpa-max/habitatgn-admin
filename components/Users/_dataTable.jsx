@@ -83,7 +83,7 @@ export const columnsUser = [
     Header: 'Date de création',
     accessor: 'createdAt',
     Cell: (data) => (
-      <p className="px-3 text-sm text-gray-500">
+      <p className="px-3 font-mono text-sm text-gray-500">
         {firebaseDateFormat(data)}
       </p>
     ),

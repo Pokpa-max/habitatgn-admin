@@ -347,7 +347,7 @@ export default function ContactMessagesPage() {
                         {message.subject}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-500">
+                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
                       {firebaseDateFormat(message.createdAt)}
                     </td>
                     <td className="px-6 py-4">

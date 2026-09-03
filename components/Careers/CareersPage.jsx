@@ -11,6 +11,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
 import {
@@ -29,19 +30,18 @@ const STATUS_FILTERS = [
   { value: 'rejected', label: 'Refusée' },
 ]
 
-const getStatusConfig = (colors) => ({
-  pending: { label: 'Nouvelle', bg: colors.primaryVeryLight, color: colors.primary },
-  reviewed: { label: 'Étudiée', bg: colors.gray100, color: colors.gray700 },
-  interview: { label: 'Entretien', bg: '#FEF3C7', color: colors.warning },
-  hired: { label: 'Retenue', bg: '#DCFCE7', color: colors.success },
-  rejected: { label: 'Refusée', bg: '#FEE2E2', color: colors.error },
-})
+const STATUS_CONFIG = {
+  pending: { label: 'Nouvelle', tone: 'primary' },
+  reviewed: { label: 'Étudiée', tone: 'gray' },
+  interview: { label: 'Entretien', tone: 'warning' },
+  hired: { label: 'Retenue', tone: 'success' },
+  rejected: { label: 'Refusée', tone: 'error' },
+}
 
 function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, updating }) {
   const colors = useColors()
   if (!application) return null
 
-  const STATUS_CONFIG = getStatusConfig(colors)
   const statusCfg = STATUS_CONFIG[application.status] || STATUS_CONFIG.pending
 
   return (
@@ -79,12 +79,7 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
                       </Dialog.Title>
                       <p className="mt-0.5 text-xs text-gray-500">{application.position}</p>
                     </div>
-                    <span
-                      className="flex-shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                    >
-                      {statusCfg.label}
-                    </span>
+                    <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                   </div>
                 </div>
 
@@ -94,7 +89,7 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
                       <RiUserLine className="h-3.5 w-3.5 text-gray-400" />
                       {application.name}
                     </p>
-                    <p className="flex items-center gap-1.5 text-gray-600">
+                    <p className="flex items-center gap-1.5 font-mono text-gray-600">
                       <RiPhoneLine className="h-3.5 w-3.5 text-gray-400" />
                       {application.phone}
                     </p>
@@ -148,7 +143,7 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
                     </div>
                   )}
 
-                  <p className="mt-4 text-xs text-gray-400">
+                  <p className="mt-4 font-mono text-xs text-gray-400">
                     Candidature reçue le {firebaseDateFormat(application.createdAt)}
                   </p>
 
@@ -199,7 +194,6 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
 
 export default function CareersPage() {
   const colors = useColors()
-  const STATUS_CONFIG = getStatusConfig(colors)
   const [applications, setApplications] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -370,19 +364,14 @@ export default function CareersPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-700">{application.position}</td>
                         <td className="px-6 py-4">
-                          <p className="text-xs text-gray-600">{application.phone}</p>
+                          <p className="font-mono text-xs text-gray-600">{application.phone}</p>
                           <p className="text-xs text-gray-400">{application.email}</p>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
+                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
                           {firebaseDateFormat(application.createdAt)}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                          >
-                            {statusCfg.label}
-                          </span>
+                          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
                       </tr>
                     )

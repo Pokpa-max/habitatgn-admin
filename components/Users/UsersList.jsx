@@ -118,7 +118,7 @@ function UserTable({
         }
 
         .table-header {
-          background-color: #f9fafb;
+          background-color: ${colors.gray50};
           border-bottom: 1px solid #e5e7eb;
         }
       `}</style>
@@ -306,7 +306,7 @@ function UserTable({
                             >
                               <span
                                 className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: row.isAvailable ? colors.primary : colors.gray400 }}
+                                style={{ backgroundColor: row.isAvailable ? colors.success : colors.error }}
                               />
                               {row.isAvailable ? 'Actif' : 'Inactif'}
                             </button>
