@@ -113,6 +113,29 @@ export default function ContactTab() {
         ))}
       </div>
 
+      <div className="mt-8 flex items-start justify-between gap-4 rounded-2xl bg-gray-50 p-5">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            Router les biens à vendre vers BâtiMoo
+          </p>
+          <p className="mt-1 max-w-xl text-sm text-gray-500">
+            Activé : sur les fiches de biens en vente, le numéro de l&apos;agent
+            n&apos;est jamais affiché publiquement — les acheteurs contactent le
+            numéro BâtiMoo configuré ci-dessus (Téléphone 1 / WhatsApp).
+            Désactivé : comportement d&apos;origine, le numéro de l&apos;agent
+            s&apos;affiche normalement, comme pour les locations.
+          </p>
+        </div>
+        <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+          <input
+            type="checkbox"
+            className="peer sr-only"
+            {...register('routeSaleContactToBatimoo')}
+          />
+          <div className="relative h-6 w-11 rounded-full bg-gray-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus:outline-none" />
+        </label>
+      </div>
+
       <div className="mt-6 flex justify-end">
         {saving ? (
           <div
