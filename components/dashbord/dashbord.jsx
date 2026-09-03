@@ -1,6 +1,7 @@
 import { db } from '@/lib/firebase/client_config'
 import { useAuthUser } from 'next-firebase-auth'
 import { collection, getDocs, query, where } from 'firebase/firestore'
+import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import {
   Area,
@@ -14,9 +15,13 @@ import {
 import { useColors } from '../../contexts/ColorContext'
 import { useNotifications } from '../../contexts/NotificationsContext'
 import { formatGNF } from '@/utils/format'
+import { firebaseDateFormat } from '@/utils/date'
 import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
 import { getManagedProperties } from '@/lib/services/managedProperties'
+import { getLeads } from '@/lib/services/leads'
+import StatusPill from '@/components/ui/StatusPill'
+import { RiPhoneLine, RiHome4Line, RiLandscapeLine, RiArrowRightLine } from 'react-icons/ri'
 import {
   Briefcase,
   Hammer,
@@ -26,7 +31,14 @@ import {
   Building2,
   Home,
   CalendarCheck,
+  Wallet,
 } from 'lucide-react'
+
+const LEAD_STATUS_META = {
+  new: { label: 'Nouveau', tone: 'warning' },
+  contacted: { label: 'Contacté', tone: 'primary' },
+  closed: { label: 'Clôturé', tone: 'success' },
+}
 
 const MONTHS_BACK = 6
 
@@ -38,7 +50,7 @@ const parseItemDate = (dateVal) => {
   return isNaN(d.getTime()) ? null : d
 }
 
-function RevenueChart() {
+function RevenueChart({ onCurrentMonthRevenue }) {
   const colors = useColors()
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState([])
@@ -109,6 +121,7 @@ function RevenueChart() {
           plateforme: months.reduce((sum, m) => sum + m.plateforme, 0),
           encaisse: months.reduce((sum, m) => sum + m.encaisse, 0),
         })
+        onCurrentMonthRevenue?.(months[months.length - 1]?.plateforme || 0)
       } catch (error) {
         console.error('Erreur lors du chargement du revenu:', error)
       }
@@ -116,6 +129,7 @@ function RevenueChart() {
     }
 
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -234,6 +248,17 @@ function DashboardCard() {
     agencies: { active: 0, total: 0 },
     properties: { published: 0, draft: 0 },
   })
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0)
+  const [recentLeads, setRecentLeads] = useState([])
+  const [leadsLoading, setLeadsLoading] = useState(true)
+
+  useEffect(() => {
+    if (AuthUser.claims?.userType !== 'admin') return
+    getLeads()
+      .then((leads) => setRecentLeads(leads.slice(0, 5)))
+      .catch(() => {})
+      .finally(() => setLeadsLoading(false))
+  }, [AuthUser.claims?.userType])
 
   useEffect(() => {
     if (AuthUser.claims?.userType !== 'admin') return
@@ -366,9 +391,21 @@ function DashboardCard() {
 
   return (
     <div className="space-y-6">
-      <RevenueChart />
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Ligne principale — reprend exactement les 4 tuiles de la
+          proposition de palette validée (mêmes libellés, même tuile
+          orange accent), avec les vraies données. */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={Home}
+          label="Biens gérés"
+          value={stats.properties.published}
+          subValue={`${stats.properties.draft} en brouillon`}
+        />
+        <StatCard
+          icon={Wallet}
+          label="Revenus du mois"
+          value={formatGNF(monthlyRevenue)}
+        />
         <StatCard
           icon={CalendarCheck}
           label="Demandes de visite"
@@ -376,32 +413,126 @@ function DashboardCard() {
           accent={notifications.pendingLeads > 0}
         />
         <StatCard
-          icon={Home}
-          label="Immobilier"
-          value={stats.properties.published}
-          subValue={`${stats.properties.draft} en brouillon`}
-        />
-        <StatCard
-          icon={Briefcase}
-          label="Agents"
-          value={stats.agents.approved}
-          subValue={`${stats.agents.pending} en attente de validation`}
-        />
-        <StatCard
           icon={Hammer}
-          label="Ouvriers / Artisans"
-          value={stats.workers.approved}
-          subValue={`${stats.workers.pending} en attente de validation`}
+          label="Candidatures ouvriers"
+          value={stats.workers.pending}
         />
-        <StatCard icon={Users} label="Utilisateurs" value={stats.customers} />
-        <StatCard icon={ShieldCheck} label="Managers & admins" value={stats.managers} />
-        <StatCard icon={Scale} label="Partenaires légaux" value={stats.legalPartners} />
-        <StatCard
-          icon={Building2}
-          label="Agences sponsorisées"
-          value={stats.agencies.active}
-          subValue={`${stats.agencies.total} au total`}
-        />
+      </div>
+
+      <RevenueChart onCurrentMonthRevenue={setMonthlyRevenue} />
+
+      {/* Demandes de visite récentes — même tableau, même StatusPill que
+          la page /leads, qui sert de référence exacte pour tous les
+          tableaux de l'admin. */}
+      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-gray-900">Demandes de visite récentes</h2>
+          <Link
+            href="/leads"
+            className="flex items-center gap-1 text-xs font-semibold"
+            style={{ color: colors.primary }}
+          >
+            Voir tout
+            <RiArrowRightLine className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {leadsLoading ? (
+          <div className="flex h-24 items-center justify-center text-sm text-gray-400">
+            Chargement...
+          </div>
+        ) : recentLeads.length === 0 ? (
+          <div className="flex h-24 items-center justify-center text-sm text-gray-400">
+            Aucune demande de visite pour le moment
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    {['Demandeur', 'Annonce', 'Reçu le', 'Statut'].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {recentLeads.map((lead) => {
+                    const meta = LEAD_STATUS_META[lead.status] || LEAD_STATUS_META.new
+                    return (
+                      <tr key={lead.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-semibold text-gray-900">{lead.name}</p>
+                          <p className="mt-0.5 flex items-center gap-1 font-mono text-xs text-gray-500">
+                            <RiPhoneLine className="h-3.5 w-3.5" /> {lead.phone}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="max-w-xs truncate text-sm text-gray-700">
+                            {lead.listingTitle}
+                          </p>
+                          <span
+                            className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
+                          >
+                            {lead.listingType === 'lands' ? (
+                              <RiLandscapeLine className="h-3 w-3" />
+                            ) : (
+                              <RiHome4Line className="h-3 w-3" />
+                            )}
+                            {lead.listingType === 'lands' ? 'Terrain' : 'Bien'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                          {firebaseDateFormat(lead.createdAt)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Autres indicateurs — le reste des chiffres existants, en
+          traitement neutre/primaire par défaut (aucun accent en plus,
+          l'orange reste réservé à la tuile "Demandes de visite" ci-dessus). */}
+      <div>
+        <h2 className="mb-3 text-sm font-bold text-gray-900">Autres indicateurs</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            icon={Briefcase}
+            label="Agents"
+            value={stats.agents.approved}
+            subValue={`${stats.agents.pending} en attente de validation`}
+          />
+          <StatCard
+            icon={Hammer}
+            label="Ouvriers / Artisans"
+            value={stats.workers.approved}
+            subValue={`${stats.workers.pending} en attente de validation`}
+          />
+          <StatCard icon={Users} label="Utilisateurs" value={stats.customers} />
+          <StatCard icon={ShieldCheck} label="Managers & admins" value={stats.managers} />
+          <StatCard icon={Scale} label="Partenaires légaux" value={stats.legalPartners} />
+          <StatCard
+            icon={Building2}
+            label="Agences sponsorisées"
+            value={stats.agencies.active}
+            subValue={`${stats.agencies.total} au total`}
+          />
+        </div>
       </div>
     </div>
   )
