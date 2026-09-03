@@ -250,8 +250,8 @@ function AgentDetail() {
 
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
-                <StatCard label="Occupés" value={occupiedCount} color="#065F46" bgColor="#ECFDF5" />
-                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" bgColor="#FFFBEB" />
+                <StatCard label="Occupés" value={occupiedCount} color={colors.success} bgColor="#ECFDF5" />
+                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color={colors.gray900} bgColor={colors.gray50} />
               </div>
             </div>
 

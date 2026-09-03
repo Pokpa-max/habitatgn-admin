@@ -51,7 +51,7 @@ export const columnsUser = [
           break
         case 'manager':
           label = 'Manager'
-          colorClass = 'bg-accent-light text-accent'
+          colorClass = 'bg-gray-200 text-gray-700'
           break
         case 'customer':
           label = 'Client'
