@@ -39,6 +39,7 @@ function DashboardTopbar() {
     ...item,
     count: notifications[item.key] || 0,
   })).filter((item) => item.count > 0)
+  const totalCount = items.reduce((sum, item) => sum + item.count, 0)
 
   useEffect(() => {
     if (!open) return
@@ -70,11 +71,13 @@ function DashboardTopbar() {
             style={{ borderColor: colors.gray200 }}
           >
             <RiNotification3Line className="h-4 w-4" style={{ color: colors.gray500 }} />
-            {items.length > 0 && (
+            {totalCount > 0 && (
               <span
-                className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
+                className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
                 style={{ backgroundColor: colors.orangeAccent }}
-              />
+              >
+                {totalCount > 99 ? '99+' : totalCount}
+              </span>
             )}
           </button>
 
