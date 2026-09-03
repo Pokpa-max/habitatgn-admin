@@ -459,7 +459,7 @@ function DashboardCard() {
           icon={CalendarCheck}
           label="Demandes de visite"
           value={notifications.pendingLeads > 0 ? `${notifications.pendingLeads} nouvelles` : 'Aucune nouvelle'}
-          accent={notifications.pendingLeads > 0}
+          accent
         />
         <StatCard
           icon={Hammer}
