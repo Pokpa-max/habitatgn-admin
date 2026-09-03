@@ -133,6 +133,14 @@ const navigation = [
   },
 ]
 
+// Nuances dérivées du navy de la charte (colors.navyDark), utilisées
+// uniquement pour le fond de la barre latérale — cf. proposition de palette
+// admin validée (sidebar sombre pour faire ressortir primaire/orange).
+const SIDEBAR_HOVER_BG = '#15263F'
+const SIDEBAR_ACTIVE_BG = '#1E3252'
+const SIDEBAR_TEXT = '#93A6C4'
+const SIDEBAR_BORDER = '#1E3252'
+
 export default function Scaffold({ children, title, subNav }) {
   const colors = useColors()
   const notifications = useNotifications()
@@ -189,25 +197,29 @@ export default function Scaffold({ children, title, subNav }) {
         }
 
         .nav-item-active {
-          color: ${colors.primary};
-          background-color: ${colors.primaryVeryLight};
+          color: #FFFFFF;
+          background-color: ${SIDEBAR_ACTIVE_BG};
           font-weight: 600;
-          border-left: 3px solid ${colors.primary};
-          box-shadow: 0 1px 2px 0 rgba(10, 77, 156, 0.08);
+          border-left: 3px solid ${colors.orangeAccent};
+        }
+
+        .nav-item-active svg {
+          color: ${colors.orangeAccent};
         }
 
         .nav-item-inactive {
-          color: ${colors.gray600};
+          color: ${SIDEBAR_TEXT};
+          border-left: 3px solid transparent;
           transition: all 0.15s ease-in-out;
         }
 
         .nav-item-inactive:hover {
-          color: ${colors.primaryHover};
-          background-color: ${colors.gray50};
+          color: #FFFFFF;
+          background-color: ${SIDEBAR_HOVER_BG};
         }
 
         .logout-btn {
-          color: ${colors.gray500};
+          color: ${SIDEBAR_TEXT};
           transition: color 0.15s ease;
         }
 
@@ -250,7 +262,7 @@ export default function Scaffold({ children, title, subNav }) {
             >
               <div
                 className="sidebar-mobile relative flex w-full max-w-xs flex-1 flex-col"
-                style={{ backgroundColor: colors.white }}
+                style={{ backgroundColor: colors.navyDark }}
               >
                 {/* Close Button */}
                 <Transition.Child
@@ -277,7 +289,7 @@ export default function Scaffold({ children, title, subNav }) {
                 {/* Logo Mobile */}
                 <div
                   className="flex h-16 flex-shrink-0 items-center border-b px-6 gap-2.5"
-                  style={{ borderColor: colors.gray100 }}
+                  style={{ borderColor: SIDEBAR_BORDER }}
                 >
                   <div
                     className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
@@ -286,10 +298,10 @@ export default function Scaffold({ children, title, subNav }) {
                     <span className="text-sm font-black text-white">B</span>
                   </div>
                   <div>
-                    <p className="text-sm font-bold tracking-tight leading-none" style={{ color: colors.gray900 }}>
+                    <p className="text-sm font-bold tracking-tight leading-none text-white">
                       BâtiMoo
                     </p>
-                    <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: colors.primary }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: SIDEBAR_TEXT }}>
                       Tableau de bord
                     </p>
                   </div>
@@ -313,7 +325,10 @@ export default function Scaffold({ children, title, subNav }) {
                               <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                               <span className="text-sm">{item.name}</span>
                               {badgeCount > 0 && (
-                                <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                <span
+                                  className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                                  style={{ backgroundColor: colors.orangeAccent }}
+                                >
                                   {badgeCount}
                                 </span>
                               )}
@@ -327,12 +342,12 @@ export default function Scaffold({ children, title, subNav }) {
                 </div>
 
                 {/* User Mobile */}
-                <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: colors.gray100 }}>
+                <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: SIDEBAR_BORDER }}>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: colors.gray900 }}>
+                    <p className="text-sm font-semibold text-white">
                       {AuthUser?.displayName || 'Utilisateur'}
                     </p>
-                    <p className="text-xs" style={{ color: colors.gray500 }}>
+                    <p className="text-xs" style={{ color: SIDEBAR_TEXT }}>
                       {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
                     </p>
                   </div>
@@ -348,12 +363,12 @@ export default function Scaffold({ children, title, subNav }) {
         <div className="hidden md:fixed md:inset-y-0 md:flex md:w-60 md:flex-col">
           <div
             className="flex min-h-0 flex-1 flex-col"
-            style={{ backgroundColor: colors.white, borderRight: `1px solid ${colors.gray100}` }}
+            style={{ backgroundColor: colors.navyDark }}
           >
             {/* Logo Desktop */}
             <div
               className="flex h-16 flex-shrink-0 items-center border-b px-6 gap-2.5"
-              style={{ borderColor: colors.gray100 }}
+              style={{ borderColor: SIDEBAR_BORDER }}
             >
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
@@ -362,11 +377,11 @@ export default function Scaffold({ children, title, subNav }) {
                 <span className="text-sm font-black text-white">B</span>
               </div>
               <div>
-                <p className="text-sm font-bold tracking-tight leading-none" style={{ color: colors.gray900 }}>
+                <p className="text-sm font-bold tracking-tight leading-none text-white">
                   BâtiMoo
                 </p>
 
-                <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: colors.primary }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: SIDEBAR_TEXT }}>
                   Tableau de bord
                 </p>
               </div>
@@ -389,7 +404,10 @@ export default function Scaffold({ children, title, subNav }) {
                           <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                           <span className="text-sm">{item.name}</span>
                           {badgeCount > 0 && (
-                            <span className="ml-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                            <span
+                              className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                              style={{ backgroundColor: colors.orangeAccent }}
+                            >
                               {badgeCount}
                             </span>
                           )}
@@ -403,7 +421,7 @@ export default function Scaffold({ children, title, subNav }) {
             </div>
 
             {/* User Section Desktop */}
-            <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: colors.gray100 }}>
+            <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: SIDEBAR_BORDER }}>
               <div className="w-full">
                 <div className="flex items-center gap-3">
                   <div
@@ -413,10 +431,10 @@ export default function Scaffold({ children, title, subNav }) {
                     {(AuthUser?.displayName?.[0] || 'A').toUpperCase()}
                   </div>
                   <div className="overflow-hidden">
-                    <p className="truncate text-sm font-semibold" style={{ color: colors.gray900 }}>
+                    <p className="truncate text-sm font-semibold text-white">
                       {AuthUser?.displayName || 'Utilisateur'}
                     </p>
-                    <p className="text-xs" style={{ color: colors.gray500 }}>
+                    <p className="text-xs" style={{ color: SIDEBAR_TEXT }}>
                       {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
                     </p>
                   </div>
