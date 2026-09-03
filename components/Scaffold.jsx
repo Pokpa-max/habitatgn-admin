@@ -23,7 +23,6 @@ import {
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
 import { useColors } from '../contexts/ColorContext'
-import { useNotifications } from '../contexts/NotificationsContext'
 import { useRouter } from 'next/router'
 import { db } from '../lib/firebase/client_config'
 import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
@@ -143,7 +142,6 @@ const SIDEBAR_BORDER = '#1E3252'
 
 export default function Scaffold({ children, title, subNav }) {
   const colors = useColors()
-  const notifications = useNotifications()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const AuthUser = useAuthUser()
   const router = useRouter()
@@ -313,7 +311,6 @@ export default function Scaffold({ children, title, subNav }) {
                     {navigation.map((item) => {
                       if (canSeeNavItem(item)) {
                         const isActive = currentPath === item.href
-                        const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
                         return (
                           <Link key={item.name} href={item.href}>
                             <a
@@ -324,14 +321,6 @@ export default function Scaffold({ children, title, subNav }) {
                             >
                               <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                               <span className="text-sm">{item.name}</span>
-                              {badgeCount > 0 && (
-                                <span
-                                  className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                                  style={{ backgroundColor: colors.orangeAccent }}
-                                >
-                                  {badgeCount}
-                                </span>
-                              )}
                             </a>
                           </Link>
                         )
@@ -393,7 +382,6 @@ export default function Scaffold({ children, title, subNav }) {
                 {navigation.map((item) => {
                   if (canSeeNavItem(item)) {
                     const isActive = currentPath === item.href
-                    const badgeCount = item.badgeKey ? notifications[item.badgeKey] : 0
                     return (
                       <Link key={item.name} href={item.href}>
                         <a
@@ -403,14 +391,6 @@ export default function Scaffold({ children, title, subNav }) {
                         >
                           <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
                           <span className="text-sm">{item.name}</span>
-                          {badgeCount > 0 && (
-                            <span
-                              className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                              style={{ backgroundColor: colors.orangeAccent }}
-                            >
-                              {badgeCount}
-                            </span>
-                          )}
                         </a>
                       </Link>
                     )
