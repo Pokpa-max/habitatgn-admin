@@ -11,9 +11,9 @@ import { getManagedProperties, getPropertiesByOwner, editManagedProperty } from 
 import { getLeases, addLease, editLease } from '@/lib/services/leases'
 
 const STATUS_CONFIG = {
-  active: { label: 'Actif', bg: '#D1FAE5', color: '#065F46' },
-  ended: { label: 'Terminé', bg: '#F3F4F6', color: '#374151' },
-  terminated: { label: 'Résilié', bg: '#FEE2E2', color: '#991B1B' },
+  active: { label: 'Actif', bgToken: '#D1FAE5', fgToken: 'success' },
+  ended: { label: 'Terminé', bgToken: 'gray100', fgToken: 'gray600' },
+  terminated: { label: 'Résilié', bgToken: '#FEE2E2', fgToken: 'error' },
 }
 
 export default function BauxTab({ ownerId }) {
@@ -191,71 +191,76 @@ export default function BauxTab({ ownerId }) {
             <p className="text-sm text-gray-400">Aucun bail enregistré</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="py-2 pr-4">Bien</th>
-                  <th className="py-2 pr-4">Locataire</th>
-                  <th className="py-2 pr-4">Loyer</th>
-                  <th className="py-2 pr-4">Début</th>
-                  <th className="py-2 pr-4">Statut</th>
-                  <th className="py-2 pr-4" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((lease) => {
-                  const property = propertyById(lease.propertyId)
-                  const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
-                  return (
-                    <tr key={lease.id}>
-                      <td className="py-3 pr-4 text-gray-700">
-                        {property
-                          ? `${property.reference} — ${property.address}${property.unitLabel ? ` (${property.unitLabel})` : ''}`
-                          : '—'}
-                      </td>
-                      <td className="py-3 pr-4 text-gray-700">
-                        {lease.tenantName}
-                        <p className="text-xs text-gray-400">{lease.tenantPhone}</p>
-                      </td>
-                      <td className="py-3 pr-4 font-semibold" style={{ color: colors.primary }}>
-                        {formatGNF(lease.rentAmount)}
-                      </td>
-                      <td className="py-3 pr-4 text-gray-500">
-                        {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span
-                          className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                        >
-                          {statusCfg.label}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openEdit(lease)}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                            title="Modifier"
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Bien</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Locataire</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Loyer</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Début</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Statut</th>
+                    <th className="px-6 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filtered.map((lease) => {
+                    const property = propertyById(lease.propertyId)
+                    const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
+                    return (
+                      <tr key={lease.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-gray-700">
+                          {property
+                            ? `${property.reference} — ${property.address}${property.unitLabel ? ` (${property.unitLabel})` : ''}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {lease.tenantName}
+                          <p className="text-xs text-gray-400">{lease.tenantPhone}</p>
+                        </td>
+                        <td className="px-6 py-4 font-semibold" style={{ color: colors.primary }}>
+                          {formatGNF(lease.rentAmount)}
+                        </td>
+                        <td className="px-6 py-4 text-gray-500">
+                          {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                            style={{
+                              backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
+                              color: colors[statusCfg.fgToken],
+                            }}
                           >
-                            <RiEditLine className="h-4 w-4" />
-                          </button>
-                          {lease.status === 'active' && (
+                            {statusCfg.label}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => endLease(lease, 'ended')}
-                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                              onClick={() => openEdit(lease)}
+                              className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                              title="Modifier"
                             >
-                              Clôturer
+                              <RiEditLine className="h-4 w-4" />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                            {lease.status === 'active' && (
+                              <button
+                                onClick={() => endLease(lease, 'ended')}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                              >
+                                Clôturer
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

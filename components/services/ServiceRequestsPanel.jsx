@@ -311,10 +311,12 @@ export default function ServiceRequestsPanel({
                             style={{
                               backgroundColor:
                                 status === 'cancelled'
-                                  ? colors.gray400
+                                  ? colors.error
                                   : status === 'completed'
-                                  ? colors.primary
-                                  : colors.gray700,
+                                  ? colors.success
+                                  : status === 'pending'
+                                  ? colors.warning
+                                  : colors.primary,
                             }}
                           />
                           {statusLabel}

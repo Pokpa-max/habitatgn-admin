@@ -333,11 +333,11 @@ export default function ServiceRevenuesTab() {
             <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Cumul Global</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.orangeLight }}>
-                  <RiMoneyDollarCircleLine className="h-5 w-5" style={{ color: colors.orangeAccent }} />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
+                  <RiMoneyDollarCircleLine className="h-5 w-5" style={{ color: colors.primary }} />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.orangeAccent }}>
+              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
                 {formatGNF(periodTotals.all.platform)}
               </p>
               <p className="mt-1 text-xs text-gray-500">
@@ -359,7 +359,7 @@ export default function ServiceRevenuesTab() {
 
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2">
-                <RiHomeGearLine className="h-5 w-5" style={{ color: colors.orangeAccent }} />
+                <RiHomeGearLine className="h-5 w-5" style={{ color: colors.primary }} />
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Gestion Locative</span>
               </div>
               <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.rentalRevenue)}</p>
@@ -455,13 +455,13 @@ export default function ServiceRevenuesTab() {
                             <span
                               className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
                               style={{
-                                backgroundColor: item.status === 'Payé' ? colors.primaryVeryLight : colors.gray100,
-                                color: item.status === 'Payé' ? colors.primaryDark : colors.gray600,
+                                backgroundColor: item.status === 'Payé' ? '#D1FAE5' : '#FEF3C7',
+                                color: item.status === 'Payé' ? colors.success : colors.warning,
                               }}
                             >
                               <span
                                 className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: item.status === 'Payé' ? colors.primary : colors.gray500 }}
+                                style={{ backgroundColor: item.status === 'Payé' ? colors.success : colors.warning }}
                               />
                               {item.status}
                             </span>

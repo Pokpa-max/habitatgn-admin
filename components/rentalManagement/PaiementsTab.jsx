@@ -18,12 +18,15 @@ const METHODS = [
   { value: 'autre', label: 'Autre' },
 ]
 
-function statusForPeriod(due, paid, period) {
+function statusForPeriod(due, paid, period, colors) {
   const isFuture = period > currentPeriod()
-  if (paid <= 0) return isFuture ? { label: '—', bg: '#F3F4F6', color: '#9CA3AF' } : { label: 'Impayé', bg: '#FEE2E2', color: '#991B1B' }
-  if (isFuture) return { label: 'Avance', bg: '#DBEAFE', color: '#1E40AF' }
-  if (paid < due) return { label: 'Partiel', bg: '#FEF3C7', color: '#92400E' }
-  return { label: 'Payé', bg: '#D1FAE5', color: '#065F46' }
+  if (paid <= 0)
+    return isFuture
+      ? { label: '—', bg: colors.gray100, color: colors.gray400 }
+      : { label: 'Impayé', bg: '#FEE2E2', color: colors.error }
+  if (isFuture) return { label: 'Avance', bg: colors.primaryVeryLight, color: colors.primary }
+  if (paid < due) return { label: 'Partiel', bg: '#FEF3C7', color: colors.warning }
+  return { label: 'Payé', bg: '#D1FAE5', color: colors.success }
 }
 
 export default function PaiementsTab({ ownerId }) {
@@ -198,7 +201,7 @@ export default function PaiementsTab({ ownerId }) {
                     const paid = payments
                       .filter((p) => p.leaseId === lease.id && p.period === periodFilter)
                       .reduce((sum, p) => sum + (p.amountPaid || 0), 0)
-                    const status = statusForPeriod(due, paid, periodFilter)
+                    const status = statusForPeriod(due, paid, periodFilter, colors)
                     return (
                       <div key={lease.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
@@ -238,78 +241,80 @@ export default function PaiementsTab({ ownerId }) {
                 <p className="text-sm text-gray-400">Aucun paiement pour ce filtre</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      <th className="py-2 pr-4">Date</th>
-                      <th className="py-2 pr-4">Bien / Locataire</th>
-                      <th className="py-2 pr-4">Mois</th>
-                      <th className="py-2 pr-4">Montant</th>
-                      <th className="py-2 pr-4">Méthode</th>
-                      <th className="py-2 pr-4" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredPayments.map((payment) => {
-                      const lease = leaseById(payment.leaseId)
-                      const property = propertyById(payment.propertyId)
-                      const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period)
-                      return (
-                        <tr key={payment.id}>
-                          <td className="py-3 pr-4 text-gray-500">
-                            {payment.paymentDate ? firebaseDateFormat(new Date(payment.paymentDate)) : '—'}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-700">
-                            {property?.reference} — {lease?.tenantName || '—'}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-700">
-                            {formatPeriodLabel(payment.period)}
-                            <span
-                              className="ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                              style={{ backgroundColor: status.bg, color: status.color }}
-                            >
-                              {status.label}
-                            </span>
-                          </td>
-                          <td className="py-3 pr-4 font-semibold" style={{ color: colors.primary }}>
-                            {formatGNF(payment.amountPaid)}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-500">
-                            {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
-                          </td>
-                          <td className="py-3 pr-4">
-                            {deleteConfirm === payment.id ? (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleDelete(payment)}
-                                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                                  style={{ backgroundColor: colors.error }}
-                                >
-                                  Oui
-                                </button>
-                                <button
-                                  onClick={() => setDeleteConfirm(null)}
-                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                                >
-                                  Non
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setDeleteConfirm(payment.id)}
-                                className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
-                                title="Supprimer"
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead style={{ backgroundColor: colors.gray50 }}>
+                      <tr>
+                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Date</th>
+                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Bien / Locataire</th>
+                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mois</th>
+                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Montant</th>
+                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Méthode</th>
+                        <th className="px-6 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {filteredPayments.map((payment) => {
+                        const lease = leaseById(payment.leaseId)
+                        const property = propertyById(payment.propertyId)
+                        const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period, colors)
+                        return (
+                          <tr key={payment.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 text-gray-500">
+                              {payment.paymentDate ? firebaseDateFormat(new Date(payment.paymentDate)) : '—'}
+                            </td>
+                            <td className="px-6 py-4 text-gray-700">
+                              {property?.reference} — {lease?.tenantName || '—'}
+                            </td>
+                            <td className="px-6 py-4 text-gray-700">
+                              {formatPeriodLabel(payment.period)}
+                              <span
+                                className="ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                style={{ backgroundColor: status.bg, color: status.color }}
                               >
-                                <RiDeleteBinLine className="h-4 w-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                                {status.label}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-semibold" style={{ color: colors.primary }}>
+                              {formatGNF(payment.amountPaid)}
+                            </td>
+                            <td className="px-6 py-4 text-gray-500">
+                              {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
+                            </td>
+                            <td className="px-6 py-4">
+                              {deleteConfirm === payment.id ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleDelete(payment)}
+                                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                                    style={{ backgroundColor: colors.error }}
+                                  >
+                                    Oui
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirm(null)}
+                                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                                  >
+                                    Non
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setDeleteConfirm(payment.id)}
+                                  className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                                  title="Supprimer"
+                                >
+                                  <RiDeleteBinLine className="h-4 w-4" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </>

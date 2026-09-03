@@ -58,7 +58,10 @@ function Services() {
               <tab.icon className="h-4 w-4" />
               {tab.label}
               {tab.badgeCount > 0 && (
-                <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                <span
+                  className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: colors.orangeAccent }}
+                >
                   {tab.badgeCount}
                 </span>
               )}

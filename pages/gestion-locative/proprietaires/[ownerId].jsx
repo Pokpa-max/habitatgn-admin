@@ -178,7 +178,8 @@ function OwnerDetail() {
                 </div>
                 <button
                   onClick={openEditOwner}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+                  style={{ borderColor: colors.primary, color: colors.primary }}
                 >
                   <RiEditLine className="h-4 w-4" />
                   Modifier
@@ -188,7 +189,7 @@ function OwnerDetail() {
               <div className="mt-6 grid grid-cols-3 gap-4">
                 <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
                 <StatCard label="Occupés" value={occupiedCount} color={colors.success} bgColor="#ECFDF5" />
-                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color={colors.orangeAccent} bgColor={colors.orangeLight} />
+                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color={colors.primary} bgColor={colors.primaryVeryLight} />
               </div>
 
               <div className="mt-4 border-t border-gray-100 pt-4">

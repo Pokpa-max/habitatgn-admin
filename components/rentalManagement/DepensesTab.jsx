@@ -141,61 +141,63 @@ export default function DepensesTab({ ownerId }) {
             <p className="text-sm text-gray-400">Aucune dépense enregistrée</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="py-2 pr-4">Date</th>
-                  <th className="py-2 pr-4">Bien</th>
-                  <th className="py-2 pr-4">Libellé</th>
-                  <th className="py-2 pr-4">Catégorie</th>
-                  <th className="py-2 pr-4">Mois</th>
-                  <th className="py-2 pr-4">Montant</th>
-                  <th className="py-2 pr-4" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((expense) => (
-                  <tr key={expense.id}>
-                    <td className="py-3 pr-4 text-gray-500">
-                      {expense.date ? firebaseDateFormat(new Date(expense.date)) : '—'}
-                    </td>
-                    <td className="py-3 pr-4 text-gray-700">{propertyById(expense.propertyId)?.reference || '—'}</td>
-                    <td className="py-3 pr-4 text-gray-700">{expense.label}</td>
-                    <td className="py-3 pr-4 text-gray-500">{expense.category}</td>
-                    <td className="py-3 pr-4 text-gray-500">{formatPeriodLabel(expense.period)}</td>
-                    <td className="py-3 pr-4 font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
-                    <td className="py-3 pr-4">
-                      {deleteConfirm === expense.id ? (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleDelete(expense)}
-                            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                            style={{ backgroundColor: colors.error }}
-                          >
-                            Oui
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                          >
-                            Non
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteConfirm(expense.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
-                          title="Supprimer"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Date</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Bien</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Libellé</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Catégorie</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mois</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Montant</th>
+                    <th className="px-6 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filtered.map((expense) => (
+                    <tr key={expense.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-500">
+                        {expense.date ? firebaseDateFormat(new Date(expense.date)) : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">{propertyById(expense.propertyId)?.reference || '—'}</td>
+                      <td className="px-6 py-4 text-gray-700">{expense.label}</td>
+                      <td className="px-6 py-4 text-gray-500">{expense.category}</td>
+                      <td className="px-6 py-4 text-gray-500">{formatPeriodLabel(expense.period)}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
+                      <td className="px-6 py-4">
+                        {deleteConfirm === expense.id ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleDelete(expense)}
+                              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                              style={{ backgroundColor: colors.error }}
+                            >
+                              Oui
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(null)}
+                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                            >
+                              Non
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setDeleteConfirm(expense.id)}
+                            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                            title="Supprimer"
+                          >
+                            <RiDeleteBinLine className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -33,9 +33,9 @@ import { getExpensesByProperty } from '@/lib/services/propertyExpenses'
 import { updateProperty } from '@/lib/services/propertyService'
 
 const STATUS_CONFIG = {
-  vacant: { label: 'Vacant', bg: '#FEF3C7', color: '#92400E' },
-  occupied: { label: 'Occupé', bg: '#D1FAE5', color: '#065F46' },
-  inactive: { label: 'Inactif', bg: '#F3F4F6', color: '#374151' },
+  vacant: { label: 'Vacant', bgToken: '#FEF3C7', fgToken: 'warning' },
+  occupied: { label: 'Occupé', bgToken: '#D1FAE5', fgToken: 'success' },
+  inactive: { label: 'Inactif', bgToken: 'gray100', fgToken: 'gray600' },
 }
 
 // Si ownerId est fourni, la liste est restreinte aux biens de ce propriétaire
@@ -410,9 +410,9 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-white">
-                  <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    <th className="w-8 py-2 pr-2">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    <th className="w-8 py-3 pl-4 pr-2">
                       {selectableIds.length > 0 && (
                         <input
                           type="checkbox"
@@ -424,17 +424,17 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         />
                       )}
                     </th>
-                    <th className="py-2 pr-4">Photo</th>
-                    <th className="py-2 pr-4">Référence</th>
-                    <th className="py-2 pr-4">Adresse</th>
-                    {!ownerId && <th className="py-2 pr-4">Propriétaire</th>}
-                    <th className="py-2 pr-4">Loyer</th>
-                    <th className="py-2 pr-4">Statut</th>
-                    <th className="py-2 pr-4">Mise en avant</th>
-                    <th className="py-2 pr-4 text-right">Actions</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Photo</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Référence</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Adresse</th>
+                    {!ownerId && <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Propriétaire</th>}
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Loyer</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Statut</th>
+                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mise en avant</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {filtered.map((property) => {
                     const statusCfg =
                       STATUS_CONFIG[property.status] || STATUS_CONFIG.vacant
@@ -447,7 +447,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         onClick={() => openDetail(property)}
                         className="cursor-pointer transition-colors hover:bg-gray-50"
                       >
-                        <td className="w-8 py-3 pr-2" onClick={(e) => e.stopPropagation()}>
+                        <td className="w-8 py-4 pl-4 pr-2" onClick={(e) => e.stopPropagation()}>
                           {isPublicListing(property) && (
                             <input
                               type="checkbox"
@@ -458,7 +458,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             />
                           )}
                         </td>
-                        <td className="py-3 pr-4">
+                        <td className="px-4 py-4">
                           {mainImage ? (
                             <img
                               src={mainImage}
@@ -471,10 +471,10 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 pr-4 font-semibold text-gray-900">
+                        <td className="px-4 py-4 font-semibold text-gray-900">
                           {property.reference}
                         </td>
-                        <td className="py-3 pr-4 text-gray-700">
+                        <td className="px-4 py-4 text-gray-700">
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-semibold text-gray-900">
@@ -519,7 +519,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           </div>
                         </td>
                         {!ownerId && (
-                          <td className="py-3 pr-4 text-gray-700">
+                          <td className="px-4 py-4 text-gray-700">
                             {owner?.name || '—'}
                             <p className="text-xs text-gray-400">
                               {owner?.phone}
@@ -527,23 +527,23 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           </td>
                         )}
                         <td
-                          className="py-3 pr-4 font-semibold"
+                          className="px-4 py-4 font-semibold"
                           style={{ color: colors.primary }}
                         >
                           {formatGNF(property.rentAmount)}
                         </td>
-                        <td className="py-3 pr-4">
+                        <td className="px-4 py-4">
                           <span
                             className="rounded-full px-2.5 py-1 text-xs font-semibold"
                             style={{
-                              backgroundColor: statusCfg.bg,
-                              color: statusCfg.color,
+                              backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
+                              color: colors[statusCfg.fgToken],
                             }}
                           >
                             {statusCfg.label}
                           </span>
                         </td>
-                        <td className="py-3 pr-4">
+                        <td className="px-4 py-4">
                           {isCurrentlyBoosted(property) ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
@@ -557,7 +557,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           )}
                         </td>
                         <td
-                          className="py-3 pr-4 text-right"
+                          className="px-4 py-4 text-right"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex justify-end" data-menu-root>
@@ -816,8 +816,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                     <span
                       className="rounded-full px-2.5 py-1 text-xs font-semibold"
                       style={{
-                        backgroundColor: statusCfg.bg,
-                        color: statusCfg.color,
+                        backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
+                        color: colors[statusCfg.fgToken],
                       }}
                     >
                       {statusCfg.label}

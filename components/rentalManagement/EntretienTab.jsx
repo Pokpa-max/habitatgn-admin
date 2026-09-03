@@ -17,9 +17,9 @@ import {
 const CATEGORIES = ['Plomberie', 'Électricité', 'Peinture', 'Autre']
 
 const STATUS_CONFIG = {
-  ouvert: { label: 'Ouvert', bg: '#FEE2E2', color: '#991B1B' },
-  en_cours: { label: 'En cours', bg: '#FEF3C7', color: '#92400E' },
-  résolu: { label: 'Résolu', bg: '#D1FAE5', color: '#065F46' },
+  ouvert: { label: 'Ouvert', bgToken: '#FEF3C7', fgToken: 'warning' },
+  en_cours: { label: 'En cours', bgToken: 'primaryVeryLight', fgToken: 'primary' },
+  résolu: { label: 'Résolu', bgToken: '#D1FAE5', fgToken: 'success' },
 }
 
 export default function EntretienTab({ ownerId }) {
@@ -179,7 +179,10 @@ export default function EntretienTab({ ownerId }) {
                         <p className="font-semibold text-gray-900">{ticket.title}</p>
                         <span
                           className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
+                          style={{
+                            backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
+                            color: colors[statusCfg.fgToken],
+                          }}
                         >
                           {statusCfg.label}
                         </span>
