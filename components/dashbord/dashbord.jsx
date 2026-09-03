@@ -20,8 +20,10 @@ import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
 import { getManagedProperties } from '@/lib/services/managedProperties'
 import { getLeads } from '@/lib/services/leads'
+import { getContactSettings, updateContactSettings } from '@/lib/services/siteSettings'
+import { notify } from '@/utils/toast'
 import StatusPill from '@/components/ui/StatusPill'
-import { RiPhoneLine, RiHome4Line, RiLandscapeLine, RiArrowRightLine } from 'react-icons/ri'
+import { RiPhoneLine, RiHome4Line, RiLandscapeLine, RiArrowRightLine, RiAddLine } from 'react-icons/ri'
 import {
   Briefcase,
   Hammer,
@@ -251,6 +253,8 @@ function DashboardCard() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0)
   const [recentLeads, setRecentLeads] = useState([])
   const [leadsLoading, setLeadsLoading] = useState(true)
+  const [routeToBatimoo, setRouteToBatimoo] = useState(true)
+  const [togglingSetting, setTogglingSetting] = useState(false)
 
   useEffect(() => {
     if (AuthUser.claims?.userType !== 'admin') return
@@ -258,7 +262,23 @@ function DashboardCard() {
       .then((leads) => setRecentLeads(leads.slice(0, 5)))
       .catch(() => {})
       .finally(() => setLeadsLoading(false))
+    getContactSettings()
+      .then((s) => setRouteToBatimoo(s.routeSaleContactToBatimoo !== false))
+      .catch(() => {})
   }, [AuthUser.claims?.userType])
+
+  const handleToggleRouting = async () => {
+    const next = !routeToBatimoo
+    setTogglingSetting(true)
+    try {
+      await updateContactSettings({ routeSaleContactToBatimoo: next })
+      setRouteToBatimoo(next)
+      notify('Réglage mis à jour', 'success')
+    } catch (error) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setTogglingSetting(false)
+  }
 
   useEffect(() => {
     if (AuthUser.claims?.userType !== 'admin') return
@@ -421,6 +441,54 @@ function DashboardCard() {
 
       <RevenueChart onCurrentMonthRevenue={setMonthlyRevenue} />
 
+      {/* Hiérarchie des actions — reprend exactement la démonstration de
+          la proposition validée : accent réservé à l'action star, primaire
+          pour l'action principale suivante, secondaire/fantôme/destructeur
+          pour le reste. */}
+      <div>
+        <h2 className="mb-3 text-sm font-bold text-gray-900">Hiérarchie des actions</h2>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link href="/gestion-locative">
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white"
+              style={{ backgroundColor: colors.orangeAccent }}
+            >
+              <RiAddLine className="h-3.5 w-3.5" />
+              Publier une annonce
+            </a>
+          </Link>
+          <Link href="/agents">
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white"
+              style={{ backgroundColor: colors.primary }}
+            >
+              Ajouter un agent
+            </a>
+          </Link>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
+            style={{ borderColor: colors.primary, color: colors.primary, backgroundColor: 'transparent' }}
+          >
+            Exporter
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
+            style={{ borderColor: colors.gray200, color: colors.gray500, backgroundColor: 'transparent' }}
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
+            style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+          >
+            Supprimer
+          </button>
+        </div>
+      </div>
+
       {/* Demandes de visite récentes — même tableau, même StatusPill que
           la page /leads, qui sert de référence exacte pour tous les
           tableaux de l'admin. */}
@@ -504,6 +572,33 @@ function DashboardCard() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Paramètres — extrait : même réglage réel que Paramètres > Contact,
+          accessible directement depuis le dashboard comme dans la maquette. */}
+      <div>
+        <h2 className="mb-3 text-sm font-bold text-gray-900">Paramètres — extrait</h2>
+        <div className="flex items-start justify-between gap-5 rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div>
+            <p className="mb-1 text-sm font-bold text-gray-900">
+              Router les biens à vendre vers BâtiMoo
+            </p>
+            <p className="max-w-md text-xs leading-relaxed text-gray-500">
+              Activé : le numéro de l&apos;agent n&apos;est jamais affiché publiquement sur une
+              fiche de vente — les acheteurs contactent le numéro BâtiMoo configuré ci-dessus.
+            </p>
+          </div>
+          <label className="relative mt-0.5 inline-flex shrink-0 cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={routeToBatimoo}
+              disabled={togglingSetting}
+              onChange={handleToggleRouting}
+            />
+            <div className="relative h-6 w-11 rounded-full bg-gray-300 transition-colors after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all peer-checked:bg-primary peer-checked:after:translate-x-5 peer-focus:outline-none" />
+          </label>
+        </div>
       </div>
 
       {/* Autres indicateurs — le reste des chiffres existants, en
