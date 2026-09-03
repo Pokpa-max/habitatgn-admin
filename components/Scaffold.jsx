@@ -308,7 +308,7 @@ export default function Scaffold({ children, title, subNav }) {
                 </div>
 
                 {/* Navigation Mobile */}
-                <div className="h-0 flex-1 overflow-y-auto py-4">
+                <div className="h-0 flex-1 overflow-y-auto py-4 scrollbar-hide">
                   <nav className="space-y-0.5 px-2">
                     {navigation.map((item) => {
                       if (canSeeNavItem(item)) {
@@ -388,7 +388,7 @@ export default function Scaffold({ children, title, subNav }) {
             </div>
 
             {/* Navigation Desktop */}
-            <div className="h-0 flex-1 overflow-y-auto py-4">
+            <div className="h-0 flex-1 overflow-y-auto py-4 scrollbar-hide">
               <nav className="space-y-0.5 px-3">
                 {navigation.map((item) => {
                   if (canSeeNavItem(item)) {
