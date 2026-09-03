@@ -14,6 +14,7 @@ import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import ConfirmModal from '@/components/ConfirmModal'
+import StatusPill from '@/components/ui/StatusPill'
 import { firebaseDateFormat } from '@/utils/date'
 import { getLeads, updateLeadStatus, deleteLead } from '@/lib/services/leads'
 
@@ -27,23 +28,17 @@ const FILTERS = [
 ]
 
 const STATUS_META = {
-  new: { label: 'Nouveau', bg: '#FFF1E8', fg: '#C2410C' },
-  contacted: { label: 'Contacté', bgToken: 'primaryVeryLight', fgToken: 'primary' },
-  closed: { label: 'Clôturé', bg: '#ECFDF5', fgToken: 'success' },
+  new: { label: 'Nouveau', tone: 'warning' },
+  contacted: { label: 'Contacté', tone: 'primary' },
+  closed: { label: 'Clôturé', tone: 'success' },
 }
 
-function StatusBadge({ status, colors }) {
+function StatusBadge({ status }) {
   const meta = STATUS_META[status] || STATUS_META.new
   return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-      style={{
-        backgroundColor: meta.bgToken ? colors[meta.bgToken] : meta.bg,
-        color: meta.fgToken ? colors[meta.fgToken] : meta.fg,
-      }}
-    >
+    <StatusPill tone={meta.tone}>
       {meta.label}
-    </span>
+    </StatusPill>
   )
 }
 
@@ -94,7 +89,7 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete }) {
 
                 <div className="max-h-96 overflow-y-auto p-5">
                   <div className="flex items-center gap-2">
-                    <StatusBadge status={lead.status} colors={colors} />
+                    <StatusBadge status={lead.status} />
                     <span
                       className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
                       style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
@@ -359,7 +354,7 @@ export default function LeadsPage() {
                   <tr key={lead.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <p className="text-sm font-semibold text-gray-900">{lead.name}</p>
-                      <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
+                      <p className="mt-0.5 flex items-center gap-1 font-mono text-xs text-gray-500">
                         <RiPhoneLine className="h-3.5 w-3.5" /> {lead.phone}
                       </p>
                     </td>
@@ -379,11 +374,11 @@ export default function LeadsPage() {
                         {lead.listingType === 'lands' ? 'Terrain' : 'Bien'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-500">
+                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
                       {firebaseDateFormat(lead.createdAt)}
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={lead.status} colors={colors} />
+                      <StatusBadge status={lead.status} />
                     </td>
                     <td className="px-6 py-4">
                       <button
