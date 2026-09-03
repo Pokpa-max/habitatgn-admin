@@ -544,21 +544,23 @@ export default function AgentsPage() {
                       )}
                     </th>
                     {[
-                      'Agent',
-                      'Contact',
-                      'Commune',
-                      'Types de biens',
-                      'Statut',
-                      'Abonnement',
-                      'Mise en avant',
-                      'Actions',
-                    ].map((h) => (
+                      { label: 'Agent' },
+                      { label: 'Contact' },
+                      { label: 'Commune', secondary: true },
+                      { label: 'Types de biens', secondary: true },
+                      { label: 'Statut' },
+                      { label: 'Abonnement' },
+                      { label: 'Mise en avant', secondary: true },
+                      { label: 'Actions' },
+                    ].map((col) => (
                       <th
-                        key={h}
+                        key={col.label}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                          col.secondary ? 'hidden lg:table-cell' : ''
+                        }`}
                       >
-                        {h}
+                        {col.label}
                       </th>
                     ))}
                   </tr>
@@ -601,7 +603,7 @@ export default function AgentsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="hidden px-6 py-3 lg:table-cell">
                         {request.commune && (
                           <p className="flex items-center gap-1 text-xs capitalize text-gray-500">
                             <RiMapPinLine className="h-3.5 w-3.5" />{' '}
@@ -609,7 +611,7 @@ export default function AgentsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="hidden px-6 py-3 lg:table-cell">
                         <div className="flex flex-wrap gap-1.5">
                           {(request.propertyTypes || []).map((t) => (
                             <span
@@ -642,7 +644,7 @@ export default function AgentsPage() {
                           </>
                         )}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="hidden px-6 py-3 lg:table-cell">
                         {request.status === 'approved' ? (
                           request.boostedCount > 0 ? (
                             <span
