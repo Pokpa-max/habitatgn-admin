@@ -189,7 +189,8 @@ export default function PricingPackagesTab({
                       <span className="text-xs text-gray-500">Confirmer ?</span>
                       <button
                         onClick={() => handleDelete(pkg)}
-                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                        style={{ backgroundColor: colors.error }}
                       >
                         Oui
                       </button>
@@ -211,7 +212,7 @@ export default function PricingPackagesTab({
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(pkg.id)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
+                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
                         title="Supprimer"
                       >
                         <RiDeleteBinLine className="h-4 w-4" />
@@ -273,7 +274,7 @@ export default function PricingPackagesTab({
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Standard"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -288,7 +289,7 @@ export default function PricingPackagesTab({
                 placeholder={priceSuffix === '%' ? 'Ex: 10' : 'Ex: 500000'}
               />
               {errors.priceGNF && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.priceGNF.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.priceGNF.message}</p>
               )}
             </div>
             {showDelayDays && (
@@ -318,7 +319,7 @@ export default function PricingPackagesTab({
                 placeholder="Ex: 10% du loyer mensuel"
               />
               {errors.priceDisplay && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.priceDisplay.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.priceDisplay.message}</p>
               )}
             </div>
           )}
@@ -334,7 +335,7 @@ export default function PricingPackagesTab({
               placeholder="Description courte de l'offre"
             />
             {errors.description && (
-              <p className="mt-1 text-xs font-semibold text-red-500">{errors.description.message}</p>
+              <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.description.message}</p>
             )}
           </div>
 

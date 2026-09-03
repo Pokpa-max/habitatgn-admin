@@ -1,6 +1,7 @@
 import { Fragment, useRef } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { GiConfirmed } from 'react-icons/gi'
+import { useColors } from '@/contexts/ColorContext'
 
 function ConfirmModal({
   title = 'Voulez vous continuer',
@@ -10,6 +11,7 @@ function ConfirmModal({
   confirmFunction = () => {},
   cancelFuction = () => {},
 }) {
+  const colors = useColors()
   const cancelButtonRef = useRef(null)
 
   return (
@@ -46,9 +48,13 @@ function ConfirmModal({
               <Dialog.Panel className="relative transform overflow-hidden rounded-2xl border border-gray-100 bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
                 <div className="bg-white px-6 pt-6 pb-5">
                   <div className="sm:flex sm:items-start">
-                    <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-red-50 sm:mx-0 sm:h-11 sm:w-11">
+                    <div
+                      className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl sm:mx-0 sm:h-11 sm:w-11"
+                      style={{ backgroundColor: '#FEF2F2' }}
+                    >
                       <GiConfirmed
-                        className="h-6 w-6 text-red-600"
+                        className="h-6 w-6"
+                        style={{ color: colors.error }}
                         aria-hidden="true"
                       />
                     </div>
@@ -68,7 +74,8 @@ function ConfirmModal({
                 <div className="bg-gray-50/80 border-t border-gray-100 px-6 py-4 sm:flex sm:flex-row-reverse">
                   <button
                     type="button"
-                    className="inline-flex w-full justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 active:translate-y-px transition-all sm:ml-3 sm:w-auto"
+                    className="inline-flex w-full justify-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 active:translate-y-px transition-all sm:ml-3 sm:w-auto"
+                    style={{ backgroundColor: colors.error }}
                     onClick={() => confirmFunction()}
                   >
                     Confirmer

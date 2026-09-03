@@ -219,7 +219,8 @@ export default function LegalPartnersTab() {
                       <span className="text-xs text-gray-500">Confirmer ?</span>
                       <button
                         onClick={() => handleDelete(partner)}
-                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                        style={{ backgroundColor: colors.error }}
                       >
                         Oui
                       </button>
@@ -251,7 +252,7 @@ export default function LegalPartnersTab() {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(partner.id)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
+                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
                         title="Supprimer"
                       >
                         <RiDeleteBinLine className="h-4 w-4" />
@@ -323,7 +324,7 @@ export default function LegalPartnersTab() {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Étude Notariale Diallo & Associés"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
 
           <div>
@@ -368,7 +369,7 @@ export default function LegalPartnersTab() {
                   </option>
                 ))}
               </select>
-              {errors.commune && <p className="mt-1 text-xs font-semibold text-red-500">{errors.commune.message}</p>}
+              {errors.commune && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.commune.message}</p>}
             </div>
           </div>
 
@@ -382,7 +383,7 @@ export default function LegalPartnersTab() {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Transactions foncières & successions"
             />
-            {errors.specialty && <p className="mt-1 text-xs font-semibold text-red-500">{errors.specialty.message}</p>}
+            {errors.specialty && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.specialty.message}</p>}
           </div>
 
           <div>
@@ -395,7 +396,7 @@ export default function LegalPartnersTab() {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="+224 6XX XXX XXX"
             />
-            {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
+            {errors.phone && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.phone.message}</p>}
           </div>
 
           <div>

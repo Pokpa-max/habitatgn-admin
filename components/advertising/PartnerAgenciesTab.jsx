@@ -268,7 +268,8 @@ export default function PartnerAgenciesTab() {
                         <span className="text-xs text-gray-500">Confirmer ?</span>
                         <button
                           onClick={() => handleDelete(agency)}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                          style={{ backgroundColor: colors.error }}
                         >
                           Oui
                         </button>
@@ -348,7 +349,8 @@ export default function PartnerAgenciesTab() {
                 setMenuAnchor(null)
                 setDeleteConfirm(agency.id)
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+              style={{ color: colors.error }}
             >
               <RiDeleteBinLine className="h-4 w-4" />
               Supprimer
@@ -405,7 +407,7 @@ export default function PartnerAgenciesTab() {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Agence Immo Conakry"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
 
           <div>

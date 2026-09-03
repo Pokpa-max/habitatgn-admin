@@ -586,7 +586,7 @@ export default function PropertyDrawerForm({
                 placeholder="Ex: Kaloum, rue KA-025"
               />
               {errors.address && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.address.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.address.message}</p>
               )}
             </div>
 
@@ -615,7 +615,7 @@ export default function PropertyDrawerForm({
                   placeholder="Ex: 1500000"
                 />
                 {errors.rentAmount && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.rentAmount.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.rentAmount.message}</p>
                 )}
               </div>
               <div>
@@ -678,7 +678,7 @@ export default function PropertyDrawerForm({
                   ))}
                 </select>
                 {errors.municipality && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                     {errors.municipality.message}
                   </p>
                 )}
@@ -693,7 +693,7 @@ export default function PropertyDrawerForm({
                   placeholder="Déterminée selon la commune"
                 />
                 {errors.region && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.region.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.region.message}</p>
                 )}
               </div>
             </div>
@@ -862,7 +862,7 @@ export default function PropertyDrawerForm({
                         className={inputClass}
                       />
                       {errors.newOwnerName && (
-                        <p className="mt-1 text-xs font-semibold text-red-500">{errors.newOwnerName.message}</p>
+                        <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.newOwnerName.message}</p>
                       )}
                     </div>
                     <div>
@@ -874,7 +874,7 @@ export default function PropertyDrawerForm({
                         placeholder="+224 6XX XX XX XX"
                       />
                       {errors.newOwnerPhone && (
-                        <p className="mt-1 text-xs font-semibold text-red-500">{errors.newOwnerPhone.message}</p>
+                        <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.newOwnerPhone.message}</p>
                       )}
                     </div>
                     <div className="col-span-2">
@@ -915,7 +915,7 @@ export default function PropertyDrawerForm({
                     className={inputClass}
                   />
                   {errors.contactName && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.contactName.message}</p>
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.contactName.message}</p>
                   )}
                 </div>
                 <div>
@@ -927,7 +927,7 @@ export default function PropertyDrawerForm({
                     placeholder="+224 6XX XX XX XX"
                   />
                   {errors.contactPhone && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.contactPhone.message}</p>
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.contactPhone.message}</p>
                   )}
                 </div>
                 <div>
@@ -947,7 +947,7 @@ export default function PropertyDrawerForm({
                   placeholder="Ex: 1500000"
                 />
                 {errors.priceAmount && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.priceAmount.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.priceAmount.message}</p>
                 )}
               </div>
               <div>

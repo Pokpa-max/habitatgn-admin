@@ -170,7 +170,8 @@ export default function DepensesTab({ ownerId }) {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleDelete(expense)}
-                            className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                            className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                            style={{ backgroundColor: colors.error }}
                           >
                             Oui
                           </button>
@@ -184,7 +185,7 @@ export default function DepensesTab({ ownerId }) {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirm(expense.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
+                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
                           title="Supprimer"
                         >
                           <RiDeleteBinLine className="h-4 w-4" />
@@ -264,7 +265,7 @@ export default function DepensesTab({ ownerId }) {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Taxe foncière 2026"
             />
-            {errors.label && <p className="mt-1 text-xs font-semibold text-red-500">{errors.label.message}</p>}
+            {errors.label && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.label.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -292,7 +293,7 @@ export default function DepensesTab({ ownerId }) {
                 {...register('amount', { required: 'Requis' })}
                 className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              {errors.amount && <p className="mt-1 text-xs font-semibold text-red-500">{errors.amount.message}</p>}
+              {errors.amount && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.amount.message}</p>}
             </div>
           </div>
 

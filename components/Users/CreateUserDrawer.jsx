@@ -214,7 +214,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
               placeholder="Sélectionner le rôle"
             />
             {errors?.userRole && (
-              <p className="mt-1 text-xs font-semibold text-red-500">{errors.userRole.message}</p>
+              <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.userRole.message}</p>
             )}
           </div>
 
@@ -234,7 +234,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                 placeholder="meloger@gmail.com"
               />
               {errors?.email && (
-                <p className="mt-1 text-xs font-semibold text-red-500">
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                   {errors.email.type === 'pattern' ? 'Entrez un email valide' : errors.email.message}
                 </p>
               )}
@@ -257,7 +257,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                 />
               </div>
               {errors?.phoneNumber && (
-                <p className="mt-1 text-xs font-semibold text-red-500">
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                   {errors.phoneNumber.type === 'pattern' ? 'Entrez un numéro valide' : errors.phoneNumber.message}
                 </p>
               )}
@@ -284,7 +284,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
               </button>
             </div>
             {errors?.passWord && (
-              <p className="mt-1 text-xs font-semibold text-red-500">{errors.passWord.message}</p>
+              <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.passWord.message}</p>
             )}
           </div>
 
@@ -317,7 +317,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                     placeholder="Votre nom"
                   />
                   {errors?.firstname && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.firstname.message}</p>
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.firstname.message}</p>
                   )}
                 </div>
 
@@ -332,7 +332,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                     placeholder="Votre prénom"
                   />
                   {errors?.lastname && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.lastname.message}</p>
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.lastname.message}</p>
                   )}
                 </div>
               </div>
@@ -385,7 +385,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                   placeholder="Nom et prénom de l'agent"
                 />
                 {errors?.fullName && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.fullName.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.fullName.message}</p>
                 )}
               </div>
 
@@ -401,7 +401,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                     placeholder="Nom de l'agence"
                   />
                   {errors?.agencyName && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.agencyName.message}</p>
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.agencyName.message}</p>
                   )}
                 </div>
               )}
@@ -429,7 +429,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                   ))}
                 </select>
                 {errors?.agentCommune && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.agentCommune.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.agentCommune.message}</p>
                 )}
               </div>
 
@@ -521,7 +521,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                   placeholder="Nom et prénom de l'ouvrier"
                 />
                 {errors?.fullName && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.fullName.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.fullName.message}</p>
                 )}
               </div>
 
@@ -565,7 +565,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                   </select>
                 )}
                 {errors?.workerSpecialty && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.workerSpecialty.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.workerSpecialty.message}</p>
                 )}
               </div>
 
@@ -642,7 +642,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                   placeholder="Présentation, expérience, savoir-faire..."
                 />
                 {errors?.description && (
-                  <p className="mt-1 text-xs font-semibold text-red-500">{errors.description.message}</p>
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.description.message}</p>
                 )}
               </div>
             </div>

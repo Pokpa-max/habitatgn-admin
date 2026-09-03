@@ -177,7 +177,7 @@ export default function ProprietairesTab() {
               {...register('name', { required: 'Requis' })}
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-900">
@@ -189,7 +189,7 @@ export default function ProprietairesTab() {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="+224 6XX XX XX XX"
             />
-            {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
+            {errors.phone && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.phone.message}</p>}
           </div>
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-900">

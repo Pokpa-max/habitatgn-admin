@@ -707,7 +707,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               openDetail(selectedProperty)
               setDeleteConfirm(selectedProperty?.id)
             }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+            style={{ color: colors.error }}
           >
             <RiDeleteBinLine className="h-4 w-4" />
             Supprimer l'annonce
@@ -741,7 +742,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             <button
               type="button"
               onClick={() => setDeleteConfirm(detailProperty?.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-red-50"
+              style={{ borderColor: colors.error, color: colors.error }}
             >
               <RiDeleteBinLine className="h-3.5 w-3.5" />
               Supprimer l'annonce
@@ -750,11 +752,12 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               <button
                 type="button"
                 onClick={() => handleToggleStatus(detailProperty)}
-                className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:opacity-80"
+                style={
                   detailProperty?.status === 'inactive'
-                    ? 'border-green-600 bg-green-50 text-green-700 hover:bg-green-100'
-                    : 'border-amber-600 bg-amber-50 text-amber-700 hover:bg-amber-100'
-                }`}
+                    ? { borderColor: colors.success, backgroundColor: '#F0FDF4', color: colors.success }
+                    : { borderColor: colors.warning, backgroundColor: '#FFFBEB', color: colors.warning }
+                }
               >
                 {detailProperty?.status === 'inactive'
                   ? "Réactiver l'annonce"
@@ -908,7 +911,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         </span>
                         <button
                           onClick={() => handleDelete(detailProperty)}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                          style={{ backgroundColor: colors.error }}
                         >
                           Oui, supprimer
                         </button>

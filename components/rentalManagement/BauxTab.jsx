@@ -327,7 +327,7 @@ export default function BauxTab({ ownerId }) {
                 className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.tenantName && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.tenantName.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.tenantName.message}</p>
               )}
             </div>
             <div>
@@ -341,7 +341,7 @@ export default function BauxTab({ ownerId }) {
                 placeholder="+224 6XX XX XX XX"
               />
               {errors.tenantPhone && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.tenantPhone.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.tenantPhone.message}</p>
               )}
             </div>
           </div>
@@ -368,7 +368,7 @@ export default function BauxTab({ ownerId }) {
                 className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.rentAmount && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.rentAmount.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.rentAmount.message}</p>
               )}
             </div>
             <div>
@@ -394,7 +394,7 @@ export default function BauxTab({ ownerId }) {
                 className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.startDate && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.startDate.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.startDate.message}</p>
               )}
             </div>
             <div>

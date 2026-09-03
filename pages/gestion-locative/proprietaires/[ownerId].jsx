@@ -187,8 +187,8 @@ function OwnerDetail() {
 
               <div className="mt-6 grid grid-cols-3 gap-4">
                 <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
-                <StatCard label="Occupés" value={occupiedCount} color="#065F46" bgColor="#ECFDF5" />
-                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" bgColor="#FFFBEB" />
+                <StatCard label="Occupés" value={occupiedCount} color={colors.success} bgColor="#ECFDF5" />
+                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color={colors.orangeAccent} bgColor={colors.orangeLight} />
               </div>
 
               <div className="mt-4 border-t border-gray-100 pt-4">
@@ -197,7 +197,8 @@ function OwnerDetail() {
                     <span className="text-xs text-gray-500">Confirmer la suppression ?</span>
                     <button
                       onClick={handleDeleteOwner}
-                      className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                      style={{ backgroundColor: colors.error }}
                     >
                       Oui, supprimer
                     </button>
@@ -305,7 +306,7 @@ function OwnerDetail() {
                   {...register('name', { required: 'Requis' })}
                   className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+                {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
               </div>
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-900">
@@ -316,7 +317,7 @@ function OwnerDetail() {
                   {...register('phone', { required: 'Requis' })}
                   className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
+                {errors.phone && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.phone.message}</p>}
               </div>
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-900">

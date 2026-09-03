@@ -288,11 +288,11 @@ export default function ServiceRevenuesTab() {
             <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Semaine</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                  <RiCalendarEventLine className="h-5 w-5 text-emerald-600" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
+                  <RiCalendarEventLine className="h-5 w-5" style={{ color: colors.primary }} />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-extrabold text-emerald-900">
+              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
                 {formatGNF(periodTotals.week.platform)}
               </p>
               <p className="mt-1 text-xs text-gray-500">
@@ -318,11 +318,11 @@ export default function ServiceRevenuesTab() {
             <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Année</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
-                  <RiWallet3Line className="h-5 w-5 text-blue-600" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
+                  <RiWallet3Line className="h-5 w-5" style={{ color: colors.primary }} />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-extrabold text-blue-900">
+              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
                 {formatGNF(periodTotals.year.platform)}
               </p>
               <p className="mt-1 text-xs text-gray-500">
@@ -333,11 +333,11 @@ export default function ServiceRevenuesTab() {
             <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Cumul Global</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-                  <RiMoneyDollarCircleLine className="h-5 w-5 text-amber-600" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.orangeLight }}>
+                  <RiMoneyDollarCircleLine className="h-5 w-5" style={{ color: colors.orangeAccent }} />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-extrabold text-amber-900">
+              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.orangeAccent }}>
                 {formatGNF(periodTotals.all.platform)}
               </p>
               <p className="mt-1 text-xs text-gray-500">
@@ -350,7 +350,7 @@ export default function ServiceRevenuesTab() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2">
-                <RiTruckLine className="h-5 w-5 text-blue-600" />
+                <RiTruckLine className="h-5 w-5" style={{ color: colors.primary }} />
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Déménagement</span>
               </div>
               <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.movingRevenue)}</p>
@@ -359,7 +359,7 @@ export default function ServiceRevenuesTab() {
 
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2">
-                <RiHomeGearLine className="h-5 w-5 text-emerald-600" />
+                <RiHomeGearLine className="h-5 w-5" style={{ color: colors.orangeAccent }} />
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Gestion Locative</span>
               </div>
               <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.rentalRevenue)}</p>
@@ -370,7 +370,7 @@ export default function ServiceRevenuesTab() {
 
             <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-2">
-                <RiFileShieldLine className="h-5 w-5 text-amber-600" />
+                <RiFileShieldLine className="h-5 w-5" style={{ color: colors.primary }} />
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Sécurisation Foncière</span>
               </div>
               <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.legalRevenue)}</p>

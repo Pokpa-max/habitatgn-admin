@@ -336,7 +336,7 @@ export default function EntretienTab({ ownerId }) {
               className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Fuite d'eau salle de bain"
             />
-            {errors.title && <p className="mt-1 text-xs font-semibold text-red-500">{errors.title.message}</p>}
+            {errors.title && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.title.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

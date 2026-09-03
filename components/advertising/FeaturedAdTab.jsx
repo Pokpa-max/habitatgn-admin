@@ -221,7 +221,7 @@ export default function FeaturedAdTab() {
                   className="rounded p-1.5 hover:bg-red-50"
                   aria-label="Supprimer"
                 >
-                  <RiDeleteBinLine className="h-4 w-4 text-red-500" />
+                  <RiDeleteBinLine className="h-4 w-4" style={{ color: colors.error }} />
                 </button>
               </div>
             </div>

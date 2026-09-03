@@ -640,7 +640,8 @@ export default function WorkersPage() {
                   type="button"
                   disabled={bulkActing}
                   onClick={() => handleBulkBlock(true)}
-                  className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-60"
+                  className="rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold hover:bg-amber-50 disabled:opacity-60"
+                  style={{ borderColor: colors.warning, color: colors.warning }}
                 >
                   Bloquer
                 </button>

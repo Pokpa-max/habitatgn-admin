@@ -344,7 +344,7 @@ export default function MarketplaceProductsPage() {
               placeholder="ex: Machine a laver, Canapé 3 places"
             />
             {errors.title && (
-              <p className="mt-1 text-xs font-semibold text-red-500">
+              <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                 {errors.title.message}
               </p>
             )}
@@ -378,7 +378,7 @@ export default function MarketplaceProductsPage() {
                 placeholder="ex: 2500000"
               />
               {errors.price && (
-                <p className="mt-1 text-xs font-semibold text-red-500">
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                   {errors.price.message}
                 </p>
               )}
@@ -529,11 +529,14 @@ export default function MarketplaceProductsPage() {
             <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
               Actifs
             </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-              <RiCheckboxCircleLine className="h-4 w-4 text-emerald-600" />
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ backgroundColor: '#F0FDF4' }}
+            >
+              <RiCheckboxCircleLine className="h-4 w-4" style={{ color: colors.success }} />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-emerald-900">
+          <p className="mt-2 text-2xl font-extrabold" style={{ color: colors.success }}>
             {activeCount}
           </p>
         </div>
@@ -543,11 +546,14 @@ export default function MarketplaceProductsPage() {
             <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
               Inactifs
             </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
-              <RiCloseCircleLine className="h-4 w-4 text-red-600" />
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ backgroundColor: '#FEF2F2' }}
+            >
+              <RiCloseCircleLine className="h-4 w-4" style={{ color: colors.error }} />
             </div>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-red-900">
+          <p className="mt-2 text-2xl font-extrabold" style={{ color: colors.error }}>
             {inactiveCount}
           </p>
         </div>
@@ -786,9 +792,9 @@ export default function MarketplaceProductsPage() {
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
             >
               {prod.active ? (
-                <RiCloseCircleLine className="h-4 w-4 text-amber-600" />
+                <RiCloseCircleLine className="h-4 w-4" style={{ color: colors.warning }} />
               ) : (
-                <RiCheckboxCircleLine className="h-4 w-4 text-emerald-600" />
+                <RiCheckboxCircleLine className="h-4 w-4" style={{ color: colors.success }} />
               )}
               {prod.active ? 'Désactiver' : 'Activer'}
             </button>
@@ -831,7 +837,8 @@ export default function MarketplaceProductsPage() {
                 setDeleteTarget(prod)
                 setDeleteModalOpen(true)
               }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+              style={{ color: colors.error }}
             >
               <RiDeleteBinLine className="h-4 w-4" />
               Supprimer

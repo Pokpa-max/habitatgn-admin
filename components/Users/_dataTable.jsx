@@ -47,15 +47,15 @@ export const columnsUser = [
       switch (data) {
         case 'admin':
           label = 'Administrateur'
-          colorClass = 'bg-purple-100 text-purple-800'
+          colorClass = 'bg-primary-light text-primary-dark'
           break
         case 'manager':
           label = 'Manager'
-          colorClass = 'bg-green-100 text-green-800'
+          colorClass = 'bg-accent-light text-accent'
           break
         case 'customer':
           label = 'Client'
-          colorClass = 'bg-blue-100 text-blue-800'
+          colorClass = 'bg-gray-100 text-gray-800'
           break
         default:
           label = data || 'Inconnu'
