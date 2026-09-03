@@ -286,97 +286,106 @@ export default function ServiceRevenuesTab() {
         <>
           {/* Cartes de Synthèse par Période (Semaine, Mois, Année, Total) */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Semaine</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
-                  <RiCalendarEventLine className="h-5 w-5" style={{ color: colors.primary }} />
+            {[
+              {
+                icon: RiCalendarEventLine,
+                label: 'Revenu Semaine',
+                value: formatGNF(periodTotals.week.platform),
+                subValue: `7 derniers jours · ${formatGNF(periodTotals.week.gross)} encaissé`,
+              },
+              {
+                icon: RiMoneyDollarCircleLine,
+                label: 'Revenu Mois',
+                value: formatGNF(periodTotals.month.platform),
+                subValue: `Ce mois-ci · ${formatGNF(periodTotals.month.gross)} encaissé`,
+              },
+              {
+                icon: RiWallet3Line,
+                label: 'Revenu Année',
+                value: formatGNF(periodTotals.year.platform),
+                subValue: `Cette année · ${formatGNF(periodTotals.year.gross)} encaissé`,
+              },
+              {
+                icon: RiMoneyDollarCircleLine,
+                label: 'Cumul Global',
+                value: formatGNF(periodTotals.all.platform),
+                subValue: `Tout l'historique · ${formatGNF(periodTotals.all.gross)} encaissé`,
+              },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+              >
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: colors.primaryVeryLight }}
+                >
+                  <card.icon className="h-4 w-4" style={{ color: colors.primary }} />
                 </div>
+                <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                  {card.label}
+                </p>
+                <p
+                  className="font-mono text-xl font-semibold tracking-tight"
+                  style={{ color: colors.gray900 }}
+                >
+                  {card.value}
+                </p>
+                <p className="text-[11.5px]" style={{ color: colors.gray500 }}>
+                  {card.subValue}
+                </p>
               </div>
-              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-                {formatGNF(periodTotals.week.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                7 derniers jours · {formatGNF(periodTotals.week.gross)} encaissé
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Mois</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
-                  <RiMoneyDollarCircleLine className="h-5 w-5" style={{ color: colors.primary }} />
-                </div>
-              </div>
-              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-                {formatGNF(periodTotals.month.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Ce mois-ci · {formatGNF(periodTotals.month.gross)} encaissé
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Année</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
-                  <RiWallet3Line className="h-5 w-5" style={{ color: colors.primary }} />
-                </div>
-              </div>
-              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-                {formatGNF(periodTotals.year.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Cette année · {formatGNF(periodTotals.year.gross)} encaissé
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Cumul Global</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
-                  <RiMoneyDollarCircleLine className="h-5 w-5" style={{ color: colors.primary }} />
-                </div>
-              </div>
-              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-                {formatGNF(periodTotals.all.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Tout l'historique · {formatGNF(periodTotals.all.gross)} encaissé
-              </p>
-            </div>
+            ))}
           </div>
 
           {/* Répartition par Service */}
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <RiTruckLine className="h-5 w-5" style={{ color: colors.primary }} />
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Déménagement</span>
+            {[
+              {
+                icon: RiTruckLine,
+                label: 'Déménagement',
+                value: formatGNF(stats.movingRevenue),
+                subValue: `${stats.movingCount} prestations`,
+              },
+              {
+                icon: RiHomeGearLine,
+                label: 'Gestion Locative',
+                value: formatGNF(stats.rentalRevenue),
+                subValue: `Commission sur ${stats.rentalCount} règlements · ${formatGNF(stats.rentalGross)} encaissé`,
+              },
+              {
+                icon: RiFileShieldLine,
+                label: 'Sécurisation Foncière',
+                value: formatGNF(stats.legalRevenue),
+                subValue: `${stats.legalCount} dossiers`,
+              },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+              >
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: colors.primaryVeryLight }}
+                >
+                  <card.icon className="h-4 w-4" style={{ color: colors.primary }} />
+                </div>
+                <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                  {card.label}
+                </p>
+                <p
+                  className="font-mono text-xl font-semibold tracking-tight"
+                  style={{ color: colors.gray900 }}
+                >
+                  {card.value}
+                </p>
+                <p className="text-[11.5px]" style={{ color: colors.gray500 }}>
+                  {card.subValue}
+                </p>
               </div>
-              <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.movingRevenue)}</p>
-              <p className="mt-0.5 text-xs text-gray-400">{stats.movingCount} prestations</p>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <RiHomeGearLine className="h-5 w-5" style={{ color: colors.primary }} />
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Gestion Locative</span>
-              </div>
-              <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.rentalRevenue)}</p>
-              <p className="mt-0.5 text-xs text-gray-400">
-                Commission sur {stats.rentalCount} règlements · {formatGNF(stats.rentalGross)} encaissé
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <RiFileShieldLine className="h-5 w-5" style={{ color: colors.primary }} />
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Sécurisation Foncière</span>
-              </div>
-              <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.legalRevenue)}</p>
-              <p className="mt-0.5 text-xs text-gray-400">{stats.legalCount} dossiers</p>
-            </div>
+            ))}
           </div>
 
           {/* Tableau des transactions de services */}

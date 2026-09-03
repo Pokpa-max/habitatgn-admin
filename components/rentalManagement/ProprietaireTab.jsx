@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { RiMoneyDollarCircleLine } from 'react-icons/ri'
+import { RiMoneyDollarCircleLine, RiPercentLine, RiToolsLine, RiWallet3Line } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import { formatGNF, currentPeriod, formatPeriodLabel } from '@/utils/format'
@@ -10,19 +10,28 @@ import { getPropertyExpenses } from '@/lib/services/propertyExpenses'
 import { getMaintenanceTickets } from '@/lib/services/maintenanceTickets'
 import { getPropertyOwners } from '@/lib/services/propertyOwners'
 
-function StatCard({ label, value, color }) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-bold" style={{ color }}>
+export default function ProprietaireTab({ ownerId, ownerName }) {
+  const colors = useColors()
+
+  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
+    <div
+      className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+    >
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} />
+      </div>
+      <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+        {label}
+      </p>
+      <p className="font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
         {value}
       </p>
     </div>
   )
-}
-
-export default function ProprietaireTab({ ownerId, ownerName }) {
-  const colors = useColors()
   const [properties, setProperties] = useState([])
   const [owners, setOwners] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -152,17 +161,33 @@ export default function ProprietaireTab({ ownerId, ownerName }) {
           </p>
 
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard label="Loyers encaissés" value={formatGNF(statement.rentCollected)} color={colors.primary} />
-            <StatCard label="Commission agence" value={formatGNF(statement.commission)} color="#92400E" />
             <StatCard
-              label="Dépenses & entretien"
-              value={formatGNF(statement.expensesTotal + statement.maintenanceTotal)}
-              color="#991B1B"
+              icon={RiMoneyDollarCircleLine}
+              label="Loyers encaissés"
+              value={formatGNF(statement.rentCollected)}
+              iconBg={colors.primaryVeryLight}
+              iconColor={colors.primary}
             />
             <StatCard
+              icon={RiPercentLine}
+              label="Commission agence"
+              value={formatGNF(statement.commission)}
+              iconBg="#FFFBEB"
+              iconColor="#92400E"
+            />
+            <StatCard
+              icon={RiToolsLine}
+              label="Dépenses & entretien"
+              value={formatGNF(statement.expensesTotal + statement.maintenanceTotal)}
+              iconBg="#FEF2F2"
+              iconColor="#991B1B"
+            />
+            <StatCard
+              icon={RiWallet3Line}
               label="Net à reverser"
               value={formatGNF(statement.netToOwner)}
-              color={statement.netToOwner >= 0 ? '#065F46' : '#991B1B'}
+              iconBg={statement.netToOwner >= 0 ? '#F0FDF4' : '#FEF2F2'}
+              iconColor={statement.netToOwner >= 0 ? '#065F46' : '#991B1B'}
             />
           </div>
 

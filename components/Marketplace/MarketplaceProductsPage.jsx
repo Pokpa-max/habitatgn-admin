@@ -505,59 +505,51 @@ export default function MarketplaceProductsPage() {
 
       {/* Cartes d'aperçu Marketplace */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Total Produits
-            </span>
+        {[
+          {
+            icon: RiShoppingBag3Line,
+            label: 'Total Produits',
+            value: products.length,
+            iconBg: colors.primaryVeryLight,
+            iconColor: colors.primary,
+          },
+          {
+            icon: RiCheckboxCircleLine,
+            label: 'Actifs',
+            value: activeCount,
+            iconBg: '#F0FDF4',
+            iconColor: colors.success,
+          },
+          {
+            icon: RiCloseCircleLine,
+            label: 'Inactifs',
+            value: inactiveCount,
+            iconBg: '#FEF2F2',
+            iconColor: colors.error,
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+          >
             <div
               className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ backgroundColor: colors.primaryVeryLight }}
+              style={{ backgroundColor: card.iconBg }}
             >
-              <RiShoppingBag3Line
-                className="h-4 w-4"
-                style={{ color: colors.primary }}
-              />
+              <card.icon className="h-4 w-4" style={{ color: card.iconColor }} />
             </div>
-          </div>
-          <p className="mt-2 text-2xl font-extrabold text-gray-900">
-            {products.length}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Actifs
-            </span>
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ backgroundColor: '#F0FDF4' }}
+            <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+              {card.label}
+            </p>
+            <p
+              className="font-mono text-xl font-semibold tracking-tight"
+              style={{ color: colors.gray900 }}
             >
-              <RiCheckboxCircleLine className="h-4 w-4" style={{ color: colors.success }} />
-            </div>
+              {card.value}
+            </p>
           </div>
-          <p className="mt-2 text-2xl font-extrabold" style={{ color: colors.success }}>
-            {activeCount}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Inactifs
-            </span>
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ backgroundColor: '#FEF2F2' }}
-            >
-              <RiCloseCircleLine className="h-4 w-4" style={{ color: colors.error }} />
-            </div>
-          </div>
-          <p className="mt-2 text-2xl font-extrabold" style={{ color: colors.error }}>
-            {inactiveCount}
-          </p>
-        </div>
+        ))}
       </div>
 
       {/* En-tête de section & Recherche */}

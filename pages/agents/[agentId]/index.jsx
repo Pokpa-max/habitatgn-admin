@@ -6,6 +6,8 @@ import {
   RiPhoneLine,
   RiMapPinLine,
   RiMoneyDollarCircleLine,
+  RiHome4Line,
+  RiCheckboxCircleLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -50,19 +52,28 @@ const PROPERTY_TYPE_LABELS = {
   terrain: 'Terrain',
 }
 
-function StatCard({ label, value, color, bgColor }) {
-  return (
-    <div className="rounded-xl border border-gray-100 p-4 shadow-sm" style={{ backgroundColor: bgColor || '#F9FAFB' }}>
-      <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-extrabold" style={{ color }}>
+function AgentDetail() {
+  const colors = useColors()
+
+  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
+    <div
+      className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+    >
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} />
+      </div>
+      <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+        {label}
+      </p>
+      <p className="font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
         {value}
       </p>
     </div>
   )
-}
-
-function AgentDetail() {
-  const colors = useColors()
   const router = useRouter()
   const { agentId } = router.query
 
@@ -249,9 +260,27 @@ function AgentDetail() {
               </div>
 
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
-                <StatCard label="Occupés" value={occupiedCount} color={colors.success} bgColor="#ECFDF5" />
-                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color={colors.gray900} bgColor={colors.gray50} />
+                <StatCard
+                  icon={RiHome4Line}
+                  label="Biens gérés"
+                  value={properties.length}
+                  iconBg={colors.primaryVeryLight}
+                  iconColor={colors.primary}
+                />
+                <StatCard
+                  icon={RiCheckboxCircleLine}
+                  label="Occupés"
+                  value={occupiedCount}
+                  iconBg="#ECFDF5"
+                  iconColor={colors.success}
+                />
+                <StatCard
+                  icon={RiMoneyDollarCircleLine}
+                  label="Loyers cumulés / mois"
+                  value={formatGNF(totalRent)}
+                  iconBg={colors.gray50}
+                  iconColor={colors.gray600}
+                />
               </div>
             </div>
 

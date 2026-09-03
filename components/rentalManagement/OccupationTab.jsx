@@ -1,28 +1,37 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { RiPieChartLine } from 'react-icons/ri'
+import { RiPieChartLine, RiHome4Line, RiHome3Line, RiCheckboxCircleLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 
-function StatCard({ label, value, color }) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-bold" style={{ color }}>
-        {value}
-      </p>
-    </div>
-  )
-}
-
 const STATUS_LABELS = { vacant: 'Vacant', occupied: 'Occupé', inactive: 'Inactif' }
 const STATUS_COLORS = { vacant: '#F59E0B', occupied: '#16A34A', inactive: '#9CA3AF' }
 
 export default function OccupationTab({ ownerId }) {
   const colors = useColors()
+
+  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
+    <div
+      className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+    >
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} />
+      </div>
+      <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+        {label}
+      </p>
+      <p className="font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
+        {value}
+      </p>
+    </div>
+  )
   const [properties, setProperties] = useState([])
   const [leases, setLeases] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -80,10 +89,34 @@ export default function OccupationTab({ ownerId }) {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard label="Biens gérés" value={total} color={colors.primary} />
-            <StatCard label="Taux d'occupation" value={`${occupancyRate}%`} color="#065F46" />
-            <StatCard label="Occupés" value={occupied} color="#16A34A" />
-            <StatCard label="Vacants" value={vacant} color="#92400E" />
+            <StatCard
+              icon={RiHome4Line}
+              label="Biens gérés"
+              value={total}
+              iconBg={colors.primaryVeryLight}
+              iconColor={colors.primary}
+            />
+            <StatCard
+              icon={RiPieChartLine}
+              label="Taux d'occupation"
+              value={`${occupancyRate}%`}
+              iconBg="#F0FDF4"
+              iconColor="#065F46"
+            />
+            <StatCard
+              icon={RiCheckboxCircleLine}
+              label="Occupés"
+              value={occupied}
+              iconBg="#F0FDF4"
+              iconColor={colors.success}
+            />
+            <StatCard
+              icon={RiHome3Line}
+              label="Vacants"
+              value={vacant}
+              iconBg="#FFFBEB"
+              iconColor="#92400E"
+            />
           </div>
 
           <div className="mb-6 h-64 rounded-lg border border-gray-100 p-4">
