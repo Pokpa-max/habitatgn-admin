@@ -8,8 +8,8 @@ export default function Header({ title }) {
 
   return (
     <div className="py-5">
-      <div>
-        <nav className="sm:hidden" aria-label="Back">
+      <div className="mb-2">
+        <nav aria-label="Back">
           <a
             href="#"
             onClick={(e) => {

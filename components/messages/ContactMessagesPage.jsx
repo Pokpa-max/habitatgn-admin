@@ -328,7 +328,7 @@ export default function ContactMessagesPage() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {visible.map((message) => (
                   <tr key={message.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <p
                         className="text-sm text-gray-900"
                         style={{ fontWeight: message.read ? 500 : 700 }}
@@ -339,7 +339,7 @@ export default function ContactMessagesPage() {
                         <RiMailLine className="h-3.5 w-3.5" /> {message.email}
                       </p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <p
                         className="max-w-xs truncate text-sm text-gray-700"
                         style={{ fontWeight: message.read ? 400 : 600 }}
@@ -347,10 +347,10 @@ export default function ContactMessagesPage() {
                         {message.subject}
                       </p>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                    <td className="px-6 py-3 font-mono text-xs text-gray-500">
                       {firebaseDateFormat(message.createdAt)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600">
                         <span
                           className="h-1.5 w-1.5 rounded-full"
@@ -359,7 +359,7 @@ export default function ContactMessagesPage() {
                         {message.read ? 'Lu' : 'Non lu'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <button
                         onClick={() => {
                           setDetailTarget(message)

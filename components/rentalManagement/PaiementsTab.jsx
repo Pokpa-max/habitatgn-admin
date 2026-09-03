@@ -254,25 +254,25 @@ export default function PaiementsTab({ ownerId }) {
                         const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period)
                         return (
                           <tr key={payment.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 font-mono text-gray-500">
+                            <td className="px-6 py-3 font-mono text-gray-500">
                               {payment.paymentDate ? firebaseDateFormat(new Date(payment.paymentDate)) : '—'}
                             </td>
-                            <td className="px-6 py-4 text-gray-700">
+                            <td className="px-6 py-3 text-gray-700">
                               {property?.reference} — {lease?.tenantName || '—'}
                             </td>
-                            <td className="px-6 py-4 font-mono text-gray-700">
+                            <td className="px-6 py-3 font-mono text-gray-700">
                               {formatPeriodLabel(payment.period)}
                               <span className="ml-2 inline-block align-middle">
                                 <StatusPill tone={status.tone}>{status.label}</StatusPill>
                               </span>
                             </td>
-                            <td className="px-6 py-4 font-mono font-semibold" style={{ color: colors.primary }}>
+                            <td className="px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
                               {formatGNF(payment.amountPaid)}
                             </td>
-                            <td className="px-6 py-4 text-gray-500">
+                            <td className="px-6 py-3 text-gray-500">
                               {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-6 py-3">
                               {deleteConfirm === payment.id ? (
                                 <div className="flex items-center gap-2">
                                   <button

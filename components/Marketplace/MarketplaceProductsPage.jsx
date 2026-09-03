@@ -666,7 +666,7 @@ export default function MarketplaceProductsPage() {
 
                     return (
                       <tr key={prod.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
                               {prod.imageUrls?.[0] ? (
@@ -693,7 +693,7 @@ export default function MarketplaceProductsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <span
                             className="rounded-full px-2.5 py-1 text-xs font-semibold"
                             style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
@@ -701,18 +701,18 @@ export default function MarketplaceProductsPage() {
                             {catLabel}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
+                        <td className="px-6 py-3 text-xs text-gray-500">
                           {prod.commune || '—'}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <span className="font-mono text-sm font-bold text-gray-900">
                             {formatGNF(prod.price)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                        <td className="px-6 py-3 font-mono text-xs text-gray-500">
                           {prod.phone || '—'}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <StatusPill tone={prod.active ? 'success' : 'error'}>
                             {prod.active ? 'Actif' : 'Inactif'}
                           </StatusPill>

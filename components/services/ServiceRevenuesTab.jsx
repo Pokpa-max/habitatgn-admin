@@ -435,14 +435,14 @@ export default function ServiceRevenuesTab() {
                     <tbody className="divide-y divide-gray-200 bg-white">
                       {filteredItems.map((item) => (
                         <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <span className="text-sm font-semibold text-gray-900">{item.service}</span>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <p className="text-sm font-medium text-gray-800">{item.client}</p>
                             <p className="font-mono text-xs text-gray-400">{item.phone}</p>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <span className="font-mono text-sm font-bold text-gray-900">
                               {formatGNF(item.amount)}
                             </span>
@@ -452,12 +452,12 @@ export default function ServiceRevenuesTab() {
                               </p>
                             )}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <StatusPill tone={item.status === 'Payé' ? 'success' : 'warning'}>
                               {item.status}
                             </StatusPill>
                           </td>
-                          <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                          <td className="px-6 py-3 font-mono text-xs text-gray-500">
                             {item.date ? new Date(item.date?.seconds ? item.date.seconds * 1000 : item.date).toLocaleDateString('fr-FR') : '—'}
                           </td>
                         </tr>

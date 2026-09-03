@@ -352,13 +352,13 @@ export default function LeadsPage() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {visible.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <p className="text-sm font-semibold text-gray-900">{lead.name}</p>
                       <p className="mt-0.5 flex items-center gap-1 font-mono text-xs text-gray-500">
                         <RiPhoneLine className="h-3.5 w-3.5" /> {lead.phone}
                       </p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <p className="max-w-xs truncate text-sm text-gray-700">
                         {lead.listingTitle}
                       </p>
@@ -374,13 +374,13 @@ export default function LeadsPage() {
                         {lead.listingType === 'lands' ? 'Terrain' : 'Bien'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                    <td className="px-6 py-3 font-mono text-xs text-gray-500">
                       {firebaseDateFormat(lead.createdAt)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <StatusBadge status={lead.status} />
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-3">
                       <button
                         onClick={() => {
                           setDetailTarget(lead)

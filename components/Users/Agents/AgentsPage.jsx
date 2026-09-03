@@ -577,7 +577,7 @@ export default function AgentsPage() {
                           />
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <p className="text-sm font-semibold text-gray-900">
                           {request.fullName}
                         </p>
@@ -587,7 +587,7 @@ export default function AgentsPage() {
                             : 'Particulier'}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {request.email && (
                           <p className="flex items-center gap-1 text-xs text-gray-500">
                             <RiMailLine className="h-3.5 w-3.5" />{' '}
@@ -601,7 +601,7 @@ export default function AgentsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {request.commune && (
                           <p className="flex items-center gap-1 text-xs capitalize text-gray-500">
                             <RiMapPinLine className="h-3.5 w-3.5" />{' '}
@@ -609,7 +609,7 @@ export default function AgentsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <div className="flex flex-wrap gap-1.5">
                           {(request.propertyTypes || []).map((t) => (
                             <span
@@ -621,12 +621,12 @@ export default function AgentsPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <StatusPill tone={request.isAvailable ? 'success' : 'error'}>
                           {request.isAvailable ? 'Actif' : 'Bloqué'}
                         </StatusPill>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {request.paymentStatus?.status !== 'unknown' && (
                           <>
                             <StatusPill tone={PAYMENT_STATUS_CONFIG[request.paymentStatus.status].tone}>
@@ -642,7 +642,7 @@ export default function AgentsPage() {
                           </>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {request.status === 'approved' ? (
                           request.boostedCount > 0 ? (
                             <span
@@ -659,7 +659,7 @@ export default function AgentsPage() {
                           <span className="text-xs text-gray-300">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {actioningId === request.id ? (
                           <Loader color="#111827" />
                         ) : (

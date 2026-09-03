@@ -354,7 +354,7 @@ export default function CareersPage() {
                         }}
                         className="cursor-pointer hover:bg-gray-50"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100">
                               <RiUserLine className="h-4 w-4 text-gray-400" />
@@ -362,15 +362,15 @@ export default function CareersPage() {
                             <p className="text-sm font-semibold text-gray-900">{application.name}</p>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{application.position}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3 text-sm text-gray-700">{application.position}</td>
+                        <td className="px-6 py-3">
                           <p className="font-mono text-xs text-gray-600">{application.phone}</p>
                           <p className="text-xs text-gray-400">{application.email}</p>
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                        <td className="px-6 py-3 font-mono text-xs text-gray-500">
                           {firebaseDateFormat(application.createdAt)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
                       </tr>

@@ -211,25 +211,25 @@ export default function BauxTab({ ownerId }) {
                     const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
                     return (
                       <tr key={lease.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-gray-700">
+                        <td className="px-6 py-3 text-gray-700">
                           {property
                             ? `${property.reference} — ${property.address}${property.unitLabel ? ` (${property.unitLabel})` : ''}`
                             : '—'}
                         </td>
-                        <td className="px-6 py-4 text-gray-700">
+                        <td className="px-6 py-3 text-gray-700">
                           {lease.tenantName}
                           <p className="font-mono text-xs text-gray-400">{lease.tenantPhone}</p>
                         </td>
-                        <td className="px-6 py-4 font-mono font-semibold" style={{ color: colors.primary }}>
+                        <td className="px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
                           {formatGNF(lease.rentAmount)}
                         </td>
-                        <td className="px-6 py-4 font-mono text-gray-500">
+                        <td className="px-6 py-3 font-mono text-gray-500">
                           {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => openEdit(lease)}

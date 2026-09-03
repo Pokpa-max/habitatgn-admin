@@ -459,7 +459,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             />
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           {mainImage ? (
                             <img
                               src={mainImage}
@@ -472,10 +472,10 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4 font-semibold text-gray-900">
+                        <td className="px-6 py-3 font-semibold text-gray-900">
                           {property.reference}
                         </td>
-                        <td className="px-6 py-4 text-gray-700">
+                        <td className="px-6 py-3 text-gray-700">
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-semibold text-gray-900">
@@ -520,7 +520,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           </div>
                         </td>
                         {!ownerId && (
-                          <td className="px-6 py-4 text-gray-700">
+                          <td className="px-6 py-3 text-gray-700">
                             {owner?.name || '—'}
                             <p className="font-mono text-xs text-gray-400">
                               {owner?.phone}
@@ -533,10 +533,10 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         >
                           {formatGNF(property.rentAmount)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           {isCurrentlyBoosted(property) ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"

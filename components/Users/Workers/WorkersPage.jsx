@@ -733,7 +733,7 @@ export default function WorkersPage() {
                           />
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-gray-100">
                             {worker.imageUrl ? (
@@ -760,7 +760,7 @@ export default function WorkersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <div className="flex flex-wrap gap-1.5">
                           {(worker.specialties || []).map((s) => (
                             <span
@@ -772,12 +772,12 @@ export default function WorkersPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <p className="text-xs text-gray-500">
                           {(worker.communes || []).join(', ') || '—'}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {worker.phone && (
                           <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" />{' '}
@@ -791,7 +791,7 @@ export default function WorkersPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {worker.suspendedByAdmin ? (
                           <StatusPill
                             tone="warning"
@@ -804,7 +804,7 @@ export default function WorkersPage() {
                           </StatusPill>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {worker.paymentStatus?.status !== 'unknown' && (
                           <>
                             <StatusPill tone={PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].tone}>
@@ -820,7 +820,7 @@ export default function WorkersPage() {
                           </>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {actioningId === worker.id ? (
                           <Loader color="#111827" />
                         ) : (

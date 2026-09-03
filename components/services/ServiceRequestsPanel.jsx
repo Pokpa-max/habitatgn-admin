@@ -282,13 +282,13 @@ export default function ServiceRequestsPanel({
                     REQUEST_STATUSES.find((s) => s.value === status)?.label || status
                   return (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <p className="text-sm font-semibold text-gray-900">{request.name}</p>
                         <p className="mt-0.5 font-mono text-xs text-gray-400">
                           {firebaseDateFormat(request.createdAt)}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {request.phone && (
                           <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" /> {request.phone}
@@ -308,12 +308,12 @@ export default function ServiceRequestsPanel({
                           {c.render(request) || '—'}
                         </td>
                       ))}
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <StatusPill tone={REQUEST_STATUSES.find((s) => s.value === status)?.tone || 'gray'}>
                           {statusLabel}
                         </StatusPill>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <button
                           onClick={() => {
                             setDetailTarget(request)

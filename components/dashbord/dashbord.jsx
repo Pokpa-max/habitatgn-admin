@@ -509,20 +509,22 @@ function DashboardCard() {
           >
             Exporter
           </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
-            style={{ borderColor: colors.gray200, color: colors.gray500, backgroundColor: 'transparent' }}
-          >
-            Annuler
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
-            style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
-          >
-            Supprimer
-          </button>
+          <Link href="/messages">
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
+              style={{ borderColor: colors.gray200, color: colors.gray500, backgroundColor: 'transparent' }}
+            >
+              Messages
+            </a>
+          </Link>
+          <Link href="/workers">
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-bold"
+              style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
+            >
+              Ouvriers en attente{stats.workers.pending > 0 ? ` (${stats.workers.pending})` : ''}
+            </a>
+          </Link>
         </div>
       </div>
 
@@ -573,13 +575,13 @@ function DashboardCard() {
                     const meta = LEAD_STATUS_META[lead.status] || LEAD_STATUS_META.new
                     return (
                       <tr key={lead.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <p className="text-sm font-semibold text-gray-900">{lead.name}</p>
                           <p className="mt-0.5 flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" /> {lead.phone}
                           </p>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <p className="max-w-xs truncate text-sm text-gray-700">
                             {lead.listingTitle}
                           </p>
@@ -595,13 +597,13 @@ function DashboardCard() {
                             {lead.listingType === 'lands' ? 'Terrain' : 'Bien'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                        <td className="px-6 py-3 font-mono text-xs text-gray-500">
                           {firebaseDateFormat(lead.createdAt)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <Link href="/leads">
                             <a className="text-xs font-bold" style={{ color: colors.primary }}>
                               Voir

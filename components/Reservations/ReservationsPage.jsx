@@ -396,7 +396,7 @@ export default function ReservationsPage() {
                         }}
                         className="cursor-pointer hover:bg-gray-50"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <p className="text-sm font-semibold text-gray-900">
                             {booking.property?.title || 'Location journalière'}
                           </p>
@@ -404,11 +404,11 @@ export default function ReservationsPage() {
                             <p className="text-xs text-gray-400">{booking.agent.fullName}</p>
                           )}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <p className="text-sm text-gray-800">{booking.guestName}</p>
                           <p className="font-mono text-xs text-gray-500">{booking.guestPhone}</p>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <p className="font-mono text-xs text-gray-600">
                             {firebaseDateFormat(booking.checkInDate)} → {firebaseDateFormat(booking.checkOutDate)}
                           </p>
@@ -418,11 +418,11 @@ export default function ReservationsPage() {
                             </p>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{booking.numberOfGuests}</td>
-                        <td className="px-6 py-4 font-mono text-sm font-semibold" style={{ color: colors.primary }}>
+                        <td className="px-6 py-3 text-sm text-gray-600">{booking.numberOfGuests}</td>
+                        <td className="px-6 py-3 font-mono text-sm font-semibold" style={{ color: colors.primary }}>
                           {formatGNF(booking.totalPrice)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-3">
                           <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
                       </tr>
