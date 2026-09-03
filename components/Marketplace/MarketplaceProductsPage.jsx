@@ -517,8 +517,7 @@ export default function MarketplaceProductsPage() {
             icon: RiCheckboxCircleLine,
             label: 'Actifs',
             value: activeCount,
-            iconBg: '#F0FDF4',
-            iconColor: colors.success,
+            filled: true,
           },
           {
             icon: RiCloseCircleLine,
@@ -531,20 +530,30 @@ export default function MarketplaceProductsPage() {
           <div
             key={card.label}
             className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-            style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+            style={
+              card.filled
+                ? { backgroundColor: colors.primary }
+                : { backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }
+            }
           >
             <div
               className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ backgroundColor: card.iconBg }}
+              style={{ backgroundColor: card.filled ? 'rgba(255,255,255,0.2)' : card.iconBg }}
             >
-              <card.icon className="h-4 w-4" style={{ color: card.iconColor }} />
+              <card.icon
+                className="h-4 w-4"
+                style={{ color: card.filled ? '#FFFFFF' : card.iconColor }}
+              />
             </div>
-            <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+            <p
+              className="text-xs font-semibold"
+              style={{ color: card.filled ? 'rgba(255,255,255,0.85)' : colors.gray500 }}
+            >
               {card.label}
             </p>
             <p
               className="font-mono text-xl font-semibold tracking-tight"
-              style={{ color: colors.gray900 }}
+              style={{ color: card.filled ? '#FFFFFF' : colors.gray900 }}
             >
               {card.value}
             </p>
