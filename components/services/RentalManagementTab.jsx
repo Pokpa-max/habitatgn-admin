@@ -9,6 +9,7 @@ const columns = [
   },
   {
     header: 'Loyer mensuel',
+    mono: true,
     render: (r) => (r.monthlyRent ? `${r.monthlyRent} GNF` : null),
   },
 ]

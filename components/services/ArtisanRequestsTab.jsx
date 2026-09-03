@@ -9,6 +9,7 @@ const columns = [
   },
   {
     header: 'Créneau',
+    mono: true,
     render: (r) =>
       r.scheduledDate ? `${r.scheduledDate}${r.scheduledTime ? ' · ' + r.scheduledTime : ''}` : null,
   },

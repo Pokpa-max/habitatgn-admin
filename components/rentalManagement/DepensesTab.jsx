@@ -158,14 +158,14 @@ export default function DepensesTab({ ownerId }) {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {filtered.map((expense) => (
                     <tr key={expense.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-gray-500">
+                      <td className="px-6 py-4 font-mono text-gray-500">
                         {expense.date ? firebaseDateFormat(new Date(expense.date)) : '—'}
                       </td>
                       <td className="px-6 py-4 text-gray-700">{propertyById(expense.propertyId)?.reference || '—'}</td>
                       <td className="px-6 py-4 text-gray-700">{expense.label}</td>
                       <td className="px-6 py-4 text-gray-500">{expense.category}</td>
-                      <td className="px-6 py-4 text-gray-500">{formatPeriodLabel(expense.period)}</td>
-                      <td className="px-6 py-4 font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
+                      <td className="px-6 py-4 font-mono text-gray-500">{formatPeriodLabel(expense.period)}</td>
+                      <td className="px-6 py-4 font-mono font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
                       <td className="px-6 py-4">
                         {deleteConfirm === expense.id ? (
                           <div className="flex items-center gap-2">

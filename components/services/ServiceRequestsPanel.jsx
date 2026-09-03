@@ -11,6 +11,7 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
+import StatusPill from '@/components/ui/StatusPill'
 import { firebaseDateFormat } from '@/utils/date'
 import { REQUEST_STATUSES } from './statusConfig'
 
@@ -283,13 +284,13 @@ export default function ServiceRequestsPanel({
                     <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <p className="text-sm font-semibold text-gray-900">{request.name}</p>
-                        <p className="mt-0.5 text-xs text-gray-400">
+                        <p className="mt-0.5 font-mono text-xs text-gray-400">
                           {firebaseDateFormat(request.createdAt)}
                         </p>
                       </td>
                       <td className="px-6 py-4">
                         {request.phone && (
-                          <p className="flex items-center gap-1 text-xs text-gray-500">
+                          <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" /> {request.phone}
                           </p>
                         )}
@@ -300,27 +301,17 @@ export default function ServiceRequestsPanel({
                         )}
                       </td>
                       {columns.map((c) => (
-                        <td key={c.header} className="px-6 py-4 text-xs text-gray-600">
+                        <td
+                          key={c.header}
+                          className={`px-6 py-4 text-xs text-gray-600${c.mono ? ' font-mono' : ''}`}
+                        >
                           {c.render(request) || '—'}
                         </td>
                       ))}
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{
-                              backgroundColor:
-                                status === 'cancelled'
-                                  ? colors.error
-                                  : status === 'completed'
-                                  ? colors.success
-                                  : status === 'pending'
-                                  ? colors.warning
-                                  : colors.primary,
-                            }}
-                          />
+                        <StatusPill tone={REQUEST_STATUSES.find((s) => s.value === status)?.tone || 'gray'}>
                           {statusLabel}
-                        </span>
+                        </StatusPill>
                       </td>
                       <td className="px-6 py-4">
                         <button

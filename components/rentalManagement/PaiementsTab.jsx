@@ -6,6 +6,7 @@ import { notify } from '@/utils/toast'
 import { formatGNF, currentPeriod, formatPeriodLabel } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
@@ -18,15 +19,12 @@ const METHODS = [
   { value: 'autre', label: 'Autre' },
 ]
 
-function statusForPeriod(due, paid, period, colors) {
+function statusForPeriod(due, paid, period) {
   const isFuture = period > currentPeriod()
-  if (paid <= 0)
-    return isFuture
-      ? { label: '—', bg: colors.gray100, color: colors.gray400 }
-      : { label: 'Impayé', bg: '#FEE2E2', color: colors.error }
-  if (isFuture) return { label: 'Avance', bg: colors.primaryVeryLight, color: colors.primary }
-  if (paid < due) return { label: 'Partiel', bg: '#FEF3C7', color: colors.warning }
-  return { label: 'Payé', bg: '#D1FAE5', color: colors.success }
+  if (paid <= 0) return isFuture ? { label: '—', tone: 'gray' } : { label: 'Impayé', tone: 'error' }
+  if (isFuture) return { label: 'Avance', tone: 'primary' }
+  if (paid < due) return { label: 'Partiel', tone: 'warning' }
+  return { label: 'Payé', tone: 'success' }
 }
 
 export default function PaiementsTab({ ownerId }) {
@@ -201,24 +199,19 @@ export default function PaiementsTab({ ownerId }) {
                     const paid = payments
                       .filter((p) => p.leaseId === lease.id && p.period === periodFilter)
                       .reduce((sum, p) => sum + (p.amountPaid || 0), 0)
-                    const status = statusForPeriod(due, paid, periodFilter, colors)
+                    const status = statusForPeriod(due, paid, periodFilter)
                     return (
                       <div key={lease.id} className="flex items-center justify-between gap-3 px-4 py-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-900">
                             {lease.tenantName} — {property?.reference}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-mono text-xs text-gray-500">
                             {formatGNF(paid)} / {formatGNF(due)}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          <span
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{ backgroundColor: status.bg, color: status.color }}
-                          >
-                            {status.label}
-                          </span>
+                          <StatusPill tone={status.tone}>{status.label}</StatusPill>
                           <button
                             onClick={() => openAdd({ leaseId: lease.id, period: periodFilter, amountDue: due })}
                             className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
@@ -258,25 +251,22 @@ export default function PaiementsTab({ ownerId }) {
                       {filteredPayments.map((payment) => {
                         const lease = leaseById(payment.leaseId)
                         const property = propertyById(payment.propertyId)
-                        const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period, colors)
+                        const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period)
                         return (
                           <tr key={payment.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-gray-500">
+                            <td className="px-6 py-4 font-mono text-gray-500">
                               {payment.paymentDate ? firebaseDateFormat(new Date(payment.paymentDate)) : '—'}
                             </td>
                             <td className="px-6 py-4 text-gray-700">
                               {property?.reference} — {lease?.tenantName || '—'}
                             </td>
-                            <td className="px-6 py-4 text-gray-700">
+                            <td className="px-6 py-4 font-mono text-gray-700">
                               {formatPeriodLabel(payment.period)}
-                              <span
-                                className="ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                                style={{ backgroundColor: status.bg, color: status.color }}
-                              >
-                                {status.label}
+                              <span className="ml-2 inline-block align-middle">
+                                <StatusPill tone={status.tone}>{status.label}</StatusPill>
                               </span>
                             </td>
-                            <td className="px-6 py-4 font-semibold" style={{ color: colors.primary }}>
+                            <td className="px-6 py-4 font-mono font-semibold" style={{ color: colors.primary }}>
                               {formatGNF(payment.amountPaid)}
                             </td>
                             <td className="px-6 py-4 text-gray-500">

@@ -9,6 +9,7 @@ const columns = [
   },
   {
     header: 'Date prévue',
+    mono: true,
     render: (r) => r.movingDate || null,
   },
 ]

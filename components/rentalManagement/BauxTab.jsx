@@ -6,14 +6,15 @@ import { notify } from '@/utils/toast'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import { getManagedProperties, getPropertiesByOwner, editManagedProperty } from '@/lib/services/managedProperties'
 import { getLeases, addLease, editLease } from '@/lib/services/leases'
 
 const STATUS_CONFIG = {
-  active: { label: 'Actif', bgToken: '#D1FAE5', fgToken: 'success' },
-  ended: { label: 'Terminé', bgToken: 'gray100', fgToken: 'gray600' },
-  terminated: { label: 'Résilié', bgToken: '#FEE2E2', fgToken: 'error' },
+  active: { label: 'Actif', tone: 'success' },
+  ended: { label: 'Terminé', tone: 'gray' },
+  terminated: { label: 'Résilié', tone: 'error' },
 }
 
 export default function BauxTab({ ownerId }) {
@@ -217,24 +218,16 @@ export default function BauxTab({ ownerId }) {
                         </td>
                         <td className="px-6 py-4 text-gray-700">
                           {lease.tenantName}
-                          <p className="text-xs text-gray-400">{lease.tenantPhone}</p>
+                          <p className="font-mono text-xs text-gray-400">{lease.tenantPhone}</p>
                         </td>
-                        <td className="px-6 py-4 font-semibold" style={{ color: colors.primary }}>
+                        <td className="px-6 py-4 font-mono font-semibold" style={{ color: colors.primary }}>
                           {formatGNF(lease.rentAmount)}
                         </td>
-                        <td className="px-6 py-4 text-gray-500">
+                        <td className="px-6 py-4 font-mono text-gray-500">
                           {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{
-                              backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
-                              color: colors[statusCfg.fgToken],
-                            }}
-                          >
-                            {statusCfg.label}
-                          </span>
+                          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">

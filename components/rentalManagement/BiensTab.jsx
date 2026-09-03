@@ -17,6 +17,7 @@ import { notify } from '@/utils/toast'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import SimpleDrawer from '@/components/SimpleDrawer'
 import PropertyDrawerForm from './PropertyDrawerForm'
 import {
@@ -33,9 +34,9 @@ import { getExpensesByProperty } from '@/lib/services/propertyExpenses'
 import { updateProperty } from '@/lib/services/propertyService'
 
 const STATUS_CONFIG = {
-  vacant: { label: 'Vacant', bgToken: '#FEF3C7', fgToken: 'warning' },
-  occupied: { label: 'Occupé', bgToken: '#D1FAE5', fgToken: 'success' },
-  inactive: { label: 'Inactif', bgToken: 'gray100', fgToken: 'gray600' },
+  vacant: { label: 'Vacant', tone: 'warning' },
+  occupied: { label: 'Occupé', tone: 'success' },
+  inactive: { label: 'Inactif', tone: 'gray' },
 }
 
 // Si ownerId est fourni, la liste est restreinte aux biens de ce propriétaire
@@ -424,14 +425,14 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         />
                       )}
                     </th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Photo</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Référence</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Adresse</th>
-                    {!ownerId && <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Propriétaire</th>}
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Loyer</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Statut</th>
-                    <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mise en avant</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">Actions</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Photo</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Référence</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Adresse</th>
+                    {!ownerId && <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Propriétaire</th>}
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Loyer</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Statut</th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mise en avant</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -458,7 +459,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             />
                           )}
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-6 py-4">
                           {mainImage ? (
                             <img
                               src={mainImage}
@@ -471,10 +472,10 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-4 font-semibold text-gray-900">
+                        <td className="px-6 py-4 font-semibold text-gray-900">
                           {property.reference}
                         </td>
-                        <td className="px-4 py-4 text-gray-700">
+                        <td className="px-6 py-4 text-gray-700">
                           <div className="space-y-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-semibold text-gray-900">
@@ -519,45 +520,37 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           </div>
                         </td>
                         {!ownerId && (
-                          <td className="px-4 py-4 text-gray-700">
+                          <td className="px-6 py-4 text-gray-700">
                             {owner?.name || '—'}
-                            <p className="text-xs text-gray-400">
+                            <p className="font-mono text-xs text-gray-400">
                               {owner?.phone}
                             </p>
                           </td>
                         )}
                         <td
-                          className="px-4 py-4 font-semibold"
+                          className="px-6 py-4 font-mono font-semibold"
                           style={{ color: colors.primary }}
                         >
                           {formatGNF(property.rentAmount)}
                         </td>
-                        <td className="px-4 py-4">
-                          <span
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{
-                              backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
-                              color: colors[statusCfg.fgToken],
-                            }}
-                          >
-                            {statusCfg.label}
-                          </span>
+                        <td className="px-6 py-4">
+                          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-6 py-4">
                           {isCurrentlyBoosted(property) ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                               style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
                             >
                               <RiRocketLine className="h-3 w-3" />
-                              Jusqu'au {firebaseDateFormat(property.boostedUntil)}
+                              Jusqu'au <span className="font-mono">{firebaseDateFormat(property.boostedUntil)}</span>
                             </span>
                           ) : (
                             <span className="text-xs text-gray-300">—</span>
                           )}
                         </td>
                         <td
-                          className="px-4 py-4 text-right"
+                          className="px-6 py-4 text-right"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex justify-end" data-menu-root>
@@ -813,15 +806,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                   )}
 
                   <div className="flex items-center gap-2">
-                    <span
-                      className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={{
-                        backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
-                        color: colors[statusCfg.fgToken],
-                      }}
-                    >
-                      {statusCfg.label}
-                    </span>
+                    <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                     <span className="text-xs text-gray-500">
                       {typeof detailProperty.type === 'string'
                         ? detailProperty.type
@@ -868,7 +853,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         Loyer mensuel
                       </p>
                       <p
-                        className="font-semibold"
+                        className="font-mono font-semibold"
                         style={{ color: colors.primary }}
                       >
                         {formatGNF(detailProperty.rentAmount)}

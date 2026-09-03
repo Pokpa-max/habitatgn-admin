@@ -12,6 +12,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import { formatGNF } from '@/utils/format'
 import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
@@ -439,34 +440,24 @@ export default function ServiceRevenuesTab() {
                           </td>
                           <td className="px-6 py-4">
                             <p className="text-sm font-medium text-gray-800">{item.client}</p>
-                            <p className="text-xs text-gray-400">{item.phone}</p>
+                            <p className="font-mono text-xs text-gray-400">{item.phone}</p>
                           </td>
                           <td className="px-6 py-4">
-                            <span className="text-sm font-bold text-gray-900">
+                            <span className="font-mono text-sm font-bold text-gray-900">
                               {formatGNF(item.amount)}
                             </span>
                             {item.grossAmount !== undefined && (
-                              <p className="mt-0.5 text-[11px] text-gray-400">
+                              <p className="mt-0.5 font-mono text-[11px] text-gray-400">
                                 {formatGNF(item.grossAmount)} encaissé · {item.commissionRate}% commission
                               </p>
                             )}
                           </td>
                           <td className="px-6 py-4">
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                              style={{
-                                backgroundColor: item.status === 'Payé' ? '#D1FAE5' : '#FEF3C7',
-                                color: item.status === 'Payé' ? colors.success : colors.warning,
-                              }}
-                            >
-                              <span
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: item.status === 'Payé' ? colors.success : colors.warning }}
-                              />
+                            <StatusPill tone={item.status === 'Payé' ? 'success' : 'warning'}>
                               {item.status}
-                            </span>
+                            </StatusPill>
                           </td>
-                          <td className="px-6 py-4 text-xs text-gray-500">
+                          <td className="px-6 py-4 font-mono text-xs text-gray-500">
                             {item.date ? new Date(item.date?.seconds ? item.date.seconds * 1000 : item.date).toLocaleDateString('fr-FR') : '—'}
                           </td>
                         </tr>

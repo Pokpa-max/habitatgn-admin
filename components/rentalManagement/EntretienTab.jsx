@@ -6,6 +6,7 @@ import { notify } from '@/utils/toast'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import {
@@ -17,9 +18,9 @@ import {
 const CATEGORIES = ['Plomberie', 'Électricité', 'Peinture', 'Autre']
 
 const STATUS_CONFIG = {
-  ouvert: { label: 'Ouvert', bgToken: '#FEF3C7', fgToken: 'warning' },
-  en_cours: { label: 'En cours', bgToken: 'primaryVeryLight', fgToken: 'primary' },
-  résolu: { label: 'Résolu', bgToken: '#D1FAE5', fgToken: 'success' },
+  ouvert: { label: 'Ouvert', tone: 'warning' },
+  en_cours: { label: 'En cours', tone: 'primary' },
+  résolu: { label: 'Résolu', tone: 'success' },
 }
 
 export default function EntretienTab({ ownerId }) {
@@ -177,15 +178,7 @@ export default function EntretienTab({ ownerId }) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-gray-900">{ticket.title}</p>
-                        <span
-                          className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{
-                            backgroundColor: colors[statusCfg.bgToken] || statusCfg.bgToken,
-                            color: colors[statusCfg.fgToken],
-                          }}
-                        >
-                          {statusCfg.label}
-                        </span>
+                        <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                       </div>
                       <p className="mt-0.5 text-xs text-gray-500">
                         {property?.reference} — {property?.address}
