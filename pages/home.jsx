@@ -98,10 +98,8 @@ function DashboardTopbar() {
                     <Link key={item.key} href={item.href}>
                       <a
                         onClick={() => setOpen(false)}
-                        className="flex items-start gap-3 px-4 py-3 transition-colors"
-                        style={{ backgroundColor: colors.orangeLight, borderBottom: `1px solid ${colors.gray100}` }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FFE4D1')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = colors.orangeLight)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50"
+                        style={{ borderBottom: `1px solid ${colors.gray100}` }}
                       >
                         <span
                           className="mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white"
@@ -109,7 +107,7 @@ function DashboardTopbar() {
                         >
                           {item.count}
                         </span>
-                        <span className="text-sm font-medium" style={{ color: colors.orangeHover }}>
+                        <span className="text-sm" style={{ color: colors.gray700 }}>
                           {item.count} {item.label}
                         </span>
                       </a>
