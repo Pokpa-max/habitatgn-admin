@@ -427,13 +427,14 @@ function DashboardCard() {
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-900">Demandes de visite récentes</h2>
-          <Link
-            href="/leads"
-            className="flex items-center gap-1 text-xs font-semibold"
-            style={{ color: colors.primary }}
-          >
-            Voir tout
-            <RiArrowRightLine className="h-3.5 w-3.5" />
+          <Link href="/leads">
+            <a
+              className="flex items-center gap-1 text-xs font-semibold"
+              style={{ color: colors.primary }}
+            >
+              Voir tout
+              <RiArrowRightLine className="h-3.5 w-3.5" />
+            </a>
           </Link>
         </div>
 
