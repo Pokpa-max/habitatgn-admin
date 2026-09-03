@@ -8,6 +8,7 @@ import { contactMessagesCollectionRef } from '@/lib/services/contactMessages'
 import { serviceRequestsCollectionRef, MAIN_CATEGORIES } from '@/lib/services/serviceRequests'
 import { bookingsCollectionRef } from '@/lib/services/bookings'
 import { careerApplicationsCollectionRef } from '@/lib/services/careerApplications'
+import { leadsCollectionRef } from '@/lib/services/leads'
 import { notify } from '@/utils/toast'
 
 const CATEGORY_LABELS = {
@@ -27,6 +28,7 @@ const NotificationsContext = createContext({
   pendingServiceRequests: 0,
   pendingBookings: 0,
   pendingCareerApplications: 0,
+  pendingLeads: 0,
 })
 
 export function NotificationsProvider({ children }) {
@@ -39,6 +41,7 @@ export function NotificationsProvider({ children }) {
   const [pendingArtisanRequests, setPendingArtisanRequests] = useState(0)
   const [pendingBookings, setPendingBookings] = useState(0)
   const [pendingCareerApplications, setPendingCareerApplications] = useState(0)
+  const [pendingLeads, setPendingLeads] = useState(0)
 
   // null = not yet initialized (first snapshot = baseline, no toast)
   const knownAgentIds = useRef(null)
@@ -47,6 +50,7 @@ export function NotificationsProvider({ children }) {
   const knownServiceRequestIds = useRef(null)
   const knownBookingIds = useRef(null)
   const knownCareerApplicationIds = useRef(null)
+  const knownLeadIds = useRef(null)
 
   useEffect(() => {
     let unsubAgents = null
@@ -55,6 +59,7 @@ export function NotificationsProvider({ children }) {
     let unsubServiceRequests = null
     let unsubBookings = null
     let unsubCareerApplications = null
+    let unsubLeads = null
 
     // Start Firestore listeners only once the user is authenticated
     const unsubAuth = onAuthStateChanged(auth, (user) => {
@@ -65,12 +70,14 @@ export function NotificationsProvider({ children }) {
       if (unsubServiceRequests) unsubServiceRequests()
       if (unsubBookings) unsubBookings()
       if (unsubCareerApplications) unsubCareerApplications()
+      if (unsubLeads) unsubLeads()
       knownAgentIds.current = null
       knownWorkerIds.current = null
       knownMessageIds.current = null
       knownServiceRequestIds.current = null
       knownBookingIds.current = null
       knownCareerApplicationIds.current = null
+      knownLeadIds.current = null
 
       if (!user) {
         setPendingAgents(0)
@@ -82,6 +89,7 @@ export function NotificationsProvider({ children }) {
         setPendingArtisanRequests(0)
         setPendingBookings(0)
         setPendingCareerApplications(0)
+        setPendingLeads(0)
         return
       }
 
@@ -237,6 +245,27 @@ export function NotificationsProvider({ children }) {
           knownCareerApplicationIds.current = ids
         }
       })
+
+      const qLeads = query(leadsCollectionRef, where('status', '==', 'new'))
+
+      unsubLeads = onSnapshot(qLeads, (snapshot) => {
+        const ids = new Set(snapshot.docs.map((d) => d.id))
+        setPendingLeads(ids.size)
+
+        if (knownLeadIds.current === null) {
+          knownLeadIds.current = ids
+        } else {
+          const newOnes = [...ids].filter((id) => !knownLeadIds.current.has(id))
+          if (newOnes.length > 0) {
+            const n = newOnes.length
+            notify(
+              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de visite !`,
+              'success'
+            )
+          }
+          knownLeadIds.current = ids
+        }
+      })
     })
 
     return () => {
@@ -247,6 +276,7 @@ export function NotificationsProvider({ children }) {
       if (unsubServiceRequests) unsubServiceRequests()
       if (unsubBookings) unsubBookings()
       if (unsubCareerApplications) unsubCareerApplications()
+      if (unsubLeads) unsubLeads()
     }
   }, [])
 
@@ -266,6 +296,7 @@ export function NotificationsProvider({ children }) {
         pendingServiceRequests,
         pendingBookings,
         pendingCareerApplications,
+        pendingLeads,
       }}
     >
       {children}

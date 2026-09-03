@@ -17,6 +17,7 @@ import {
   RiBuildingLine,
   RiShoppingBag3Line,
   RiCalendarCheckLine,
+  RiCalendarTodoLine,
   RiFileUserLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
@@ -107,6 +108,14 @@ const navigation = [
     claims: ['admin', 'manager'],
     module: 'messages',
     badgeKey: 'unreadMessages',
+  },
+  {
+    name: 'Demandes de visite',
+    href: '/leads',
+    icon: RiCalendarTodoLine,
+    claims: ['admin', 'manager'],
+    module: 'leads',
+    badgeKey: 'pendingLeads',
   },
   {
     name: 'Carrières',
