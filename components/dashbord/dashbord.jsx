@@ -520,9 +520,9 @@ function DashboardCard() {
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
-                    {['Demandeur', 'Annonce', 'Reçu le', 'Statut'].map((h) => (
+                    {['Demandeur', 'Annonce', 'Reçu le', 'Statut', ''].map((h) => (
                       <th
-                        key={h}
+                        key={h || 'actions'}
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
                       >
@@ -563,6 +563,13 @@ function DashboardCard() {
                         </td>
                         <td className="px-6 py-4">
                           <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
+                        </td>
+                        <td className="px-6 py-4">
+                          <Link href="/leads">
+                            <a className="text-xs font-bold" style={{ color: colors.primary }}>
+                              Voir
+                            </a>
+                          </Link>
                         </td>
                       </tr>
                     )
