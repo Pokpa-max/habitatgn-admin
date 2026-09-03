@@ -351,54 +351,44 @@ function DashboardCard() {
 
   // `accent` réservé à une seule tuile par page : celle qui réclame une
   // attention immédiate (cf. proposition de palette validée). Les autres
-  // tuiles restent sur le traitement neutre/primaire par défaut.
+  // tuiles restent sur le traitement neutre/primaire par défaut. Layout
+  // en pile verticale (icône puis libellé puis valeur puis delta) —
+  // reproduit exactement la carte de la maquette, pas une variante.
   const StatCard = ({ icon: Icon, label, value, subValue, accent = false }) => (
     <div
-      className="group flex h-full flex-col justify-between rounded-xl p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      className="flex h-full flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       style={
         accent
           ? { background: `linear-gradient(155deg, ${colors.orangeAccent} 0%, ${colors.orangeHover} 100%)` }
           : { backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }
       }
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p
-            className="text-xs font-bold uppercase tracking-wider"
-            style={{ color: accent ? 'rgba(255,255,255,0.85)' : colors.gray400 }}
-          >
-            {label}
-          </p>
-          <p
-            className="mt-2 font-mono text-3xl font-extrabold"
-            style={{ color: accent ? '#FFFFFF' : colors.gray900 }}
-          >
-            {value}
-          </p>
-          {subValue && (
-            <div
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-              style={
-                accent
-                  ? { backgroundColor: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }
-                  : { backgroundColor: colors.primaryVeryLight, color: colors.primaryDark }
-              }
-            >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: accent ? '#FFFFFF' : colors.primary }}
-              />
-              {subValue}
-            </div>
-          )}
-        </div>
-        <div
-          className="flex h-12 w-12 items-center justify-center rounded-xl transition-colors group-hover:scale-105"
-          style={{ backgroundColor: accent ? 'rgba(255,255,255,0.2)' : colors.primaryVeryLight }}
-        >
-          <Icon className="h-6 w-6" style={{ color: accent ? '#FFFFFF' : colors.primary }} />
-        </div>
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: accent ? 'rgba(255,255,255,0.2)' : colors.primaryVeryLight }}
+      >
+        <Icon className="h-4 w-4" style={{ color: accent ? '#FFFFFF' : colors.primary }} />
       </div>
+      <p
+        className="text-xs font-semibold"
+        style={{ color: accent ? 'rgba(255,255,255,0.85)' : colors.gray500 }}
+      >
+        {label}
+      </p>
+      <p
+        className="-mt-1.5 font-mono text-xl font-semibold tracking-tight"
+        style={{ color: accent ? '#FFFFFF' : colors.gray900 }}
+      >
+        {value}
+      </p>
+      {subValue && (
+        <p
+          className="-mt-1.5 text-[11.5px]"
+          style={{ color: accent ? 'rgba(255,255,255,0.85)' : colors.gray500 }}
+        >
+          {subValue}
+        </p>
+      )}
     </div>
   )
 
