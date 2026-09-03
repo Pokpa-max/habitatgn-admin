@@ -197,6 +197,11 @@ export default function LeadsPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
+  // Sélection multiple / actions groupées
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
+
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
@@ -213,6 +218,10 @@ export default function LeadsPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+  }, [filter, searchTerm])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
   }, [filter, searchTerm])
 
   const handleStatusChange = async (lead, status) => {
@@ -252,6 +261,57 @@ export default function LeadsPage() {
   const visible = filtered.slice(0, visibleCount)
   const newCount = leads.filter((l) => l.status === 'new').length
 
+  const selectableIds = visible.map((l) => l.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkStatus = async (status) => {
+    const targets = leads.filter((l) => selectedIds.has(l.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((l) => updateLeadStatus(l.id, status)))
+      const targetIds = new Set(targets.map((l) => l.id))
+      setLeads((prev) => prev.map((l) => (targetIds.has(l.id) ? { ...l, status } : l)))
+      notify(
+        `${targets.length} demande${targets.length > 1 ? 's' : ''} ${status === 'contacted' ? 'marquée(s) contactée(s)' : 'clôturée(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkDelete = async () => {
+    const targetIds = new Set(selectedIds)
+    if (targetIds.size === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all([...targetIds].map((id) => deleteLead(id)))
+      setLeads((prev) => prev.filter((l) => !targetIds.has(l.id)))
+      notify(`${targetIds.size} demande${targetIds.size > 1 ? 's' : ''} supprimée(s)`, 'success')
+      setSelectedIds(new Set())
+      setBulkDeleteModalOpen(false)
+    } catch (e) {
+      notify('Erreur lors de la suppression groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <DetailModal
@@ -268,6 +328,15 @@ export default function LeadsPage() {
         title="Supprimer la demande"
         description="Êtes-vous sûr de supprimer cette demande de visite ? Cette action est irréversible."
         confirmFunction={handleDelete}
+        cancelFuction={() => {}}
+      />
+
+      <ConfirmModal
+        open={bulkDeleteModalOpen}
+        setOpen={setBulkDeleteModalOpen}
+        title="Supprimer les demandes sélectionnées"
+        description={`Êtes-vous sûr de vouloir supprimer définitivement ${selectedIds.size} demande${selectedIds.size > 1 ? 's' : ''} de visite ? Cette action est irréversible.`}
+        confirmFunction={handleBulkDelete}
         cancelFuction={() => {}}
       />
 
@@ -323,6 +392,47 @@ export default function LeadsPage() {
         })}
       </div>
 
+      {/* Actions groupées */}
+      {selectedIds.size > 0 && (
+        <div
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+          style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+        >
+          <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+            {selectedIds.size} demande{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              disabled={bulkActing}
+              onClick={() => handleBulkStatus('contacted')}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: colors.primary, color: colors.primary, backgroundColor: 'transparent' }}
+            >
+              Marquer contacté
+            </button>
+            <button
+              type="button"
+              disabled={bulkActing}
+              onClick={() => handleBulkStatus('closed')}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+            >
+              Clôturer
+            </button>
+            <button
+              type="button"
+              disabled={bulkActing}
+              onClick={() => setBulkDeleteModalOpen(true)}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex h-32 items-center justify-center">
           <Loader color="#111827" />
@@ -338,6 +448,16 @@ export default function LeadsPage() {
             <table className="w-full">
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
+                  <th scope="col" className="w-8 px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 cursor-pointer rounded"
+                      style={{ accentColor: colors.primary }}
+                      title="Tout sélectionner"
+                    />
+                  </th>
                   {[
                     { label: 'Demandeur' },
                     { label: 'Annonce' },
@@ -360,6 +480,15 @@ export default function LeadsPage() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {visible.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50">
+                    <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(lead.id)}
+                        onChange={() => toggleSelect(lead.id)}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                      />
+                    </td>
                     <td className="px-6 py-3">
                       <p className="text-sm font-semibold text-gray-900">{lead.name}</p>
                       <p className="mt-0.5 flex items-center gap-1 font-mono text-xs text-gray-500">

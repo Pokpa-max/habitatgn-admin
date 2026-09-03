@@ -203,8 +203,16 @@ export default function CareersPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [updatingId, setUpdatingId] = useState(null)
 
+  // Sélection multiple / actions groupées
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
+
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+  }, [statusFilter, searchTerm])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
 
   const fetchApplications = async () => {
@@ -253,6 +261,43 @@ export default function CareersPage() {
   }, [applications, statusFilter, searchTerm])
 
   const visible = filtered.slice(0, visibleCount)
+
+  const selectableIds = visible.map((a) => a.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkStatus = async (status) => {
+    const targets = applications.filter((a) => selectedIds.has(a.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((a) => updateCareerApplicationStatus(a.id, status)))
+      const targetIds = new Set(targets.map((a) => a.id))
+      setApplications((prev) =>
+        prev.map((a) => (targetIds.has(a.id) ? { ...a, status } : a))
+      )
+      notify(
+        `${targets.length} candidature${targets.length > 1 ? 's' : ''} mise${targets.length > 1 ? 's' : ''} à jour`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée', 'error')
+    }
+    setBulkActing(false)
+  }
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
@@ -316,6 +361,38 @@ export default function CareersPage() {
           })}
         </div>
 
+        {/* Actions groupées */}
+        {selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} candidature{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => handleBulkStatus('reviewed')}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+              >
+                Marquer étudiée
+              </button>
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => handleBulkStatus('rejected')}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+              >
+                Marquer refusée
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader color="#111827" />
@@ -331,6 +408,16 @@ export default function CareersPage() {
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                        title="Tout sélectionner"
+                      />
+                    </th>
                     {[
                       { label: 'Candidat' },
                       { label: 'Poste' },
@@ -362,6 +449,15 @@ export default function CareersPage() {
                         }}
                         className="cursor-pointer hover:bg-gray-50"
                       >
+                        <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(application.id)}
+                            onChange={() => toggleSelect(application.id)}
+                            className="h-4 w-4 cursor-pointer rounded"
+                            style={{ accentColor: colors.primary }}
+                          />
+                        </td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
                             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-100">

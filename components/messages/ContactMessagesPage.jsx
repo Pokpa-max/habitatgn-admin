@@ -165,6 +165,11 @@ export default function ContactMessagesPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [senderEmail, setSenderEmail] = useState('')
 
+  // Sélection multiple / actions groupées
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
+
   useEffect(() => {
     const load = async () => {
       setIsLoading(true)
@@ -185,6 +190,10 @@ export default function ContactMessagesPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+  }, [filter, searchTerm])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
   }, [filter, searchTerm])
 
   const handleToggleRead = async (message) => {
@@ -226,6 +235,59 @@ export default function ContactMessagesPage() {
   const visible = filtered.slice(0, visibleCount)
   const unreadCount = messages.filter((m) => !m.read).length
 
+  const selectableIds = visible.map((m) => m.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkSetRead = async (nextRead) => {
+    const targets = messages.filter((m) => selectedIds.has(m.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((m) => setContactMessageRead(m.id, nextRead)))
+      const targetIds = new Set(targets.map((m) => m.id))
+      setMessages((prev) =>
+        prev.map((m) => (targetIds.has(m.id) ? { ...m, read: nextRead } : m))
+      )
+      notify(
+        `${targets.length} message${targets.length > 1 ? 's' : ''} marqué${targets.length > 1 ? 's' : ''} ${nextRead ? 'lu(s)' : 'non lu(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkDelete = async () => {
+    const targetIds = new Set(selectedIds)
+    if (targetIds.size === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all([...targetIds].map((id) => deleteContactMessage(id)))
+      setMessages((prev) => prev.filter((m) => !targetIds.has(m.id)))
+      notify(`${targetIds.size} message${targetIds.size > 1 ? 's' : ''} supprimé(s)`, 'success')
+      setSelectedIds(new Set())
+      setBulkDeleteModalOpen(false)
+    } catch (e) {
+      notify('Erreur lors de la suppression groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <DetailModal
@@ -243,6 +305,15 @@ export default function ContactMessagesPage() {
         title="Supprimer le message"
         description="Êtes-vous sûr de supprimer ce message ? Cette action est irréversible."
         confirmFunction={handleDelete}
+        cancelFuction={() => {}}
+      />
+
+      <ConfirmModal
+        open={bulkDeleteModalOpen}
+        setOpen={setBulkDeleteModalOpen}
+        title="Supprimer les messages sélectionnés"
+        description={`Êtes-vous sûr de vouloir supprimer définitivement ${selectedIds.size} message${selectedIds.size > 1 ? 's' : ''} ? Cette action est irréversible.`}
+        confirmFunction={handleBulkDelete}
         cancelFuction={() => {}}
       />
 
@@ -299,6 +370,47 @@ export default function ContactMessagesPage() {
         })}
       </div>
 
+      {/* Actions groupées */}
+      {selectedIds.size > 0 && (
+        <div
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+          style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+        >
+          <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+            {selectedIds.size} message{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              disabled={bulkActing}
+              onClick={() => handleBulkSetRead(true)}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+            >
+              Marquer lu
+            </button>
+            <button
+              type="button"
+              disabled={bulkActing}
+              onClick={() => handleBulkSetRead(false)}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
+            >
+              Marquer non lu
+            </button>
+            <button
+              type="button"
+              disabled={bulkActing}
+              onClick={() => setBulkDeleteModalOpen(true)}
+              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+              style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex h-32 items-center justify-center">
           <Loader color="#111827" />
@@ -314,6 +426,16 @@ export default function ContactMessagesPage() {
             <table className="w-full">
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
+                  <th scope="col" className="w-8 px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="h-4 w-4 cursor-pointer rounded"
+                      style={{ accentColor: colors.primary }}
+                      title="Tout sélectionner"
+                    />
+                  </th>
                   {[
                     { label: 'Expéditeur' },
                     { label: 'Sujet' },
@@ -336,6 +458,15 @@ export default function ContactMessagesPage() {
               <tbody className="divide-y divide-gray-200 bg-white">
                 {visible.map((message) => (
                   <tr key={message.id} className="hover:bg-gray-50">
+                    <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(message.id)}
+                        onChange={() => toggleSelect(message.id)}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                      />
+                    </td>
                     <td className="px-6 py-3">
                       <p
                         className="text-sm text-gray-900"

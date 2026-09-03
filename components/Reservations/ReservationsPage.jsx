@@ -220,8 +220,16 @@ export default function ReservationsPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [updatingId, setUpdatingId] = useState(null)
 
+  // Sélection multiple / actions groupées
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
+
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+  }, [statusFilter, searchTerm])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
 
   const fetchBookings = async () => {
@@ -293,6 +301,43 @@ export default function ReservationsPage() {
 
   const visible = filtered.slice(0, visibleCount)
 
+  const selectableIds = visible.map((b) => b.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkStatus = async (status) => {
+    const targets = bookings.filter((b) => selectedIds.has(b.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((b) => updateBookingStatus(b.id, status)))
+      const targetIds = new Set(targets.map((b) => b.id))
+      setBookings((prev) =>
+        prev.map((b) => (targetIds.has(b.id) ? { ...b, status } : b))
+      )
+      notify(
+        `${targets.length} réservation${targets.length > 1 ? 's' : ''} ${status === 'confirmed' ? 'confirmée(s)' : 'refusée(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
       <BookingDetailDrawer
@@ -357,6 +402,38 @@ export default function ReservationsPage() {
           })}
         </div>
 
+        {/* Actions groupées */}
+        {selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} réservation{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => handleBulkStatus('confirmed')}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+              >
+                Confirmer
+              </button>
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => handleBulkStatus('cancelled')}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+              >
+                Refuser
+              </button>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader color="#111827" />
@@ -372,6 +449,16 @@ export default function ReservationsPage() {
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                        title="Tout sélectionner"
+                      />
+                    </th>
                     {[
                       { label: 'Bien' },
                       { label: 'Client' },
@@ -405,6 +492,15 @@ export default function ReservationsPage() {
                         }}
                         className="cursor-pointer hover:bg-gray-50"
                       >
+                        <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(booking.id)}
+                            onChange={() => toggleSelect(booking.id)}
+                            className="h-4 w-4 cursor-pointer rounded"
+                            style={{ accentColor: colors.primary }}
+                          />
+                        </td>
                         <td className="px-6 py-3">
                           <p className="text-sm font-semibold text-gray-900">
                             {booking.property?.title || 'Location journalière'}
