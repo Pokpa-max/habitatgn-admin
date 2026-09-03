@@ -239,7 +239,7 @@ export default function LegalPartnersTab() {
                       >
                         <span
                           className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: partner.available ? colors.primary : colors.gray400 }}
+                          style={{ backgroundColor: partner.available ? colors.success : colors.gray400 }}
                         />
                         {partner.available ? 'Disponible' : 'Indisponible'}
                       </button>
@@ -252,7 +252,8 @@ export default function LegalPartnersTab() {
                       </button>
                       <button
                         onClick={() => setDeleteConfirm(partner.id)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                        className="rounded-lg border border-gray-200 p-2 transition-colors hover:bg-red-50"
+                        style={{ color: colors.error }}
                         title="Supprimer"
                       >
                         <RiDeleteBinLine className="h-4 w-4" />

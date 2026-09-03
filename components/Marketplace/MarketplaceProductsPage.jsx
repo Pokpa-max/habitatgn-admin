@@ -574,7 +574,7 @@ export default function MarketplaceProductsPage() {
           <button
             onClick={handleOpenAdd}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
-            style={{ backgroundColor: colors.primary }}
+            style={{ backgroundColor: colors.orangeAccent }}
           >
             <RiAddLine className="h-4 w-4" />
             Ajouter un produit
@@ -693,7 +693,10 @@ export default function MarketplaceProductsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                          <span
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                            style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
+                          >
                             {catLabel}
                           </span>
                         </td>
@@ -712,19 +715,15 @@ export default function MarketplaceProductsPage() {
                           <span
                             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
                             style={{
-                              backgroundColor: prod.active
-                                ? colors.primaryVeryLight
-                                : colors.gray100,
-                              color: prod.active
-                                ? colors.primaryDark
-                                : colors.gray600,
+                              backgroundColor: prod.active ? '#F0FDF4' : colors.gray100,
+                              color: prod.active ? colors.success : colors.gray600,
                             }}
                           >
                             <span
                               className="h-1.5 w-1.5 rounded-full"
                               style={{
                                 backgroundColor: prod.active
-                                  ? colors.primary
+                                  ? colors.success
                                   : colors.gray500,
                               }}
                             />

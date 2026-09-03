@@ -29,18 +29,19 @@ const STATUS_FILTERS = [
   { value: 'rejected', label: 'Refusée' },
 ]
 
-const STATUS_CONFIG = {
-  pending: { label: 'Nouvelle', bg: '#DBEAFE', color: '#1E40AF' },
-  reviewed: { label: 'Étudiée', bg: '#F3F4F6', color: '#374151' },
-  interview: { label: 'Entretien', bg: '#FEF3C7', color: '#92400E' },
-  hired: { label: 'Retenue', bg: '#DCFCE7', color: '#166534' },
-  rejected: { label: 'Refusée', bg: '#FEE2E2', color: '#991B1B' },
-}
+const getStatusConfig = (colors) => ({
+  pending: { label: 'Nouvelle', bg: colors.primaryVeryLight, color: colors.primary },
+  reviewed: { label: 'Étudiée', bg: colors.gray100, color: colors.gray700 },
+  interview: { label: 'Entretien', bg: '#FEF3C7', color: colors.warning },
+  hired: { label: 'Retenue', bg: '#DCFCE7', color: colors.success },
+  rejected: { label: 'Refusée', bg: '#FEE2E2', color: colors.error },
+})
 
 function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, updating }) {
   const colors = useColors()
   if (!application) return null
 
+  const STATUS_CONFIG = getStatusConfig(colors)
   const statusCfg = STATUS_CONFIG[application.status] || STATUS_CONFIG.pending
 
   return (
@@ -128,7 +129,8 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
                     </a>
                     <a
                       href={`mailto:${application.email}`}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-gray-300 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-semibold transition-colors hover:bg-gray-50"
+                      style={{ borderColor: colors.primary, color: colors.primary }}
                     >
                       <RiMailLine className="h-4 w-4" />
                       Email
@@ -197,6 +199,7 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
 
 export default function CareersPage() {
   const colors = useColors()
+  const STATUS_CONFIG = getStatusConfig(colors)
   const [applications, setApplications] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')

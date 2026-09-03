@@ -30,11 +30,11 @@ const STATUS_FILTERS = [
   { value: 'cancelled', label: 'Annulées' },
 ]
 
-const STATUS_CONFIG = {
-  pending: { label: 'En attente', bg: '#FEF3C7', color: '#92400E' },
-  confirmed: { label: 'Confirmée', bg: '#DCFCE7', color: '#166534' },
-  cancelled: { label: 'Annulée', bg: '#FEE2E2', color: '#991B1B' },
-}
+const getStatusConfig = (colors) => ({
+  pending: { label: 'En attente', bg: '#FEF3C7', color: colors.warning },
+  confirmed: { label: 'Confirmée', bg: '#DCFCE7', color: colors.success },
+  cancelled: { label: 'Annulée', bg: '#FEE2E2', color: colors.error },
+})
 
 function nightsBetween(checkIn, checkOut) {
   const a = new Date(checkIn)
@@ -47,6 +47,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
   const colors = useColors()
   if (!booking) return null
 
+  const STATUS_CONFIG = getStatusConfig(colors)
   const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending
   const nights = nightsBetween(booking.checkInDate, booking.checkOutDate)
 
@@ -179,7 +180,8 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
                         type="button"
                         disabled={updating}
                         onClick={() => onStatusChange(booking, 'cancelled')}
-                        className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-60"
+                        className="flex-1 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold transition-all hover:bg-red-50 disabled:opacity-60"
+                        style={{ borderColor: colors.error, color: colors.error }}
                       >
                         Refuser
                       </button>
@@ -214,6 +216,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
 
 export default function ReservationsPage() {
   const colors = useColors()
+  const STATUS_CONFIG = getStatusConfig(colors)
   const [bookings, setBookings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')

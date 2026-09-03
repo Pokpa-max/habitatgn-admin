@@ -121,7 +121,7 @@ export default function PartnerAgenciesTab() {
       specialty: '',
       phone: '',
       website: '',
-      color: '#0A4D9C',
+      color: colors.primary,
       ownerId: '',
       plan: '',
       planExpiresAt: '',
@@ -138,7 +138,7 @@ export default function PartnerAgenciesTab() {
       specialty: agency.specialty || '',
       phone: agency.phone || '',
       website: agency.website || '',
-      color: agency.color || '#0A4D9C',
+      color: agency.color || colors.primary,
       ownerId: agency.ownerId || '',
       plan: agency.plan || '',
       planExpiresAt: expiresAt
