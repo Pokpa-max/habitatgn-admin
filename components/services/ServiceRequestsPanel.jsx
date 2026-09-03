@@ -262,17 +262,23 @@ export default function ServiceRequestsPanel({
             <table className="w-full">
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
-                  {['Client', 'Contact', ...columns.map((c) => c.header), 'Statut', 'Actions'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
+                  {[
+                    { label: 'Client' },
+                    { label: 'Contact' },
+                    ...columns.map((c) => ({ label: c.header, secondary: true })),
+                    { label: 'Statut' },
+                    { label: 'Actions' },
+                  ].map((col) => (
+                    <th
+                      key={col.label}
+                      scope="col"
+                      className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                        col.secondary ? 'hidden lg:table-cell' : ''
+                      }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -303,7 +309,7 @@ export default function ServiceRequestsPanel({
                       {columns.map((c) => (
                         <td
                           key={c.header}
-                          className={`px-6 py-4 text-xs text-gray-600${c.mono ? ' font-mono' : ''}`}
+                          className={`hidden px-6 py-4 text-xs text-gray-600 lg:table-cell${c.mono ? ' font-mono' : ''}`}
                         >
                           {c.render(request) || '—'}
                         </td>

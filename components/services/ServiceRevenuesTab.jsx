@@ -439,13 +439,21 @@ export default function ServiceRevenuesTab() {
                   <table className="w-full">
                     <thead style={{ backgroundColor: colors.gray50 }}>
                       <tr>
-                        {['Service', 'Client / Contact', 'Montant', 'Statut', 'Date'].map((h) => (
+                        {[
+                          { label: 'Service' },
+                          { label: 'Client / Contact' },
+                          { label: 'Montant' },
+                          { label: 'Statut' },
+                          { label: 'Date', secondary: true },
+                        ].map((col) => (
                           <th
-                            key={h}
+                            key={col.label}
                             scope="col"
-                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                            className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                              col.secondary ? 'hidden lg:table-cell' : ''
+                            }`}
                           >
-                            {h}
+                            {col.label}
                           </th>
                         ))}
                       </tr>
@@ -475,7 +483,7 @@ export default function ServiceRevenuesTab() {
                               {item.status}
                             </StatusPill>
                           </td>
-                          <td className="px-6 py-3 font-mono text-xs text-gray-500">
+                          <td className="hidden px-6 py-3 font-mono text-xs text-gray-500 lg:table-cell">
                             {item.date ? new Date(item.date?.seconds ? item.date.seconds * 1000 : item.date).toLocaleDateString('fr-FR') : '—'}
                           </td>
                         </tr>

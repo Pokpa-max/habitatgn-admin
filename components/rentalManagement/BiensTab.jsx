@@ -434,14 +434,14 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         />
                       )}
                     </th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Photo</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Référence</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Adresse</th>
-                    {!ownerId && <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Propriétaire</th>}
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Loyer</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Statut</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mise en avant</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">Actions</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Photo</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Référence</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Adresse</th>
+                    {!ownerId && <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Propriétaire</th>}
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Loyer</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Statut</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Mise en avant</th>
+                    <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wide text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -468,7 +468,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             />
                           )}
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="hidden px-6 py-3 lg:table-cell">
                           {mainImage ? (
                             <img
                               src={mainImage}
@@ -545,7 +545,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         <td className="px-6 py-3">
                           <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="hidden px-6 py-3 lg:table-cell">
                           {isCurrentlyBoosted(property) ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"

@@ -6,6 +6,7 @@ export const columnsUser = [
   {
     Header: 'Profil',
     accessor: 'image_url',
+    secondary: true,
     Cell: (data) => (
       <div className="flex items-center justify-center">
         {data ? (
@@ -82,6 +83,7 @@ export const columnsUser = [
   {
     Header: 'Date de création',
     accessor: 'createdAt',
+    secondary: true,
     Cell: (data) => (
       <p className="px-3 font-mono text-sm text-gray-500">
         {firebaseDateFormat(data)}

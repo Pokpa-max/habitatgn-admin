@@ -701,20 +701,22 @@ export default function WorkersPage() {
                       )}
                     </th>
                     {[
-                      'Ouvrier',
-                      'Spécialités',
-                      'Zones',
-                      'Contact',
-                      'Statut',
-                      'Abonnement',
-                      'Actions',
-                    ].map((h) => (
+                      { label: 'Ouvrier' },
+                      { label: 'Spécialités', secondary: true },
+                      { label: 'Zones', secondary: true },
+                      { label: 'Contact' },
+                      { label: 'Statut' },
+                      { label: 'Abonnement' },
+                      { label: 'Actions' },
+                    ].map((col) => (
                       <th
-                        key={h}
+                        key={col.label}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                          col.secondary ? 'hidden lg:table-cell' : ''
+                        }`}
                       >
-                        {h}
+                        {col.label}
                       </th>
                     ))}
                   </tr>
@@ -760,7 +762,7 @@ export default function WorkersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="hidden px-6 py-3 lg:table-cell">
                         <div className="flex flex-wrap gap-1.5">
                           {(worker.specialties || []).map((s) => (
                             <span
@@ -772,7 +774,7 @@ export default function WorkersPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="hidden px-6 py-3 lg:table-cell">
                         <p className="text-xs text-gray-500">
                           {(worker.communes || []).join(', ') || '—'}
                         </p>

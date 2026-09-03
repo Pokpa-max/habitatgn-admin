@@ -149,7 +149,7 @@ export default function OccupationTab({ ownerId }) {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                   <th className="py-2 pr-4">Bien</th>
                   <th className="py-2 pr-4">Statut</th>
                   <th className="py-2 pr-4">Locataire actuel</th>

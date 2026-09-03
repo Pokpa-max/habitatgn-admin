@@ -262,14 +262,16 @@ function UserTable({
                       <th
                         key={index}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                          column.secondary ? 'hidden lg:table-cell' : ''
+                        }`}
                       >
                         {column.Header}
                       </th>
                     ))}
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                      className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700"
                     >
                       Statut
                     </th>
@@ -287,7 +289,9 @@ function UserTable({
                           return (
                             <td
                               key={idx}
-                              className="px-6 py-4 text-sm text-gray-700"
+                              className={`px-6 py-4 text-sm text-gray-700 ${
+                                column.secondary ? 'hidden lg:table-cell' : ''
+                              }`}
                             >
                               {element}
                             </td>

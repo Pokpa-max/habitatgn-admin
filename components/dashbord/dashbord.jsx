@@ -553,7 +553,7 @@ function DashboardCard() {
                       <th
                         key={h || 'actions'}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700"
                       >
                         {h}
                       </th>

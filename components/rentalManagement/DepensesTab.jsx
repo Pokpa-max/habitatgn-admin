@@ -155,12 +155,12 @@ export default function DepensesTab({ ownerId }) {
               <table className="w-full text-left text-sm">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Date</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Bien</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Libellé</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Catégorie</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mois</th>
-                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Montant</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Date</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Bien</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Libellé</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Catégorie</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Mois</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Montant</th>
                     <th className="px-6 py-3" />
                   </tr>
                 </thead>
@@ -172,8 +172,8 @@ export default function DepensesTab({ ownerId }) {
                       </td>
                       <td className="px-6 py-3 text-gray-700">{propertyById(expense.propertyId)?.reference || '—'}</td>
                       <td className="px-6 py-3 text-gray-700">{expense.label}</td>
-                      <td className="px-6 py-3 text-gray-500">{expense.category}</td>
-                      <td className="px-6 py-3 font-mono text-gray-500">{formatPeriodLabel(expense.period)}</td>
+                      <td className="hidden px-6 py-3 text-gray-500 lg:table-cell">{expense.category}</td>
+                      <td className="hidden px-6 py-3 font-mono text-gray-500 lg:table-cell">{formatPeriodLabel(expense.period)}</td>
                       <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
                       <td className="px-6 py-3">
                         {deleteConfirm === expense.id ? (

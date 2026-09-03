@@ -314,13 +314,21 @@ export default function ContactMessagesPage() {
             <table className="w-full">
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
-                  {['Expéditeur', 'Sujet', 'Reçu le', 'Statut', 'Actions'].map((h) => (
+                  {[
+                    { label: 'Expéditeur' },
+                    { label: 'Sujet' },
+                    { label: 'Reçu le', secondary: true },
+                    { label: 'Statut' },
+                    { label: 'Actions' },
+                  ].map((col) => (
                     <th
-                      key={h}
+                      key={col.label}
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                      className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                        col.secondary ? 'hidden lg:table-cell' : ''
+                      }`}
                     >
-                      {h}
+                      {col.label}
                     </th>
                   ))}
                 </tr>
@@ -347,7 +355,7 @@ export default function ContactMessagesPage() {
                         {message.subject}
                       </p>
                     </td>
-                    <td className="px-6 py-3 font-mono text-xs text-gray-500">
+                    <td className="hidden px-6 py-3 font-mono text-xs text-gray-500 lg:table-cell">
                       {firebaseDateFormat(message.createdAt)}
                     </td>
                     <td className="px-6 py-3">

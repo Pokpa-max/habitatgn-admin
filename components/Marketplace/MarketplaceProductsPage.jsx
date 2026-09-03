@@ -641,20 +641,22 @@ export default function MarketplaceProductsPage() {
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     {[
-                      'Produit',
-                      'Catégorie',
-                      'Commune',
-                      'Prix (GNF)',
-                      'Téléphone',
-                      'Statut',
-                      'Actions',
-                    ].map((h) => (
+                      { label: 'Produit' },
+                      { label: 'Catégorie', secondary: true },
+                      { label: 'Commune', secondary: true },
+                      { label: 'Prix (GNF)' },
+                      { label: 'Téléphone' },
+                      { label: 'Statut' },
+                      { label: 'Actions' },
+                    ].map((col) => (
                       <th
-                        key={h}
+                        key={col.label}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                          col.secondary ? 'hidden lg:table-cell' : ''
+                        }`}
                       >
-                        {h}
+                        {col.label}
                       </th>
                     ))}
                   </tr>
@@ -694,7 +696,7 @@ export default function MarketplaceProductsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="hidden px-6 py-3 lg:table-cell">
                           <span
                             className="rounded-full px-2.5 py-1 text-xs font-semibold"
                             style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
@@ -702,7 +704,7 @@ export default function MarketplaceProductsPage() {
                             {catLabel}
                           </span>
                         </td>
-                        <td className="px-6 py-3 text-xs text-gray-500">
+                        <td className="hidden px-6 py-3 text-xs text-gray-500 lg:table-cell">
                           {prod.commune || '—'}
                         </td>
                         <td className="whitespace-nowrap px-6 py-3">

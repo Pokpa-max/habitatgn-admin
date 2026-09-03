@@ -248,11 +248,11 @@ export default function PaiementsTab({ ownerId }) {
                   <table className="w-full text-left text-sm">
                     <thead style={{ backgroundColor: colors.gray50 }}>
                       <tr>
-                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Date</th>
-                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Bien / Locataire</th>
-                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Mois</th>
-                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Montant</th>
-                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">Méthode</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Date</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Bien / Locataire</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Mois</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Montant</th>
+                        <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Méthode</th>
                         <th className="px-6 py-3" />
                       </tr>
                     </thead>
@@ -278,7 +278,7 @@ export default function PaiementsTab({ ownerId }) {
                             <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
                               {formatGNF(payment.amountPaid)}
                             </td>
-                            <td className="px-6 py-3 text-gray-500">
+                            <td className="hidden px-6 py-3 text-gray-500 lg:table-cell">
                               {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
                             </td>
                             <td className="px-6 py-3">
