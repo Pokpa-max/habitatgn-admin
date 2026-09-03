@@ -320,7 +320,7 @@ export default function Scaffold({ children, title, subNav }) {
                               onClick={() => setSidebarOpen(false)}
                             >
                               <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                              <span className="text-sm">{item.name}</span>
+                              <span className="text-[13px]">{item.name}</span>
                             </a>
                           </Link>
                         )
@@ -390,7 +390,7 @@ export default function Scaffold({ children, title, subNav }) {
                           }`}
                         >
                           <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          <span className="text-sm">{item.name}</span>
+                          <span className="text-[13px]">{item.name}</span>
                         </a>
                       </Link>
                     )

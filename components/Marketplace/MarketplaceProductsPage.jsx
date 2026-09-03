@@ -67,6 +67,11 @@ export default function MarketplaceProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
+  // Sélection multiple / actions groupées
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
+
   // Menu d'actions groupées (par ligne)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [menuAnchor, setMenuAnchor] = useState(null)
@@ -83,6 +88,10 @@ export default function MarketplaceProductsPage() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [menuOpenId])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [searchTerm, categoryFilter, statusFilter])
 
   const openMenu = (event, productId) => {
     event.stopPropagation()
@@ -281,6 +290,59 @@ export default function MarketplaceProductsPage() {
   const activeCount = products.filter((p) => p.active).length
   const inactiveCount = products.filter((p) => !p.active).length
 
+  const selectableIds = visible.map((p) => p.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkSetActive = async (nextStatus) => {
+    const targets = products.filter((p) => selectedIds.has(p.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((p) => toggleProductActive(p.id, nextStatus)))
+      const targetIds = new Set(targets.map((p) => p.id))
+      setProducts((prev) =>
+        prev.map((p) => (targetIds.has(p.id) ? { ...p, active: nextStatus } : p))
+      )
+      notify(
+        `${targets.length} produit${targets.length > 1 ? 's' : ''} ${nextStatus ? 'activé(s)' : 'désactivé(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkDelete = async () => {
+    const targetIds = new Set(selectedIds)
+    if (targetIds.size === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all([...targetIds].map((id) => deleteProduct(id)))
+      setProducts((prev) => prev.filter((p) => !targetIds.has(p.id)))
+      notify(`${targetIds.size} produit${targetIds.size > 1 ? 's' : ''} supprimé(s)`, 'success')
+      setSelectedIds(new Set())
+      setBulkDeleteModalOpen(false)
+    } catch (e) {
+      notify('Erreur lors de la suppression groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 md:px-8">
       {/* Modal de suppression */}
@@ -290,6 +352,15 @@ export default function MarketplaceProductsPage() {
         title="Supprimer le produit"
         message={`Êtes-vous sûr de vouloir supprimer définitivement "${deleteTarget?.title}" de la Marketplace ? Cette action est irréversible.`}
         confirmFunction={handleDeleteConfirm}
+      />
+
+      {/* Modal de suppression groupée */}
+      <ConfirmModal
+        open={bulkDeleteModalOpen}
+        setOpen={setBulkDeleteModalOpen}
+        title="Supprimer les produits sélectionnés"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement ${selectedIds.size} produit${selectedIds.size > 1 ? 's' : ''} de la Marketplace ? Cette action est irréversible.`}
+        confirmFunction={handleBulkDelete}
       />
 
       {/* Drawer d'ajout / modification */}
@@ -622,6 +693,47 @@ export default function MarketplaceProductsPage() {
           </div>
         </div>
 
+        {/* Actions groupées */}
+        {selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => handleBulkSetActive(true)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+              >
+                Activer
+              </button>
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => handleBulkSetActive(false)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
+              >
+                Désactiver
+              </button>
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Tableau des Produits */}
         {isLoading ? (
           <div className="flex h-32 items-center justify-center">
@@ -640,6 +752,16 @@ export default function MarketplaceProductsPage() {
               <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-2.5">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                        title="Tout sélectionner"
+                      />
+                    </th>
                     {[
                       { label: 'Produit' },
                       { label: 'Catégorie', secondary: true },
@@ -669,6 +791,15 @@ export default function MarketplaceProductsPage() {
 
                     return (
                       <tr key={prod.id} className="hover:bg-gray-50">
+                        <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(prod.id)}
+                            onChange={() => toggleSelect(prod.id)}
+                            className="h-4 w-4 cursor-pointer rounded"
+                            style={{ accentColor: colors.primary }}
+                          />
+                        </td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
