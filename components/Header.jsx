@@ -1,8 +1,10 @@
 import { RiArrowLeftLine } from 'react-icons/ri'
+import { useRouter } from 'next/router'
 import { useColors } from '../contexts/ColorContext'
 
 export default function Header({ title }) {
   const colors = useColors()
+  const router = useRouter()
 
   return (
     <div className="py-5">
@@ -10,6 +12,14 @@ export default function Header({ title }) {
         <nav className="sm:hidden" aria-label="Back">
           <a
             href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              if (window.history.length > 1) {
+                router.back()
+              } else {
+                router.push('/')
+              }
+            }}
             className="flex items-center text-sm font-medium transition-colors"
             style={{
               color: colors.gray500,
