@@ -8,6 +8,7 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 import { getRentPayments, addRentPayment, deleteRentPayment } from '@/lib/services/rentPayments'
@@ -18,6 +19,8 @@ const METHODS = [
   { value: 'mobile_money', label: 'Mobile money' },
   { value: 'autre', label: 'Autre' },
 ]
+
+const PAGE_SIZE = 10
 
 function statusForPeriod(due, paid, period) {
   const isFuture = period > currentPeriod()
@@ -38,6 +41,7 @@ export default function PaiementsTab({ ownerId }) {
   const [propertyFilter, setPropertyFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState(currentPeriod())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const {
     register,
@@ -72,6 +76,10 @@ export default function PaiementsTab({ ownerId }) {
     }
     load()
   }, [ownerId])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [propertyFilter, periodFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
   const leaseById = (id) => leases.find((l) => l.id === id)
@@ -137,6 +145,7 @@ export default function PaiementsTab({ ownerId }) {
     if (periodFilter && p.period !== periodFilter) return false
     return true
   })
+  const visiblePayments = filteredPayments.slice(0, visibleCount)
 
   return (
     <>
@@ -248,7 +257,7 @@ export default function PaiementsTab({ ownerId }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {filteredPayments.map((payment) => {
+                      {visiblePayments.map((payment) => {
                         const lease = leaseById(payment.leaseId)
                         const property = propertyById(payment.propertyId)
                         const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period)
@@ -305,6 +314,9 @@ export default function PaiementsTab({ ownerId }) {
                     </tbody>
                   </table>
                 </div>
+                {visibleCount < filteredPayments.length && (
+                  <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+                )}
               </div>
             )}
           </>

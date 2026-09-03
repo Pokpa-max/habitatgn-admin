@@ -4,11 +4,14 @@ import { RiPieChartLine, RiHome4Line, RiHome3Line, RiCheckboxCircleLine } from '
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 
 const STATUS_LABELS = { vacant: 'Vacant', occupied: 'Occupé', inactive: 'Inactif' }
 const STATUS_COLORS = { vacant: '#F59E0B', occupied: '#16A34A', inactive: '#9CA3AF' }
+
+const PAGE_SIZE = 10
 
 export default function OccupationTab({ ownerId }) {
   const colors = useColors()
@@ -35,6 +38,11 @@ export default function OccupationTab({ ownerId }) {
   const [properties, setProperties] = useState([])
   const [leases, setLeases] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [ownerId])
 
   useEffect(() => {
     const load = async () => {
@@ -69,6 +77,8 @@ export default function OccupationTab({ ownerId }) {
 
   const activeLeaseByProperty = (propertyId) =>
     leases.find((l) => l.propertyId === propertyId && l.status === 'active')
+
+  const visibleProperties = properties.slice(0, visibleCount)
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -146,7 +156,7 @@ export default function OccupationTab({ ownerId }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {properties.map((property) => {
+                {visibleProperties.map((property) => {
                   const lease = activeLeaseByProperty(property.id)
                   return (
                     <tr key={property.id}>
@@ -172,6 +182,9 @@ export default function OccupationTab({ ownerId }) {
               </tbody>
             </table>
           </div>
+          {visibleCount < properties.length && (
+            <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+          )}
         </>
       )}
     </div>

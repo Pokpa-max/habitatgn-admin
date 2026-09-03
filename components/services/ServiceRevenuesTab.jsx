@@ -13,16 +13,20 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { formatGNF } from '@/utils/format'
 import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
 import { getManagedProperties } from '@/lib/services/managedProperties'
+
+const PAGE_SIZE = 10
 
 export default function ServiceRevenuesTab() {
   const colors = useColors()
   const [isLoading, setIsLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState('all') // 'week' | 'month' | 'year' | 'all'
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const emptyPeriod = { platform: 0, gross: 0 }
   const [periodTotals, setPeriodTotals] = useState({
@@ -238,11 +242,16 @@ export default function ServiceRevenuesTab() {
     loadRevenues()
   }, [])
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [activeFilter, periodFilter])
+
   const filteredItems = revenueItems.filter((item) => {
     const matchService = activeFilter === 'all' || item.serviceType === activeFilter
     const matchPeriod = isWithinPeriod(item.date, periodFilter)
     return matchService && matchPeriod
   })
+  const visibleItems = filteredItems.slice(0, visibleCount)
 
   return (
     <div className="space-y-6">
@@ -442,7 +451,7 @@ export default function ServiceRevenuesTab() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {filteredItems.map((item) => (
+                      {visibleItems.map((item) => (
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-6 py-3">
                             <span className="text-sm font-semibold text-gray-900">{item.service}</span>
@@ -474,6 +483,9 @@ export default function ServiceRevenuesTab() {
                     </tbody>
                   </table>
                 </div>
+                {visibleCount < filteredItems.length && (
+                  <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+                )}
               </div>
             )}
           </div>

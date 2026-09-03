@@ -19,6 +19,7 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import SimpleDrawer from '@/components/SimpleDrawer'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import PropertyDrawerForm from './PropertyDrawerForm'
 import {
   getManagedProperties,
@@ -39,6 +40,8 @@ const STATUS_CONFIG = {
   inactive: { label: 'Inactif', tone: 'gray' },
 }
 
+const PAGE_SIZE = 10
+
 // Si ownerId est fourni, la liste est restreinte aux biens de ce propriétaire
 // et le formulaire d'ajout/édition lui verrouille automatiquement le propriétaire.
 export default function BiensTab({ ownerId, onPropertiesChange }) {
@@ -50,6 +53,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [selected, setSelected] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [search, setSearch] = useState('')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [detailProperty, setDetailProperty] = useState(null)
   const [showDeleteLink, setShowDeleteLink] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
@@ -78,6 +82,10 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   useEffect(() => {
     onPropertiesChange?.(properties)
   }, [properties]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [search])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -279,6 +287,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       owner?.name?.toLowerCase().includes(q)
     )
   })
+  const visible = filtered.slice(0, visibleCount)
 
   // Sélection multiple : uniquement les vraies annonces (houses/lands/daily_rentals),
   // la mise en avant ne concerne pas la gestion locative interne.
@@ -436,7 +445,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filtered.map((property) => {
+                  {visible.map((property) => {
                     const statusCfg =
                       STATUS_CONFIG[property.status] || STATUS_CONFIG.vacant
                     const owner = ownerById(property.ownerId)
@@ -570,6 +579,9 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                 </tbody>
               </table>
             </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+            )}
           </div>
         )}
       </div>

@@ -8,6 +8,7 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner, editManagedProperty } from '@/lib/services/managedProperties'
 import { getLeases, addLease, editLease } from '@/lib/services/leases'
 
@@ -16,6 +17,8 @@ const STATUS_CONFIG = {
   ended: { label: 'Terminé', tone: 'gray' },
   terminated: { label: 'Résilié', tone: 'error' },
 }
+
+const PAGE_SIZE = 10
 
 export default function BauxTab({ ownerId }) {
   const colors = useColors()
@@ -26,6 +29,7 @@ export default function BauxTab({ ownerId }) {
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
   const [propertyFilter, setPropertyFilter] = useState('all')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const {
     register,
@@ -52,6 +56,10 @@ export default function BauxTab({ ownerId }) {
     }
     load()
   }, [ownerId])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [propertyFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
 
@@ -139,6 +147,7 @@ export default function BauxTab({ ownerId }) {
   }
 
   const filtered = leases.filter((l) => propertyFilter === 'all' || l.propertyId === propertyFilter)
+  const visible = filtered.slice(0, visibleCount)
 
   return (
     <>
@@ -206,7 +215,7 @@ export default function BauxTab({ ownerId }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filtered.map((lease) => {
+                  {visible.map((lease) => {
                     const property = propertyById(lease.propertyId)
                     const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
                     return (
@@ -254,6 +263,9 @@ export default function BauxTab({ ownerId }) {
                 </tbody>
               </table>
             </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+            )}
           </div>
         )}
       </div>

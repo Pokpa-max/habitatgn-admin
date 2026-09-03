@@ -7,10 +7,13 @@ import { formatGNF, currentPeriod, formatPeriodLabel } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import DrawerForm from '@/components/DrawerForm'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getPropertyExpenses, addPropertyExpense, deletePropertyExpense } from '@/lib/services/propertyExpenses'
 
 const CATEGORIES = ['Taxe', 'Assurance', 'Réparation', 'Autre']
+
+const PAGE_SIZE = 10
 
 export default function DepensesTab({ ownerId }) {
   const colors = useColors()
@@ -21,6 +24,7 @@ export default function DepensesTab({ ownerId }) {
   const [saving, setSaving] = useState(false)
   const [propertyFilter, setPropertyFilter] = useState('all')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const {
     register,
@@ -47,6 +51,10 @@ export default function DepensesTab({ ownerId }) {
     }
     load()
   }, [ownerId])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [propertyFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
 
@@ -96,6 +104,7 @@ export default function DepensesTab({ ownerId }) {
 
   const filtered = expenses.filter((e) => propertyFilter === 'all' || e.propertyId === propertyFilter)
   const total = filtered.reduce((sum, e) => sum + (e.amount || 0), 0)
+  const visible = filtered.slice(0, visibleCount)
 
   return (
     <>
@@ -156,7 +165,7 @@ export default function DepensesTab({ ownerId }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filtered.map((expense) => (
+                  {visible.map((expense) => (
                     <tr key={expense.id} className="hover:bg-gray-50">
                       <td className="px-6 py-3 font-mono text-gray-500">
                         {expense.date ? firebaseDateFormat(new Date(expense.date)) : '—'}
@@ -198,6 +207,9 @@ export default function DepensesTab({ ownerId }) {
                 </tbody>
               </table>
             </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+            )}
           </div>
         )}
       </div>
