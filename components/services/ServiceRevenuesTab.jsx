@@ -460,7 +460,7 @@ export default function ServiceRevenuesTab() {
                             <p className="text-sm font-medium text-gray-800">{item.client}</p>
                             <p className="font-mono text-xs text-gray-400">{item.phone}</p>
                           </td>
-                          <td className="px-6 py-3">
+                          <td className="whitespace-nowrap px-6 py-3">
                             <span className="font-mono text-sm font-bold text-gray-900">
                               {formatGNF(item.amount)}
                             </span>

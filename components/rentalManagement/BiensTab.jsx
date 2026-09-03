@@ -537,7 +537,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           </td>
                         )}
                         <td
-                          className="px-6 py-4 font-mono font-semibold"
+                          className="whitespace-nowrap px-6 py-4 font-mono font-semibold"
                           style={{ color: colors.primary }}
                         >
                           {formatGNF(property.rentAmount)}

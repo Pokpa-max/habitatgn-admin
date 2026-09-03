@@ -419,7 +419,7 @@ export default function ReservationsPage() {
                           )}
                         </td>
                         <td className="px-6 py-3 text-sm text-gray-600">{booking.numberOfGuests}</td>
-                        <td className="px-6 py-3 font-mono text-sm font-semibold" style={{ color: colors.primary }}>
+                        <td className="whitespace-nowrap px-6 py-3 font-mono text-sm font-semibold" style={{ color: colors.primary }}>
                           {formatGNF(booking.totalPrice)}
                         </td>
                         <td className="px-6 py-3">

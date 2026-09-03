@@ -174,7 +174,7 @@ export default function DepensesTab({ ownerId }) {
                       <td className="px-6 py-3 text-gray-700">{expense.label}</td>
                       <td className="px-6 py-3 text-gray-500">{expense.category}</td>
                       <td className="px-6 py-3 font-mono text-gray-500">{formatPeriodLabel(expense.period)}</td>
-                      <td className="px-6 py-3 font-mono font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
+                      <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
                       <td className="px-6 py-3">
                         {deleteConfirm === expense.id ? (
                           <div className="flex items-center gap-2">

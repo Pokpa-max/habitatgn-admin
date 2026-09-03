@@ -275,7 +275,7 @@ export default function PaiementsTab({ ownerId }) {
                                 <StatusPill tone={status.tone}>{status.label}</StatusPill>
                               </span>
                             </td>
-                            <td className="px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
+                            <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
                               {formatGNF(payment.amountPaid)}
                             </td>
                             <td className="px-6 py-3 text-gray-500">

@@ -229,7 +229,7 @@ export default function BauxTab({ ownerId }) {
                           {lease.tenantName}
                           <p className="font-mono text-xs text-gray-400">{lease.tenantPhone}</p>
                         </td>
-                        <td className="px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
+                        <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
                           {formatGNF(lease.rentAmount)}
                         </td>
                         <td className="px-6 py-3 font-mono text-gray-500">

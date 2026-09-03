@@ -705,7 +705,7 @@ export default function MarketplaceProductsPage() {
                         <td className="px-6 py-3 text-xs text-gray-500">
                           {prod.commune || '—'}
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="whitespace-nowrap px-6 py-3">
                           <span className="font-mono text-sm font-bold text-gray-900">
                             {formatGNF(prod.price)}
                           </span>
