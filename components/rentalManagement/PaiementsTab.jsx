@@ -12,6 +12,7 @@ import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 import { getRentPayments, addRentPayment, deleteRentPayment } from '@/lib/services/rentPayments'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const METHODS = [
   { value: 'especes', label: 'Espèces' },
@@ -32,6 +33,8 @@ function statusForPeriod(due, paid, period) {
 
 export default function PaiementsTab({ ownerId }) {
   const colors = useColors()
+  const canPayments = useCanManage('properties', 'payments')
+  const canDelete = useCanManage('properties', 'delete')
   const [properties, setProperties] = useState([])
   const [leases, setLeases] = useState([])
   const [payments, setPayments] = useState([])
@@ -87,6 +90,7 @@ export default function PaiementsTab({ ownerId }) {
   const activeLeases = leases.filter((l) => propertyFilter === 'all' || l.propertyId === propertyFilter)
 
   const openAdd = (prefill = {}) => {
+    if (!canPayments) return
     reset({
       leaseId: prefill.leaseId || activeLeases[0]?.id || '',
       period: prefill.period || periodFilter,
@@ -106,6 +110,7 @@ export default function PaiementsTab({ ownerId }) {
   }, [watchedLeaseId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSubmit = async (data) => {
+    if (!canPayments) return
     setSaving(true)
     try {
       const lease = leaseById(data.leaseId)
@@ -130,6 +135,7 @@ export default function PaiementsTab({ ownerId }) {
   }
 
   const handleDelete = async (payment) => {
+    if (!canDelete) return
     try {
       await deleteRentPayment(payment.id)
       setPayments((prev) => prev.filter((p) => p.id !== payment.id))
@@ -175,15 +181,17 @@ export default function PaiementsTab({ ownerId }) {
               onChange={(e) => setPeriodFilter(e.target.value)}
               className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <button
-              onClick={() => openAdd()}
-              disabled={activeLeases.length === 0}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Enregistrer un paiement
-            </button>
+            {canPayments && (
+              <button
+                onClick={() => openAdd()}
+                disabled={activeLeases.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Enregistrer un paiement
+              </button>
+            )}
           </div>
         </div>
 
@@ -221,12 +229,14 @@ export default function PaiementsTab({ ownerId }) {
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <StatusPill tone={status.tone}>{status.label}</StatusPill>
-                          <button
-                            onClick={() => openAdd({ leaseId: lease.id, period: periodFilter, amountDue: due })}
-                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                          >
-                            Encaisser
-                          </button>
+                          {canPayments && (
+                            <button
+                              onClick={() => openAdd({ leaseId: lease.id, period: periodFilter, amountDue: due })}
+                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                            >
+                              Encaisser
+                            </button>
+                          )}
                         </div>
                       </div>
                     )
@@ -282,30 +292,32 @@ export default function PaiementsTab({ ownerId }) {
                               {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
                             </td>
                             <td className="px-6 py-3">
-                              {deleteConfirm === payment.id ? (
-                                <div className="flex items-center gap-2">
+                              {canDelete && (
+                                deleteConfirm === payment.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleDelete(payment)}
+                                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                                      style={{ backgroundColor: colors.error }}
+                                    >
+                                      Oui
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteConfirm(null)}
+                                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                                    >
+                                      Non
+                                    </button>
+                                  </div>
+                                ) : (
                                   <button
-                                    onClick={() => handleDelete(payment)}
-                                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                                    style={{ backgroundColor: colors.error }}
+                                    onClick={() => setDeleteConfirm(payment.id)}
+                                    className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                                    title="Supprimer"
                                   >
-                                    Oui
+                                    <RiDeleteBinLine className="h-4 w-4" />
                                   </button>
-                                  <button
-                                    onClick={() => setDeleteConfirm(null)}
-                                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                                  >
-                                    Non
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setDeleteConfirm(payment.id)}
-                                  className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
-                                  title="Supprimer"
-                                >
-                                  <RiDeleteBinLine className="h-4 w-4" />
-                                </button>
+                                )
                               )}
                             </td>
                           </tr>

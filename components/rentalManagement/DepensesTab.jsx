@@ -10,6 +10,7 @@ import DrawerForm from '@/components/DrawerForm'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getPropertyExpenses, addPropertyExpense, deletePropertyExpense } from '@/lib/services/propertyExpenses'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const CATEGORIES = ['Taxe', 'Assurance', 'Réparation', 'Autre']
 
@@ -17,6 +18,8 @@ const PAGE_SIZE = 10
 
 export default function DepensesTab({ ownerId }) {
   const colors = useColors()
+  const canPayments = useCanManage('properties', 'payments')
+  const canDelete = useCanManage('properties', 'delete')
   const [expenses, setExpenses] = useState([])
   const [properties, setProperties] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -59,6 +62,7 @@ export default function DepensesTab({ ownerId }) {
   const propertyById = (id) => properties.find((p) => p.id === id)
 
   const openAdd = () => {
+    if (!canPayments) return
     reset({
       propertyId: properties[0]?.id || '',
       period: currentPeriod(),
@@ -71,6 +75,7 @@ export default function DepensesTab({ ownerId }) {
   }
 
   const onSubmit = async (data) => {
+    if (!canPayments) return
     setSaving(true)
     try {
       const payload = {
@@ -92,6 +97,7 @@ export default function DepensesTab({ ownerId }) {
   }
 
   const handleDelete = async (expense) => {
+    if (!canDelete) return
     try {
       await deletePropertyExpense(expense.id)
       setExpenses((prev) => prev.filter((e) => e.id !== expense.id))
@@ -128,15 +134,17 @@ export default function DepensesTab({ ownerId }) {
                 </option>
               ))}
             </select>
-            <button
-              onClick={openAdd}
-              disabled={properties.length === 0}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter une dépense
-            </button>
+            {canPayments && (
+              <button
+                onClick={openAdd}
+                disabled={properties.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter une dépense
+              </button>
+            )}
           </div>
         </div>
 
@@ -176,30 +184,32 @@ export default function DepensesTab({ ownerId }) {
                       <td className="hidden px-6 py-3 font-mono text-gray-500 lg:table-cell">{formatPeriodLabel(expense.period)}</td>
                       <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
                       <td className="px-6 py-3">
-                        {deleteConfirm === expense.id ? (
-                          <div className="flex items-center gap-2">
+                        {canDelete && (
+                          deleteConfirm === expense.id ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleDelete(expense)}
+                                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                                style={{ backgroundColor: colors.error }}
+                              >
+                                Oui
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                              >
+                                Non
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              onClick={() => handleDelete(expense)}
-                              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                              style={{ backgroundColor: colors.error }}
+                              onClick={() => setDeleteConfirm(expense.id)}
+                              className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                              title="Supprimer"
                             >
-                              Oui
+                              <RiDeleteBinLine className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => setDeleteConfirm(null)}
-                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                            >
-                              Non
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setDeleteConfirm(expense.id)}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
-                            title="Supprimer"
-                          >
-                            <RiDeleteBinLine className="h-4 w-4" />
-                          </button>
+                          )
                         )}
                       </td>
                     </tr>

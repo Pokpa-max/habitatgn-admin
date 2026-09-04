@@ -45,6 +45,7 @@ import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -87,6 +88,8 @@ function ActionsModal({
   onReject,
   onToggleBlock,
   onRecordPayment,
+  canProcess,
+  canPayments,
 }) {
   const colors = useColors()
   if (!worker) return null
@@ -146,7 +149,7 @@ function ActionsModal({
                     />
                   </Link>
 
-                  {status === 'pending' && (
+                  {canProcess && status === 'pending' && (
                     <>
                       <ActionRow
                         as="button"
@@ -168,7 +171,7 @@ function ActionsModal({
                     </>
                   )}
 
-                  {status === 'approved' && (
+                  {canPayments && status === 'approved' && (
                     <ActionRow
                       as="button"
                       onClick={onRecordPayment}
@@ -179,7 +182,7 @@ function ActionsModal({
                     />
                   )}
 
-                  {(status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
+                  {canProcess && (status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
                     <ActionRow
                       as="button"
                       onClick={onToggleBlock}
@@ -217,6 +220,8 @@ function ActionsModal({
 
 export default function WorkersPage() {
   const colors = useColors()
+  const canProcess = useCanManage('workers', 'process')
+  const canPayments = useCanManage('workers', 'payments')
   const [workers, setWorkers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -273,6 +278,7 @@ export default function WorkersPage() {
   }, [])
 
   const handleApprove = async (worker) => {
+    if (!canProcess) return
     setActioningId(worker.id)
     try {
       await approveWorker(worker.id, worker.userId)
@@ -298,6 +304,7 @@ export default function WorkersPage() {
   }
 
   const handleReject = async (worker) => {
+    if (!canProcess) return
     setActioningId(worker.id)
     try {
       await rejectWorker(worker.id)
@@ -323,7 +330,7 @@ export default function WorkersPage() {
   }
 
   const handleToggleBlock = async () => {
-    if (!blockTarget) return
+    if (!blockTarget || !canProcess) return
     const nextAvailable = !blockTarget.isAvailable
     try {
       await setWorkerBlockedState(blockTarget, !nextAvailable)
@@ -348,6 +355,7 @@ export default function WorkersPage() {
   }
 
   const handleBulkApprove = async () => {
+    if (!canProcess) return
     const targets = filtered.filter((w) => selectedIds.has(w.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -376,6 +384,7 @@ export default function WorkersPage() {
   }
 
   const handleBulkReject = async () => {
+    if (!canProcess) return
     const targets = filtered.filter((w) => selectedIds.has(w.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -392,6 +401,7 @@ export default function WorkersPage() {
   }
 
   const handleBulkBlock = async (blocked) => {
+    if (!canProcess) return
     const targets = filtered.filter((w) => selectedIds.has(w.id) && w.userId)
     if (targets.length === 0) return
     setBulkActing(true)
@@ -423,7 +433,7 @@ export default function WorkersPage() {
   }
 
   const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
-    if (!paymentTarget) return
+    if (!paymentTarget || !canPayments) return
     try {
       await recordWorkerPayment(paymentTarget.id, amount, paidAt, monthsCovered)
       const allPayments = await getAllWorkerPayments()
@@ -461,6 +471,7 @@ export default function WorkersPage() {
   // pending -> approuver/rejeter, approved -> bloquer, rejected -> débloquer
   // (uniquement les comptes bloqués par un admin, pas les vraies candidatures rejetées).
   const isBulkSelectable = (w) => {
+    if (!canProcess) return false // toutes les actions groupées de cette page sont des actions "process"
     if (statusFilter === 'pending') return true
     if (statusFilter === 'approved') return !!w.userId
     if (statusFilter === 'rejected') return !!w.suspendedByAdmin && !!w.userId
@@ -513,6 +524,8 @@ export default function WorkersPage() {
           setPaymentTarget(actionsTarget)
           setPaymentModalOpen(true)
         }}
+        canProcess={canProcess}
+        canPayments={canPayments}
       />
 
       <RecordPaymentModal
@@ -615,7 +628,7 @@ export default function WorkersPage() {
               {selectedIds.size > 1 ? 's' : ''}
             </span>
             <div className="ml-auto flex items-center gap-2">
-              {statusFilter === 'pending' && (
+              {canProcess && statusFilter === 'pending' && (
                 <>
                   <button
                     type="button"
@@ -636,7 +649,7 @@ export default function WorkersPage() {
                   </button>
                 </>
               )}
-              {statusFilter === 'approved' && (
+              {canProcess && statusFilter === 'approved' && (
                 <button
                   type="button"
                   disabled={bulkActing}
@@ -647,7 +660,7 @@ export default function WorkersPage() {
                   Bloquer
                 </button>
               )}
-              {statusFilter === 'rejected' && (
+              {canProcess && statusFilter === 'rejected' && (
                 <button
                   type="button"
                   disabled={bulkActing}

@@ -33,6 +33,7 @@ import { getPaymentsByProperty } from '@/lib/services/rentPayments'
 import { getTicketsByProperty } from '@/lib/services/maintenanceTickets'
 import { getExpensesByProperty } from '@/lib/services/propertyExpenses'
 import { updateProperty } from '@/lib/services/propertyService'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const STATUS_CONFIG = {
   vacant: { label: 'Vacant', tone: 'warning' },
@@ -46,6 +47,8 @@ const PAGE_SIZE = 10
 // et le formulaire d'ajout/édition lui verrouille automatiquement le propriétaire.
 export default function BiensTab({ ownerId, onPropertiesChange }) {
   const colors = useColors()
+  const canProcess = useCanManage('properties', 'process')
+  const canDelete = useCanManage('properties', 'delete')
   const [properties, setProperties] = useState([])
   const [owners, setOwners] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -107,11 +110,13 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const ownerById = (id) => owners.find((o) => o.id === id)
 
   const openAdd = () => {
+    if (!canProcess) return
     setSelected(null)
     setDrawerOpen(true)
   }
 
   const openEdit = (property) => {
+    if (!canProcess) return
     setDetailProperty(null)
     setSelected(property)
     setDrawerOpen(true)
@@ -156,6 +161,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }
 
   const handleDelete = async (property) => {
+    if (!canDelete) return
     const targetColl = property._collection || 'managed_properties'
     try {
       const [leases, payments, tickets, expenses] = await Promise.all([
@@ -188,7 +194,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }
 
   const handleToggleStatus = async (property) => {
-    if (!property) return
+    if (!property || !canProcess) return
     const isInactive = property.status === 'inactive'
     const newStatus = isInactive ? 'vacant' : 'inactive'
     const targetColl = property._collection || 'managed_properties'
@@ -233,7 +239,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     ['houses', 'lands', 'daily_rentals'].includes(property?._collection)
 
   const handleToggleVerified = async (property) => {
-    if (!property || !isPublicListing(property)) return
+    if (!property || !isPublicListing(property) || !canProcess) return
     const nextVerified = !property.verified
     try {
       await updateProperty(property.id, { verified: nextVerified }, property._collection)
@@ -250,7 +256,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }
 
   const handleSetBoost = async (property, days) => {
-    if (!property || !isPublicListing(property)) return
+    if (!property || !isPublicListing(property) || !canProcess) return
     try {
       const boostedUntil = days
         ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
@@ -290,8 +296,9 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const visible = filtered.slice(0, visibleCount)
 
   // Sélection multiple : uniquement les vraies annonces (houses/lands/daily_rentals),
-  // la mise en avant ne concerne pas la gestion locative interne.
-  const selectableIds = filtered.filter(isPublicListing).map((p) => p.id)
+  // la mise en avant ne concerne pas la gestion locative interne. Nécessite aussi
+  // la permission "process" puisque la seule action groupée ici est la mise en avant.
+  const selectableIds = canProcess ? filtered.filter(isPublicListing).map((p) => p.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
 
   const toggleSelect = (id) => {
@@ -308,6 +315,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }
 
   const handleBulkBoost = async (days) => {
+    if (!canProcess) return
     const targets = filtered.filter((p) => selectedIds.has(p.id) && isPublicListing(p))
     if (targets.length === 0) return
     setBulkBoosting(true)
@@ -355,14 +363,16 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               placeholder="Rechercher un bien..."
               className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <button
-              onClick={openAdd}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter un bien
-            </button>
+            {canProcess && (
+              <button
+                onClick={openAdd}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter un bien
+              </button>
+            )}
           </div>
         </div>
 
@@ -458,7 +468,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         className="cursor-pointer transition-colors hover:bg-gray-50"
                       >
                         <td className="w-8 py-4 pl-4 pr-2" onClick={(e) => e.stopPropagation()}>
-                          {isPublicListing(property) && (
+                          {canProcess && isPublicListing(property) && (
                             <input
                               type="checkbox"
                               checked={selectedIds.has(property.id)}
@@ -607,38 +617,42 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             <RiEyeLine className="h-4 w-4 text-gray-400" />
             Voir détails et photos
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpenId(null)
-              setMenuAnchor(null)
-              openEdit(
-                properties.find((property) => property.id === menuOpenId)
-              )
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            <RiEditLine className="h-4 w-4 text-gray-400" />
-            Modifier l'annonce
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpenId(null)
-              setMenuAnchor(null)
-              handleToggleStatus(
-                properties.find((property) => property.id === menuOpenId)
-              )
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            <RiEyeOffLine className="h-4 w-4 text-gray-400" />
-            {properties.find((property) => property.id === menuOpenId)
-              ?.status === 'inactive'
-              ? "Réactiver l'annonce"
-              : 'Désactiver / Masquer'}
-          </button>
-          {isPublicListing(
+          {canProcess && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                openEdit(
+                  properties.find((property) => property.id === menuOpenId)
+                )
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <RiEditLine className="h-4 w-4 text-gray-400" />
+              Modifier l'annonce
+            </button>
+          )}
+          {canProcess && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                handleToggleStatus(
+                  properties.find((property) => property.id === menuOpenId)
+                )
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              <RiEyeOffLine className="h-4 w-4 text-gray-400" />
+              {properties.find((property) => property.id === menuOpenId)
+                ?.status === 'inactive'
+                ? "Réactiver l'annonce"
+                : 'Désactiver / Masquer'}
+            </button>
+          )}
+          {canProcess && isPublicListing(
             properties.find((property) => property.id === menuOpenId)
           ) && (
             <>
@@ -701,23 +715,25 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               )}
             </>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpenId(null)
-              setMenuAnchor(null)
-              const selectedProperty = properties.find(
-                (property) => property.id === menuOpenId
-              )
-              openDetail(selectedProperty)
-              setDeleteConfirm(selectedProperty?.id)
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
-            style={{ color: colors.error }}
-          >
-            <RiDeleteBinLine className="h-4 w-4" />
-            Supprimer l'annonce
-          </button>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpenId(null)
+                setMenuAnchor(null)
+                const selectedProperty = properties.find(
+                  (property) => property.id === menuOpenId
+                )
+                openDetail(selectedProperty)
+                setDeleteConfirm(selectedProperty?.id)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+              style={{ color: colors.error }}
+            >
+              <RiDeleteBinLine className="h-4 w-4" />
+              Supprimer l'annonce
+            </button>
+          )}
         </div>
       )}
 
@@ -744,39 +760,47 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
         }
         footerButtons={
           <div className="flex w-full flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => setDeleteConfirm(detailProperty?.id)}
-              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-red-50"
-              style={{ borderColor: colors.error, color: colors.error }}
-            >
-              <RiDeleteBinLine className="h-3.5 w-3.5" />
-              Supprimer l'annonce
-            </button>
+            {canDelete ? (
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(detailProperty?.id)}
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold hover:bg-red-50"
+                style={{ borderColor: colors.error, color: colors.error }}
+              >
+                <RiDeleteBinLine className="h-3.5 w-3.5" />
+                Supprimer l'annonce
+              </button>
+            ) : (
+              <span />
+            )}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleToggleStatus(detailProperty)}
-                className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:opacity-80"
-                style={
-                  detailProperty?.status === 'inactive'
-                    ? { borderColor: colors.success, backgroundColor: '#F0FDF4', color: colors.success }
-                    : { borderColor: colors.warning, backgroundColor: '#FFFBEB', color: colors.warning }
-                }
-              >
-                {detailProperty?.status === 'inactive'
-                  ? "Réactiver l'annonce"
-                  : 'Désactiver / Masquer'}
-              </button>
-              <button
-                type="button"
-                onClick={() => openEdit(detailProperty)}
-                className="shadow-xs inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold text-white"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <RiEditLine className="h-3.5 w-3.5" />
-                Modifier l'annonce
-              </button>
+              {canProcess && (
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus(detailProperty)}
+                  className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors hover:opacity-80"
+                  style={
+                    detailProperty?.status === 'inactive'
+                      ? { borderColor: colors.success, backgroundColor: '#F0FDF4', color: colors.success }
+                      : { borderColor: colors.warning, backgroundColor: '#FFFBEB', color: colors.warning }
+                  }
+                >
+                  {detailProperty?.status === 'inactive'
+                    ? "Réactiver l'annonce"
+                    : 'Désactiver / Masquer'}
+                </button>
+              )}
+              {canProcess && (
+                <button
+                  type="button"
+                  onClick={() => openEdit(detailProperty)}
+                  className="shadow-xs inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-semibold text-white"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <RiEditLine className="h-3.5 w-3.5" />
+                  Modifier l'annonce
+                </button>
+              )}
             </div>
           </div>
         }
@@ -900,6 +924,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                     </p>
                   )}
 
+                  {canDelete && (
                   <div className="border-t border-gray-100 pt-4">
                     {deleteConfirm === detailProperty.id ? (
                       <div className="flex items-center gap-2">
@@ -937,6 +962,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                       </button>
                     )}
                   </div>
+                  )}
                 </>
               )
             })()}
