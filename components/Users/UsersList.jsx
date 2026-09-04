@@ -2,16 +2,20 @@
 import { columnsUser } from './_dataTable'
 import { OrderSkleton } from '../Orders/OrdersList'
 import PaginationButton from '../Orders/PaginationButton'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   RiSearchLine,
   RiAddLine,
   RiShieldKeyholeLine,
   RiLockPasswordLine,
+  RiMore2Fill,
+  RiForbidLine,
+  RiCheckLine,
 } from 'react-icons/ri'
 import DesableConfirmModal from '../DesableConfirm'
 import ManagerPermissionsModal from './ManagerPermissionsModal'
 import ResetPasswordModal from './ResetPasswordModal'
+import StatusPill from '../ui/StatusPill'
 import {
   desableUser,
   desableUserFirestore,
@@ -74,6 +78,19 @@ function UserTable({
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+
+  useEffect(() => {
+    if (!menuOpenId) return
+    const handleClickOutside = (event) => {
+      const target = event.target
+      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
+        setMenuOpenId(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
 
   data = data || {}
   const { users, lastElement } = data
@@ -320,50 +337,73 @@ function UserTable({
                           )
                         })}
 
-                        {/* Status Badge */}
+                        {/* Status + Actions */}
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => {
-                                setSelectUser(row)
-                                setOpenModal(true)
-                              }}
-                              className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
-                            >
-                              <span
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: row.isAvailable ? colors.success : colors.error }}
-                              />
+                            <StatusPill tone={row.isAvailable ? 'success' : 'error'}>
                               {row.isAvailable ? 'Actif' : 'Inactif'}
-                            </button>
-                            {isStaffTab && row.type === 'manager' && (
+                            </StatusPill>
+                            <div className="relative" data-menu-root>
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setPermissionsTarget(row)
-                                  setPermissionsModalOpen(true)
-                                }}
-                                title="Permissions"
-                                className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
+                                onClick={() =>
+                                  setMenuOpenId((prev) => (prev === row.id ? null : row.id))
+                                }
+                                className="inline-flex items-center justify-center rounded-full border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                                title="Actions"
                               >
-                                <RiShieldKeyholeLine className="h-3.5 w-3.5" style={{ color: colors.primary }} />
-                                Permissions
+                                <RiMore2Fill className="h-4 w-4" />
                               </button>
-                            )}
-                            {isAdmin && isStaffTab && row.type === 'manager' && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setPasswordTarget(row)
-                                  setPasswordModalOpen(true)
-                                }}
-                                title="Réinitialiser le mot de passe"
-                                className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
-                              >
-                                <RiLockPasswordLine className="h-3.5 w-3.5" style={{ color: colors.primary }} />
-                                Mot de passe
-                              </button>
-                            )}
+
+                              {menuOpenId === row.id && (
+                                <div className="absolute right-0 top-full z-[60] mt-2 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMenuOpenId(null)
+                                      setSelectUser(row)
+                                      setOpenModal(true)
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                  >
+                                    {row.isAvailable ? (
+                                      <RiForbidLine className="h-4 w-4" style={{ color: colors.error }} />
+                                    ) : (
+                                      <RiCheckLine className="h-4 w-4" style={{ color: colors.success }} />
+                                    )}
+                                    {row.isAvailable ? 'Suspendre le compte' : 'Activer le compte'}
+                                  </button>
+                                  {isStaffTab && row.type === 'manager' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMenuOpenId(null)
+                                        setPermissionsTarget(row)
+                                        setPermissionsModalOpen(true)
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <RiShieldKeyholeLine className="h-4 w-4" style={{ color: colors.primary }} />
+                                      Permissions
+                                    </button>
+                                  )}
+                                  {isAdmin && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setMenuOpenId(null)
+                                        setPasswordTarget(row)
+                                        setPasswordModalOpen(true)
+                                      }}
+                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                    >
+                                      <RiLockPasswordLine className="h-4 w-4" style={{ color: colors.primary }} />
+                                      Réinitialiser le mot de passe
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>
