@@ -106,6 +106,7 @@ export default function AgentRevenueChart({ payments = [], isLoading }) {
                 fill="url(#agentRevenueFill)"
                 dot={false}
                 activeDot={{ r: 4, fill: colors.primary, strokeWidth: 0 }}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>

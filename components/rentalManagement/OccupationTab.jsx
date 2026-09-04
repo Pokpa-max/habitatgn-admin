@@ -136,7 +136,7 @@ export default function OccupationTab({ ownerId }) {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="count" radius={[6, 6, 0, 0]} isAnimationActive={false}>
                   {chartData.map((entry) => (
                     <Cell key={entry.status} fill={STATUS_COLORS[entry.status]} />
                   ))}

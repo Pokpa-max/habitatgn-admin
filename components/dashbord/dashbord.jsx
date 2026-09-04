@@ -186,6 +186,7 @@ function PropertyOccupationChart() {
                 innerRadius={55}
                 outerRadius={85}
                 paddingAngle={2}
+                isAnimationActive={false}
               >
                 {data.map((entry) => (
                   <Cell key={entry.key} fill={OCCUPATION_COLORS[entry.key]} />
@@ -384,6 +385,7 @@ function RevenueChart({ onCurrentMonthRevenue }) {
                 fill="url(#grossFill)"
                 dot={false}
                 activeDot={{ r: 4, fill: colors.gray400, strokeWidth: 0 }}
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
@@ -392,6 +394,7 @@ function RevenueChart({ onCurrentMonthRevenue }) {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, fill: colors.primary, strokeWidth: 0 }}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
