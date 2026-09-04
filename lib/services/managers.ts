@@ -1,5 +1,10 @@
 import { auth, db } from '@/lib/firebase/client_config'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from 'firebase/auth'
 import { fetchWithPost } from '../../utils/fetch'
 
 export const userRef = (userId) => doc(db, `users/${userId}`)
@@ -37,6 +42,26 @@ export const desableUser = async (userId, desableAccount) => {
   } catch (error) {
     console.error('error: ', error)
   }
+}
+
+// Réinitialisation par un admin du mot de passe d'un manager (pas besoin de
+// connaître l'ancien) — voir pages/api/resetManagerPassword.ts.
+export const resetManagerPassword = async (uid, newPassword) => {
+  const response = await fetchWithPost('/api/resetManagerPassword', { uid, newPassword })
+  if (response.code === 0) throw new Error(response.message)
+  return response
+}
+
+// Changement par un utilisateur (admin ou manager) de son propre mot de
+// passe — nécessite l'ancien pour ré-authentifier, exigence de Firebase pour
+// toute opération sensible sur le compte courant (pas de route API : tout se
+// passe côté client avec le SDK Firebase Auth).
+export const changeOwnPassword = async (currentPassword, newPassword) => {
+  const user = auth.currentUser
+  if (!user?.email) throw new Error('Aucun utilisateur connecté')
+  const credential = EmailAuthProvider.credential(user.email, currentPassword)
+  await reauthenticateWithCredential(user, credential)
+  await updatePassword(user, newPassword)
 }
 
 export const createAccount = async (data) => {

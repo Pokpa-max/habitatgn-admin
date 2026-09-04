@@ -7,13 +7,21 @@ import {
   RiSearchLine,
   RiAddLine,
   RiShieldKeyholeLine,
+  RiLockPasswordLine,
 } from 'react-icons/ri'
 import DesableConfirmModal from '../DesableConfirm'
 import ManagerPermissionsModal from './ManagerPermissionsModal'
-import { desableUser, desableUserFirestore, updateUserPermissions } from '../../lib/services/managers'
+import ResetPasswordModal from './ResetPasswordModal'
+import {
+  desableUser,
+  desableUserFirestore,
+  updateUserPermissions,
+  resetManagerPassword,
+} from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
 import CreateUserDrawer from './CreateUserDrawer'
 import { useColors } from '../../contexts/ColorContext'
+import { useAuthUser } from 'next-firebase-auth'
 
 function UsersList({
   data,
@@ -56,12 +64,16 @@ function UserTable({
   isStaffTab,
 }) {
   const colors = useColors()
+  const AuthUser = useAuthUser()
+  const isAdmin = AuthUser.claims?.userType === 'admin'
   const [openModal, setOpenModal] = useState(false)
   const [selectUser, setSelectUser] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [permissionsTarget, setPermissionsTarget] = useState(null)
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState(null)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
 
   data = data || {}
   const { users, lastElement } = data
@@ -187,6 +199,16 @@ function UserTable({
               } catch (error) {
                 notify('Erreur lors de la mise à jour des permissions', 'error')
               }
+            }}
+          />
+
+          <ResetPasswordModal
+            manager={passwordTarget}
+            open={passwordModalOpen}
+            setOpen={setPasswordModalOpen}
+            onReset={async (manager, newPassword) => {
+              await resetManagerPassword(manager.id, newPassword)
+              notify('Mot de passe réinitialisé avec succès', 'success')
             }}
           />
 
@@ -326,6 +348,20 @@ function UserTable({
                               >
                                 <RiShieldKeyholeLine className="h-3.5 w-3.5" style={{ color: colors.primary }} />
                                 Permissions
+                              </button>
+                            )}
+                            {isAdmin && isStaffTab && row.type === 'manager' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPasswordTarget(row)
+                                  setPasswordModalOpen(true)
+                                }}
+                                title="Réinitialiser le mot de passe"
+                                className="action-btn inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 transition-all hover:shadow-sm"
+                              >
+                                <RiLockPasswordLine className="h-3.5 w-3.5" style={{ color: colors.primary }} />
+                                Mot de passe
                               </button>
                             )}
                           </div>

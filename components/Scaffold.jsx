@@ -19,6 +19,7 @@ import {
   RiCalendarCheckLine,
   RiCalendarTodoLine,
   RiFileUserLine,
+  RiLockPasswordLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useAuthUser } from 'next-firebase-auth'
@@ -26,6 +27,7 @@ import { useColors } from '../contexts/ColorContext'
 import { useRouter } from 'next/router'
 import { db } from '../lib/firebase/client_config'
 import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
+import ChangePasswordModal from './ChangePasswordModal'
 
 const navigation = [
   {
@@ -143,6 +145,7 @@ const SIDEBAR_BORDER = '#1E3252'
 export default function Scaffold({ children, title, subNav }) {
   const colors = useColors()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const AuthUser = useAuthUser()
   const router = useRouter()
   // Purement cosmétique (masque les items non autorisés) — la vraie barrière
@@ -225,6 +228,8 @@ export default function Scaffold({ children, title, subNav }) {
           color: ${colors.error};
         }
       `}</style>
+
+      <ChangePasswordModal open={passwordModalOpen} setOpen={setPasswordModalOpen} />
 
       <div className="relative">
         {/* Mobile Sidebar */}
@@ -331,7 +336,7 @@ export default function Scaffold({ children, title, subNav }) {
                 </div>
 
                 {/* User Mobile */}
-                <div className="flex flex-shrink-0 border-t p-4" style={{ borderColor: SIDEBAR_BORDER }}>
+                <div className="flex flex-shrink-0 flex-col border-t p-4" style={{ borderColor: SIDEBAR_BORDER }}>
                   <div>
                     <p className="text-sm font-semibold text-white">
                       {AuthUser?.displayName || 'Utilisateur'}
@@ -340,6 +345,16 @@ export default function Scaffold({ children, title, subNav }) {
                       {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => {
+                      setSidebarOpen(false)
+                      setPasswordModalOpen(true)
+                    }}
+                    className="logout-btn mt-3 flex w-full items-center gap-2 text-xs font-medium"
+                  >
+                    <RiLockPasswordLine className="h-4 w-4" />
+                    Changer le mot de passe
+                  </button>
                 </div>
               </div>
             </Transition.Child>
@@ -420,8 +435,15 @@ export default function Scaffold({ children, title, subNav }) {
                   </div>
                 </div>
                 <button
-                  onClick={AuthUser.signOut}
+                  onClick={() => setPasswordModalOpen(true)}
                   className="logout-btn mt-3 flex w-full items-center gap-2 text-xs font-medium"
+                >
+                  <RiLockPasswordLine className="h-4 w-4" />
+                  Changer le mot de passe
+                </button>
+                <button
+                  onClick={AuthUser.signOut}
+                  className="logout-btn mt-1.5 flex w-full items-center gap-2 text-xs font-medium"
                 >
                   <RiLogoutBoxRLine className="h-4 w-4" />
                   Se déconnecter
