@@ -577,7 +577,7 @@ export default function WorkersPage() {
         />
 
         <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
-          {[...STATUS_FILTERS, REVENUE_TAB].map((f) => {
+          {[...STATUS_FILTERS, ...(canPayments ? [REVENUE_TAB] : [])].map((f) => {
             const isRevenueTab = f.value === REVENUE_TAB.value
             const count = isRevenueTab
               ? null
