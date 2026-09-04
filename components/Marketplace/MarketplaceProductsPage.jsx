@@ -33,6 +33,7 @@ import {
 } from '@/lib/services/products'
 import { uploadToCloudinary } from '@/utils/cloudinary'
 import { CONAKRY_COMMUNES } from '../../_data'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -49,6 +50,8 @@ export const PRODUCT_CATEGORIES = [
 export default function MarketplaceProductsPage() {
   const colors = useColors()
   const AuthUser = useAuthUser()
+  const canProcess = useCanManage('marketplace', 'process')
+  const canDelete = useCanManage('marketplace', 'delete')
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -178,6 +181,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const onSubmit = async (data) => {
+    if (!canProcess) return
     setSaving(true)
     try {
       const uploadedUrls = await Promise.all(
@@ -215,6 +219,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleToggleStatus = async (prod) => {
+    if (!canProcess) return
     const nextStatus = !prod.active
     try {
       await toggleProductActive(prod.id, nextStatus)
@@ -238,6 +243,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleSetProductBoost = async (prod, days) => {
+    if (!canProcess) return
     setMenuOpenId(null)
     setMenuAnchor(null)
     try {
@@ -255,7 +261,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !canDelete) return
     try {
       await deleteProduct(deleteTarget.id)
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id))
@@ -290,7 +296,8 @@ export default function MarketplaceProductsPage() {
   const activeCount = products.filter((p) => p.active).length
   const inactiveCount = products.filter((p) => !p.active).length
 
-  const selectableIds = visible.map((p) => p.id)
+  const canBulkSelect = canProcess || canDelete
+  const selectableIds = canBulkSelect ? visible.map((p) => p.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
 
   const toggleSelect = (id) => {
@@ -307,6 +314,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleBulkSetActive = async (nextStatus) => {
+    if (!canProcess) return
     const targets = products.filter((p) => selectedIds.has(p.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -328,6 +336,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleBulkDelete = async () => {
+    if (!canDelete) return
     const targetIds = new Set(selectedIds)
     if (targetIds.size === 0) return
     setBulkActing(true)
@@ -644,14 +653,16 @@ export default function MarketplaceProductsPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
-            style={{ backgroundColor: colors.orangeAccent }}
-          >
-            <RiAddLine className="h-4 w-4" />
-            Ajouter un produit
-          </button>
+          {canProcess && (
+            <button
+              onClick={handleOpenAdd}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
+              style={{ backgroundColor: colors.orangeAccent }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter un produit
+            </button>
+          )}
         </div>
 
         {/* Barre de Recherche & Filtres */}
@@ -703,33 +714,39 @@ export default function MarketplaceProductsPage() {
               {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
             </span>
             <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                disabled={bulkActing}
-                onClick={() => handleBulkSetActive(true)}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
-              >
-                Activer
-              </button>
-              <button
-                type="button"
-                disabled={bulkActing}
-                onClick={() => handleBulkSetActive(false)}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
-              >
-                Désactiver
-              </button>
-              <button
-                type="button"
-                disabled={bulkActing}
-                onClick={() => setBulkDeleteModalOpen(true)}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
-              >
-                Supprimer
-              </button>
+              {canProcess && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkSetActive(true)}
+                    className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                    style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+                  >
+                    Activer
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkSetActive(false)}
+                    className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                    style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
+                  >
+                    Désactiver
+                  </button>
+                </>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+                >
+                  Supprimer
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -753,14 +770,16 @@ export default function MarketplaceProductsPage() {
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     <th scope="col" className="w-8 px-4 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 cursor-pointer rounded"
-                        style={{ accentColor: colors.primary }}
-                        title="Tout sélectionner"
-                      />
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
                     </th>
                     {[
                       { label: 'Produit' },
@@ -792,13 +811,15 @@ export default function MarketplaceProductsPage() {
                     return (
                       <tr key={prod.id} className="hover:bg-gray-50">
                         <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(prod.id)}
-                            onChange={() => toggleSelect(prod.id)}
-                            className="h-4 w-4 cursor-pointer rounded"
-                            style={{ accentColor: colors.primary }}
-                          />
+                          {canBulkSelect && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(prod.id)}
+                              onChange={() => toggleSelect(prod.id)}
+                              className="h-4 w-4 cursor-pointer rounded"
+                              style={{ accentColor: colors.primary }}
+                            />
+                          )}
                         </td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
@@ -890,36 +911,40 @@ export default function MarketplaceProductsPage() {
             style={{ left: menuAnchor.left, top: menuAnchor.top }}
             data-menu-root
           >
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                handleOpenEdit(prod)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              <RiEditLine className="h-4 w-4 text-gray-400" />
-              Modifier
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                handleToggleStatus(prod)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              {prod.active ? (
-                <RiCloseCircleLine className="h-4 w-4" style={{ color: colors.warning }} />
-              ) : (
-                <RiCheckboxCircleLine className="h-4 w-4" style={{ color: colors.success }} />
-              )}
-              {prod.active ? 'Désactiver' : 'Activer'}
-            </button>
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleOpenEdit(prod)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiEditLine className="h-4 w-4 text-gray-400" />
+                Modifier
+              </button>
+            )}
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleToggleStatus(prod)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                {prod.active ? (
+                  <RiCloseCircleLine className="h-4 w-4" style={{ color: colors.warning }} />
+                ) : (
+                  <RiCheckboxCircleLine className="h-4 w-4" style={{ color: colors.success }} />
+                )}
+                {prod.active ? 'Désactiver' : 'Activer'}
+              </button>
+            )}
 
-            {isProductBoosted(prod) ? (
+            {canProcess && (isProductBoosted(prod) ? (
               <button
                 type="button"
                 onClick={() => handleSetProductBoost(prod, null)}
@@ -947,22 +972,24 @@ export default function MarketplaceProductsPage() {
                   ))}
                 </div>
               </div>
-            )}
+            ))}
 
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                setDeleteTarget(prod)
-                setDeleteModalOpen(true)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
-              style={{ color: colors.error }}
-            >
-              <RiDeleteBinLine className="h-4 w-4" />
-              Supprimer
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  setDeleteTarget(prod)
+                  setDeleteModalOpen(true)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+                style={{ color: colors.error }}
+              >
+                <RiDeleteBinLine className="h-4 w-4" />
+                Supprimer
+              </button>
+            )}
           </div>
         )
       })()}

@@ -18,6 +18,7 @@ import {
   getAllCareerApplications,
   updateCareerApplicationStatus,
 } from '@/lib/services/careerApplications'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -38,7 +39,7 @@ const STATUS_CONFIG = {
   rejected: { label: 'Refusée', tone: 'error' },
 }
 
-function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, updating }) {
+function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, updating, canProcess }) {
   const colors = useColors()
   if (!application) return null
 
@@ -147,31 +148,33 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
                     Candidature reçue le {firebaseDateFormat(application.createdAt)}
                   </p>
 
-                  <div className="mt-5 border-t border-gray-100 pt-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Changer le statut
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => {
-                        const active = application.status === f.value
-                        return (
-                          <button
-                            key={f.value}
-                            disabled={active || updating}
-                            onClick={() => onStatusChange(application, f.value)}
-                            className="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed"
-                            style={
-                              active
-                                ? { borderColor: colors.primary, backgroundColor: colors.primaryVeryLight, color: colors.primary }
-                                : { borderColor: colors.gray200, color: colors.gray600 }
-                            }
-                          >
-                            {f.label}
-                          </button>
-                        )
-                      })}
+                  {canProcess && (
+                    <div className="mt-5 border-t border-gray-100 pt-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Changer le statut
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => {
+                          const active = application.status === f.value
+                          return (
+                            <button
+                              key={f.value}
+                              disabled={active || updating}
+                              onClick={() => onStatusChange(application, f.value)}
+                              className="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed"
+                              style={
+                                active
+                                  ? { borderColor: colors.primary, backgroundColor: colors.primaryVeryLight, color: colors.primary }
+                                  : { borderColor: colors.gray200, color: colors.gray600 }
+                              }
+                            >
+                              {f.label}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="flex gap-3 border-t border-gray-100 bg-gray-50/80 px-6 py-4">
@@ -194,6 +197,7 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
 
 export default function CareersPage() {
   const colors = useColors()
+  const canProcess = useCanManage('careers', 'process')
   const [applications, setApplications] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -232,6 +236,7 @@ export default function CareersPage() {
   }, [])
 
   const handleStatusChange = async (application, status) => {
+    if (!canProcess) return
     setUpdatingId(application.id)
     try {
       await updateCareerApplicationStatus(application.id, status)
@@ -262,7 +267,7 @@ export default function CareersPage() {
 
   const visible = filtered.slice(0, visibleCount)
 
-  const selectableIds = visible.map((a) => a.id)
+  const selectableIds = canProcess ? visible.map((a) => a.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
 
   const toggleSelect = (id) => {
@@ -279,6 +284,7 @@ export default function CareersPage() {
   }
 
   const handleBulkStatus = async (status) => {
+    if (!canProcess) return
     const targets = applications.filter((a) => selectedIds.has(a.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -307,6 +313,7 @@ export default function CareersPage() {
         setOpen={setDetailOpen}
         onStatusChange={handleStatusChange}
         updating={updatingId === detailApplication?.id}
+        canProcess={canProcess}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -370,26 +377,28 @@ export default function CareersPage() {
             <span className="text-sm font-semibold" style={{ color: colors.primary }}>
               {selectedIds.size} candidature{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
             </span>
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                disabled={bulkActing}
-                onClick={() => handleBulkStatus('reviewed')}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
-              >
-                Marquer étudiée
-              </button>
-              <button
-                type="button"
-                disabled={bulkActing}
-                onClick={() => handleBulkStatus('rejected')}
-                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
-              >
-                Marquer refusée
-              </button>
-            </div>
+            {canProcess && (
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkStatus('reviewed')}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+                >
+                  Marquer étudiée
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkStatus('rejected')}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+                >
+                  Marquer refusée
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -409,14 +418,16 @@ export default function CareersPage() {
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     <th scope="col" className="w-8 px-4 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 cursor-pointer rounded"
-                        style={{ accentColor: colors.primary }}
-                        title="Tout sélectionner"
-                      />
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
                     </th>
                     {[
                       { label: 'Candidat' },
@@ -450,13 +461,15 @@ export default function CareersPage() {
                         className="cursor-pointer hover:bg-gray-50"
                       >
                         <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(application.id)}
-                            onChange={() => toggleSelect(application.id)}
-                            className="h-4 w-4 cursor-pointer rounded"
-                            style={{ accentColor: colors.primary }}
-                          />
+                          {canProcess && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(application.id)}
+                              onChange={() => toggleSelect(application.id)}
+                              className="h-4 w-4 cursor-pointer rounded"
+                              style={{ accentColor: colors.primary }}
+                            />
+                          )}
                         </td>
                         <td className="px-6 py-3">
                           <div className="flex items-center gap-3">

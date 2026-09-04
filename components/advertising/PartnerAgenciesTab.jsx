@@ -26,6 +26,7 @@ import {
   slugify,
 } from '@/lib/services/partnerAgencies'
 import { getAgentRequests } from '@/lib/services/agentRequests'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const getInitials = (name) =>
   (name || '')
@@ -37,6 +38,8 @@ const getInitials = (name) =>
 
 export default function PartnerAgenciesTab() {
   const colors = useColors()
+  const canProcess = useCanManage('advertising', 'process')
+  const canDelete = useCanManage('advertising', 'delete')
   const [agencies, setAgencies] = useState([])
   const [agents, setAgents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -152,6 +155,7 @@ export default function PartnerAgenciesTab() {
   }
 
   const onSubmit = async ({ logoFile, ...data }) => {
+    if (!canProcess) return
     setSaving(true)
     try {
       let logoUrl = selected?.logoUrl || ''
@@ -188,6 +192,7 @@ export default function PartnerAgenciesTab() {
   }
 
   const handleToggleActive = async (agency) => {
+    if (!canProcess) return
     const nextActive = !agency.active
     try {
       await togglePartnerAgencyActive(agency.id, nextActive)
@@ -200,6 +205,7 @@ export default function PartnerAgenciesTab() {
   }
 
   const handleDelete = async (agency) => {
+    if (!canDelete) return
     try {
       await deletePartnerAgency(agency.id)
       setAgencies((prev) => prev.filter((a) => a.id !== agency.id))
@@ -221,14 +227,16 @@ export default function PartnerAgenciesTab() {
                 Cartes d'agences affichées sur la page d'accueil du site public
               </p>
             </div>
-            <button
-              onClick={openAdd}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter
-            </button>
+            {canProcess && (
+              <button
+                onClick={openAdd}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter
+              </button>
+            )}
           </div>
 
           {isLoading ? (
@@ -314,47 +322,53 @@ export default function PartnerAgenciesTab() {
             style={{ left: menuAnchor.left, top: menuAnchor.top }}
             data-menu-root
           >
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                handleToggleActive(agency)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              {agency.active ? (
-                <RiEyeOffLine className="h-4 w-4 text-gray-400" />
-              ) : (
-                <RiEyeLine className="h-4 w-4 text-gray-400" />
-              )}
-              {agency.active ? 'Masquer' : 'Publier'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                openEdit(agency)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              <RiEditLine className="h-4 w-4 text-gray-400" />
-              Modifier
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                setDeleteConfirm(agency.id)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
-              style={{ color: colors.error }}
-            >
-              <RiDeleteBinLine className="h-4 w-4" />
-              Supprimer
-            </button>
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleToggleActive(agency)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                {agency.active ? (
+                  <RiEyeOffLine className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <RiEyeLine className="h-4 w-4 text-gray-400" />
+                )}
+                {agency.active ? 'Masquer' : 'Publier'}
+              </button>
+            )}
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  openEdit(agency)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiEditLine className="h-4 w-4 text-gray-400" />
+                Modifier
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  setDeleteConfirm(agency.id)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+                style={{ color: colors.error }}
+              >
+                <RiDeleteBinLine className="h-4 w-4" />
+                Supprimer
+              </button>
+            )}
           </div>
         )
       })()}

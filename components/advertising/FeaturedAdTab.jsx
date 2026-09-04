@@ -19,6 +19,7 @@ import {
   removeFeaturedAdImage,
 } from '@/lib/services/siteSettings'
 import PagePreview from './PagePreview'
+import { useCanManage } from '@/hooks/useCanManage'
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ')
@@ -26,6 +27,8 @@ function classNames(...classes) {
 
 export default function FeaturedAdTab() {
   const colors = useColors()
+  const canProcess = useCanManage('advertising', 'process')
+  const canDelete = useCanManage('advertising', 'delete')
   const [isLoading, setIsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [enabled, setEnabled] = useState(false)
@@ -53,6 +56,7 @@ export default function FeaturedAdTab() {
   }, [])
 
   const handleAddFiles = async (files) => {
+    if (!canProcess) return
     setUploadingNew(true)
     try {
       for (const file of Array.from(files)) {
@@ -66,6 +70,7 @@ export default function FeaturedAdTab() {
   }
 
   const handleReplaceFile = async (file, index) => {
+    if (!canProcess) return
     setReplacingIndex(index)
     try {
       const oldUrl = ads[index]?.imageUrl
@@ -79,12 +84,14 @@ export default function FeaturedAdTab() {
   }
 
   const removeAd = (index) => {
+    if (!canDelete) return
     const oldUrl = ads[index]?.imageUrl
     setAds((prev) => prev.filter((_, i) => i !== index))
     if (oldUrl) removeFeaturedAdImage(oldUrl)
   }
 
   const moveAd = (index, direction) => {
+    if (!canProcess) return
     const target = index + direction
     if (target < 0 || target >= ads.length) return
     setAds((prev) => {
@@ -95,10 +102,17 @@ export default function FeaturedAdTab() {
   }
 
   const updateLinkUrl = (index, linkUrl) => {
+    if (!canProcess) return
     setAds((prev) => prev.map((ad, i) => (i === index ? { ...ad, linkUrl } : ad)))
   }
 
+  const handleToggleEnabled = (value) => {
+    if (!canProcess) return
+    setEnabled(value)
+  }
+
   const handleSave = async () => {
+    if (!canProcess) return
     if (enabled && ads.length === 0) {
       notify("Ajoutez au moins une image avant d'activer la publicité", 'error')
       return
@@ -139,7 +153,8 @@ export default function FeaturedAdTab() {
             </Switch.Label>
             <Switch
               checked={enabled}
-              onChange={setEnabled}
+              onChange={handleToggleEnabled}
+              disabled={!canProcess}
               className={classNames(
                 enabled ? '' : 'bg-gray-200',
                 'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none'
@@ -171,16 +186,18 @@ export default function FeaturedAdTab() {
                     <RiLoader4Line className="h-4 w-4 animate-spin text-white" />
                   </div>
                 )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    replaceTargetIndex.current = index
-                    replaceInputRef.current?.click()
-                  }}
-                  className="absolute inset-x-0 bottom-0 bg-black/55 py-1 text-[10px] font-semibold text-white"
-                >
-                  Remplacer
-                </button>
+                {canProcess && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      replaceTargetIndex.current = index
+                      replaceInputRef.current?.click()
+                    }}
+                    className="absolute inset-x-0 bottom-0 bg-black/55 py-1 text-[10px] font-semibold text-white"
+                  >
+                    Remplacer
+                  </button>
+                )}
               </div>
 
               <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -191,38 +208,45 @@ export default function FeaturedAdTab() {
                   type="text"
                   value={ad.linkUrl}
                   onChange={(e) => updateLinkUrl(index, e.target.value)}
+                  disabled={!canProcess}
                   placeholder="/lands ou /contact"
-                  className="w-full max-w-32 rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full max-w-32 rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
               </div>
 
               <div className="flex shrink-0 flex-col items-center justify-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => moveAd(index, -1)}
-                  disabled={index === 0}
-                  className="rounded p-1.5 hover:bg-gray-100 disabled:opacity-30"
-                  aria-label="Monter"
-                >
-                  <RiArrowUpLine className="h-4 w-4 text-gray-500" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => moveAd(index, 1)}
-                  disabled={index === ads.length - 1}
-                  className="rounded p-1.5 hover:bg-gray-100 disabled:opacity-30"
-                  aria-label="Descendre"
-                >
-                  <RiArrowDownLine className="h-4 w-4 text-gray-500" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeAd(index)}
-                  className="rounded p-1.5 hover:bg-red-50"
-                  aria-label="Supprimer"
-                >
-                  <RiDeleteBinLine className="h-4 w-4" style={{ color: colors.error }} />
-                </button>
+                {canProcess && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => moveAd(index, -1)}
+                      disabled={index === 0}
+                      className="rounded p-1.5 hover:bg-gray-100 disabled:opacity-30"
+                      aria-label="Monter"
+                    >
+                      <RiArrowUpLine className="h-4 w-4 text-gray-500" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveAd(index, 1)}
+                      disabled={index === ads.length - 1}
+                      className="rounded p-1.5 hover:bg-gray-100 disabled:opacity-30"
+                      aria-label="Descendre"
+                    >
+                      <RiArrowDownLine className="h-4 w-4 text-gray-500" />
+                    </button>
+                  </>
+                )}
+                {canDelete && (
+                  <button
+                    type="button"
+                    onClick={() => removeAd(index)}
+                    className="rounded p-1.5 hover:bg-red-50"
+                    aria-label="Supprimer"
+                  >
+                    <RiDeleteBinLine className="h-4 w-4" style={{ color: colors.error }} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -236,30 +260,32 @@ export default function FeaturedAdTab() {
         </div>
 
         {/* Ajout d'images */}
-        <button
-          type="button"
-          onClick={() => addInputRef.current?.click()}
-          disabled={uploadingNew}
-          className="mt-4 flex w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed py-4 text-sm font-semibold transition-colors hover:bg-gray-50 disabled:opacity-60"
-          style={{ borderColor: colors.primary, color: colors.primary }}
-        >
-          {uploadingNew ? (
-            <span className="flex items-center gap-2">
-              <RiLoader4Line className="h-4 w-4 animate-spin" />
-              Envoi en cours…
-            </span>
-          ) : (
-            <>
+        {canProcess && (
+          <button
+            type="button"
+            onClick={() => addInputRef.current?.click()}
+            disabled={uploadingNew}
+            className="mt-4 flex w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed py-4 text-sm font-semibold transition-colors hover:bg-gray-50 disabled:opacity-60"
+            style={{ borderColor: colors.primary, color: colors.primary }}
+          >
+            {uploadingNew ? (
               <span className="flex items-center gap-2">
-                <RiAddLine className="h-4 w-4" />
-                Ajouter des images
+                <RiLoader4Line className="h-4 w-4 animate-spin" />
+                Envoi en cours…
               </span>
-              <span className="text-xs font-normal text-gray-500">
-                Vous pouvez en sélectionner plusieurs à la fois
-              </span>
-            </>
-          )}
-        </button>
+            ) : (
+              <>
+                <span className="flex items-center gap-2">
+                  <RiAddLine className="h-4 w-4" />
+                  Ajouter des images
+                </span>
+                <span className="text-xs font-normal text-gray-500">
+                  Vous pouvez en sélectionner plusieurs à la fois
+                </span>
+              </>
+            )}
+          </button>
+        )}
 
         <input
           ref={addInputRef}
@@ -286,26 +312,28 @@ export default function FeaturedAdTab() {
           }}
         />
 
-        <div className="mt-6 flex justify-end">
-          {saving ? (
-            <div
-              className="inline-flex justify-center rounded-lg px-6 py-2 text-sm font-semibold text-white"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <Loader />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSave}
-              className="inline-flex items-center gap-2 rounded-lg px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiCheckLine className="h-4 w-4" />
-              Enregistrer
-            </button>
-          )}
-        </div>
+        {canProcess && (
+          <div className="mt-6 flex justify-end">
+            {saving ? (
+              <div
+                className="inline-flex justify-center rounded-lg px-6 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <Loader />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="inline-flex items-center gap-2 rounded-lg px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiCheckLine className="h-4 w-4" />
+                Enregistrer
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <PagePreview

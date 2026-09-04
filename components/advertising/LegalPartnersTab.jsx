@@ -21,6 +21,7 @@ import {
   togglePartnerAvailable,
 } from '@/lib/services/partners'
 import { CONAKRY_COMMUNES } from '../../_data'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const TYPE_LABELS = {
   notaire: 'Cabinet Notarial',
@@ -30,6 +31,8 @@ const TYPE_LABELS = {
 
 export default function LegalPartnersTab() {
   const colors = useColors()
+  const canProcess = useCanManage('advertising', 'process')
+  const canDelete = useCanManage('advertising', 'delete')
   const [partners, setPartners] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -102,6 +105,7 @@ export default function LegalPartnersTab() {
   }
 
   const onSubmit = async ({ logoFile, ...data }) => {
+    if (!canProcess) return
     setSaving(true)
     try {
       let logo = selected?.logo || ''
@@ -129,6 +133,7 @@ export default function LegalPartnersTab() {
   }
 
   const handleToggleAvailable = async (partner) => {
+    if (!canProcess) return
     const nextAvailable = !partner.available
     try {
       await togglePartnerAvailable(partner.id, nextAvailable)
@@ -141,6 +146,7 @@ export default function LegalPartnersTab() {
   }
 
   const handleDelete = async (partner) => {
+    if (!canDelete) return
     try {
       await deletePartner(partner.id)
       setPartners((prev) => prev.filter((p) => p.id !== partner.id))
@@ -162,14 +168,16 @@ export default function LegalPartnersTab() {
               Répertoire de notaires, juristes et bureaux techniques
             </p>
           </div>
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <RiAddLine className="h-4 w-4" />
-            Ajouter
-          </button>
+          {canProcess && (
+            <button
+              onClick={openAdd}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter
+            </button>
+          )}
         </div>
 
         {isLoading ? (
@@ -233,31 +241,37 @@ export default function LegalPartnersTab() {
                     </div>
                   ) : (
                     <>
-                      <button
-                        onClick={() => handleToggleAvailable(partner)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: partner.available ? colors.success : colors.gray400 }}
-                        />
-                        {partner.available ? 'Disponible' : 'Indisponible'}
-                      </button>
-                      <button
-                        onClick={() => openEdit(partner)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                        title="Modifier"
-                      >
-                        <RiEditLine className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(partner.id)}
-                        className="rounded-lg border border-gray-200 p-2 transition-colors hover:bg-red-50"
-                        style={{ color: colors.error }}
-                        title="Supprimer"
-                      >
-                        <RiDeleteBinLine className="h-4 w-4" />
-                      </button>
+                      {canProcess && (
+                        <button
+                          onClick={() => handleToggleAvailable(partner)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: partner.available ? colors.success : colors.gray400 }}
+                          />
+                          {partner.available ? 'Disponible' : 'Indisponible'}
+                        </button>
+                      )}
+                      {canProcess && (
+                        <button
+                          onClick={() => openEdit(partner)}
+                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                          title="Modifier"
+                        >
+                          <RiEditLine className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteConfirm(partner.id)}
+                          className="rounded-lg border border-gray-200 p-2 transition-colors hover:bg-red-50"
+                          style={{ color: colors.error }}
+                          title="Supprimer"
+                        >
+                          <RiDeleteBinLine className="h-4 w-4" />
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
