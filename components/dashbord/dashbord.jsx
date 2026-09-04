@@ -1,13 +1,17 @@
 import { db } from '@/lib/firebase/client_config'
 import { useAuthUser } from 'next-firebase-auth'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import {
   Area,
   CartesianGrid,
+  Cell,
   ComposedChart,
+  Legend,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -34,7 +38,168 @@ import {
   Home,
   CalendarCheck,
   Wallet,
+  Mail,
+  Truck,
 } from 'lucide-react'
+
+const OCCUPATION_LABELS = { occupied: 'Occupé', vacant: 'Vacant', inactive: 'Inactif' }
+const OCCUPATION_COLORS = { occupied: '#16A34A', vacant: '#F59E0B', inactive: '#9CA3AF' }
+
+// Tuiles du dashboard manager — un module accordé (voir
+// lib/constants/managerModules.js) donne droit à sa tuile ; sans le champ
+// permissions (compte créé avant cette fonctionnalité), tout s'affiche.
+const MANAGER_TILES = [
+  { module: 'leads', label: 'Demandes de visite', href: '/leads', icon: CalendarCheck, badgeKey: 'pendingLeads' },
+  { module: 'agents', label: 'Agents', href: '/agents', icon: Briefcase, badgeKey: 'pendingAgents' },
+  { module: 'workers', label: 'Ouvriers', href: '/workers', icon: Hammer, badgeKey: 'pendingWorkers' },
+  { module: 'properties', label: 'Gestion locative', href: '/gestion-locative', icon: Home },
+  { module: 'reservations', label: 'Réservations', href: '/reservations', icon: CalendarCheck, badgeKey: 'pendingBookings' },
+  { module: 'services', label: 'Services', href: '/services', icon: Truck },
+  { module: 'messages', label: 'Messages', href: '/messages', icon: Mail, badgeKey: 'unreadMessages' },
+]
+
+// Dashboard par défaut pour un manager — remplace l'ancien texte de
+// bienvenue statique par un vrai aperçu : une tuile par module auquel il a
+// accès, avec le compteur réel si ce module en a un.
+function ManagerDashboard() {
+  const colors = useColors()
+  const notifications = useNotifications()
+  const AuthUser = useAuthUser()
+  const [permissions, setPermissions] = useState(undefined)
+
+  useEffect(() => {
+    if (!AuthUser.id) return
+    getDoc(doc(db, 'users', AuthUser.id))
+      .then((snap) => setPermissions(snap.data()?.permissions ?? null))
+      .catch(() => setPermissions(null))
+  }, [AuthUser.id])
+
+  // undefined = pas encore chargé -> ne rien afficher plutôt que flasher
+  // toutes les tuiles puis les retirer.
+  if (permissions === undefined) return null
+
+  const tiles = MANAGER_TILES.filter(
+    (tile) => !permissions || permissions.includes(tile.module)
+  )
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-lg font-extrabold" style={{ color: colors.gray900 }}>
+          Bienvenue, {AuthUser?.displayName || 'Manager'}
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: colors.gray500 }}>
+          Voici un aperçu des sections auxquelles vous avez accès.
+        </p>
+      </div>
+
+      {tiles.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
+          Aucun module ne vous a encore été attribué — contactez un administrateur.
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {tiles.map((tile) => {
+            const count = tile.badgeKey ? notifications[tile.badgeKey] : undefined
+            return (
+              <Link key={tile.module} href={tile.href}>
+                <a
+                  className="flex h-full flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                  style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+                >
+                  <div
+                    className="flex h-8 w-8 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: colors.primaryVeryLight }}
+                  >
+                    <tile.icon className="h-4 w-4" style={{ color: colors.primary }} />
+                  </div>
+                  <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                    {tile.label}
+                  </p>
+                  {count !== undefined && (
+                    <p className="-mt-1.5 font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
+                      {count > 0 ? `${count} nouvelle${count > 1 ? 's' : ''}` : 'Aucune nouvelle'}
+                    </p>
+                  )}
+                </a>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Répartition du parc géré (occupé/vacant/inactif) — même donnée que
+// components/rentalManagement/OccupationTab.jsx, présentée ici en donut
+// pour une vue d'ensemble rapide depuis le dashboard.
+function PropertyOccupationChart() {
+  const colors = useColors()
+  const [isLoading, setIsLoading] = useState(true)
+  const [counts, setCounts] = useState({ occupied: 0, vacant: 0, inactive: 0 })
+
+  useEffect(() => {
+    getManagedProperties()
+      .then((properties) => {
+        setCounts({
+          occupied: properties.filter((p) => p.status === 'occupied').length,
+          vacant: properties.filter((p) => p.status === 'vacant').length,
+          inactive: properties.filter((p) => p.status === 'inactive').length,
+        })
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  const total = counts.occupied + counts.vacant + counts.inactive
+  const data = ['occupied', 'vacant', 'inactive']
+    .map((key) => ({ key, name: OCCUPATION_LABELS[key], value: counts[key] }))
+    .filter((d) => d.value > 0)
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+        Répartition des biens gérés
+      </p>
+      <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
+        {total} bien{total > 1 ? 's' : ''}
+      </p>
+      <p className="mt-0.5 text-xs text-gray-400">Occupés, vacants et inactifs</p>
+
+      <div className="mt-2 h-64">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Chargement...
+          </div>
+        ) : total === 0 ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Aucun bien géré pour le moment
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={55}
+                outerRadius={85}
+                paddingAngle={2}
+              >
+                {data.map((entry) => (
+                  <Cell key={entry.key} fill={OCCUPATION_COLORS[entry.key]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" height={24} iconType="circle" iconSize={8} />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const LEAD_STATUS_META = {
   new: { label: 'Nouveau', tone: 'warning' },
@@ -393,11 +558,7 @@ function DashboardCard() {
   )
 
   if (AuthUser.claims?.userType !== 'admin') {
-    return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
-        Bienvenue sur le portail BâtiMoo Admin.
-      </div>
-    )
+    return <ManagerDashboard />
   }
 
   return (
@@ -434,8 +595,9 @@ function DashboardCard() {
           que sa lecture Firestore alimente en continu la tuile "Revenus
           du mois" ci-dessous, même si l'onglet Statistiques n'a jamais
           été ouvert. */}
-      <div className={activeTab === 'stats' ? '' : 'hidden'}>
+      <div className={activeTab === 'stats' ? 'space-y-6' : 'hidden'}>
         <RevenueChart onCurrentMonthRevenue={setMonthlyRevenue} />
+        <PropertyOccupationChart />
       </div>
 
       {activeTab === 'overview' && (
