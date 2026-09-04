@@ -31,8 +31,8 @@ const TYPE_LABELS = {
 
 export default function LegalPartnersTab() {
   const colors = useColors()
-  const canProcess = useCanManage('advertising', 'process')
-  const canDelete = useCanManage('advertising', 'delete')
+  const canProcess = useCanManage('partners', 'process')
+  const canDelete = useCanManage('partners', 'delete')
   const [partners, setPartners] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)

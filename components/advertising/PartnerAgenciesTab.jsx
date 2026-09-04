@@ -38,8 +38,8 @@ const getInitials = (name) =>
 
 export default function PartnerAgenciesTab() {
   const colors = useColors()
-  const canProcess = useCanManage('advertising', 'process')
-  const canDelete = useCanManage('advertising', 'delete')
+  const canProcess = useCanManage('partners', 'process')
+  const canDelete = useCanManage('partners', 'delete')
   const [agencies, setAgencies] = useState([])
   const [agents, setAgents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -92,14 +92,20 @@ export default function PartnerAgenciesTab() {
     const load = async () => {
       setIsLoading(true)
       try {
-        const [agenciesData, agentsData] = await Promise.all([
-          getPartnerAgencies(),
-          getAgentRequests(),
-        ])
+        const agenciesData = await getPartnerAgencies()
         setAgencies(agenciesData)
-        setAgents(agentsData.filter((a) => a.status === 'approved' && a.userId))
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
+      }
+      // Liste des agents approuvés : purement une commodité pour lier une
+      // agence à un agent existant dans le formulaire — un manager qui n'a
+      // pas le module "agents" ne doit pas pour autant perdre l'accès à ses
+      // agences (voir Firestore rules -> agent_requests exige "agents").
+      try {
+        const agentsData = await getAgentRequests()
+        setAgents(agentsData.filter((a) => a.status === 'approved' && a.userId))
+      } catch (e) {
+        // non bloquant
       }
       setIsLoading(false)
     }

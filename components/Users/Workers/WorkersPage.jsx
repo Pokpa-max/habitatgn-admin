@@ -256,7 +256,7 @@ export default function WorkersPage() {
       const withAvailability = await Promise.all(
         data.map(async (w) => ({
           ...w,
-          isAvailable: await getUserAvailability(w.userId),
+          isAvailable: await getUserAvailability(w.userId).catch(() => true),
           paymentStatus: computeWorkerPaymentStatus(
             w,
             allPayments.filter((p) => p.workerId === w.id)

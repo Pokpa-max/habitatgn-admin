@@ -121,7 +121,7 @@ export default function AgentsPage() {
           }
           return {
             ...r,
-            isAvailable: await getUserAvailability(r.userId),
+            isAvailable: await getUserAvailability(r.userId).catch(() => true),
             paymentStatus: computeAgentPaymentStatus(
               r,
               allPayments.filter((p) => p.agentId === r.id)
