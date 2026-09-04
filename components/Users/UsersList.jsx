@@ -291,7 +291,7 @@ function UserTable({
           </div>
 
           {/* Table Section */}
-          <div className="overflow-hidden rounded-lg border border-gray-200">
+          <div className="overflow-visible rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
               <table className="w-full">
                 {/* Table Header */}
