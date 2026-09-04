@@ -46,6 +46,7 @@ import AgentRevenueChart from './AgentRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -73,6 +74,8 @@ const PROPERTY_TYPE_LABELS = {
 
 export default function AgentsPage() {
   const colors = useColors()
+  const canProcess = useCanManage('agents', 'process')
+  const canPayments = useCanManage('agents', 'payments')
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -141,6 +144,7 @@ export default function AgentsPage() {
   }, [])
 
   const handleApprove = async (request) => {
+    if (!canProcess) return
     setActioningId(request.id)
     try {
       await approveAgentRequest(request.id, request.userId)
@@ -166,6 +170,7 @@ export default function AgentsPage() {
   }
 
   const handleReject = async (request) => {
+    if (!canProcess) return
     setActioningId(request.id)
     try {
       await rejectAgentRequest(request.id)
@@ -191,7 +196,7 @@ export default function AgentsPage() {
   }
 
   const handleToggleBlock = async () => {
-    if (!blockTarget) return
+    if (!blockTarget || !canProcess) return
     const nextAvailable = !blockTarget.isAvailable
     try {
       const count = await setAgentBlockedState(blockTarget, !nextAvailable)
@@ -216,6 +221,7 @@ export default function AgentsPage() {
   }
 
   const handleBulkApprove = async () => {
+    if (!canProcess) return
     const targets = filtered.filter((r) => selectedIds.has(r.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -244,6 +250,7 @@ export default function AgentsPage() {
   }
 
   const handleBulkReject = async () => {
+    if (!canProcess) return
     const targets = filtered.filter((r) => selectedIds.has(r.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -260,6 +267,7 @@ export default function AgentsPage() {
   }
 
   const handleBulkSetAvailable = async (available) => {
+    if (!canProcess) return
     const targets = filtered.filter(
       (r) => selectedIds.has(r.id) && r.userId && r.isAvailable !== available
     )
@@ -285,7 +293,7 @@ export default function AgentsPage() {
   }
 
   const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
-    if (!paymentTarget) return
+    if (!paymentTarget || !canPayments) return
     try {
       await recordAgentPayment(paymentTarget.id, amount, paidAt, monthsCovered)
       const allPayments = await getAllAgentPayments()
@@ -323,6 +331,7 @@ export default function AgentsPage() {
   // Sélectionnable dépend de l'action groupée disponible pour l'onglet actif :
   // pending -> approuver/rejeter, approved -> bloquer/débloquer, rejected -> aucune action.
   const isBulkSelectable = (r) => {
+    if (!canProcess) return false // toutes les actions groupées de cette page sont des actions "process"
     if (statusFilter === 'pending') return true
     if (statusFilter === 'approved') return !!r.userId
     return false
@@ -458,7 +467,7 @@ export default function AgentsPage() {
               {selectedIds.size > 1 ? 's' : ''}
             </span>
             <div className="ml-auto flex items-center gap-2">
-              {statusFilter === 'pending' && (
+              {canProcess && statusFilter === 'pending' && (
                 <>
                   <button
                     type="button"
@@ -479,7 +488,7 @@ export default function AgentsPage() {
                   </button>
                 </>
               )}
-              {statusFilter === 'approved' && (
+              {canProcess && statusFilter === 'approved' && (
                 <>
                   <button
                     type="button"
@@ -680,7 +689,7 @@ export default function AgentsPage() {
 
                             {menuOpenId === request.id && (
                               <div className="absolute right-0 top-full z-[60] mt-2 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
-                                {request.status === 'pending' && (
+                                {canProcess && request.status === 'pending' && (
                                   <>
                                     <button
                                       onClick={() => handleApprove(request)}
@@ -702,7 +711,7 @@ export default function AgentsPage() {
                                   </>
                                 )}
 
-                                {request.status === 'approved' && (
+                                {canPayments && request.status === 'approved' && (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -732,27 +741,29 @@ export default function AgentsPage() {
                                           Voir détail et ses biens
                                         </a>
                                       </Link>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setMenuOpenId(null)
-                                          setBlockTarget(request)
-                                          setBlockModalOpen(true)
-                                        }}
-                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                      >
-                                        <span
-                                          className="h-2 w-2 rounded-full"
-                                          style={{
-                                            backgroundColor: request.isAvailable
-                                              ? colors.gray700
-                                              : colors.primary,
+                                      {canProcess && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMenuOpenId(null)
+                                            setBlockTarget(request)
+                                            setBlockModalOpen(true)
                                           }}
-                                        />
-                                        {request.isAvailable
-                                          ? 'Bloquer le compte'
-                                          : 'Débloquer le compte'}
-                                      </button>
+                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                        >
+                                          <span
+                                            className="h-2 w-2 rounded-full"
+                                            style={{
+                                              backgroundColor: request.isAvailable
+                                                ? colors.gray700
+                                                : colors.primary,
+                                            }}
+                                          />
+                                          {request.isAvailable
+                                            ? 'Bloquer le compte'
+                                            : 'Débloquer le compte'}
+                                        </button>
+                                      )}
                                     </>
                                   )}
 
