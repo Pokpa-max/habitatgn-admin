@@ -21,6 +21,7 @@ import {
   deleteContactMessage,
 } from '@/lib/services/contactMessages'
 import { getContactSettings } from '@/lib/services/siteSettings'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -30,7 +31,7 @@ const FILTERS = [
   { value: 'read', label: 'Lues' },
 ]
 
-function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEmail }) {
+function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEmail, canProcess, canDelete }) {
   const colors = useColors()
   if (!message) return null
 
@@ -85,13 +86,15 @@ function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEma
                   <p className="mt-4 whitespace-pre-wrap text-sm text-gray-800">{message.message}</p>
 
                   <div className="mt-5 flex flex-col gap-2">
-                    <button
-                      onClick={() => onToggleRead(message)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      <RiMailOpenLine className="h-4 w-4 text-gray-400" />
-                      {message.read ? 'Marquer comme non lu' : 'Marquer comme lu'}
-                    </button>
+                    {canProcess && (
+                      <button
+                        onClick={() => onToggleRead(message)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                      >
+                        <RiMailOpenLine className="h-4 w-4 text-gray-400" />
+                        {message.read ? 'Marquer comme non lu' : 'Marquer comme lu'}
+                      </button>
+                    )}
                     <a
                       href={`https://mail.google.com/mail/?view=cm&fs=1${
                         senderEmail ? `&authuser=${encodeURIComponent(senderEmail)}` : ''
@@ -126,13 +129,15 @@ function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEma
                       <RiFileCopyLine className="h-4 w-4 text-gray-400" />
                       Copier l'adresse email
                     </button>
-                    <button
-                      onClick={() => onDelete(message)}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-red-500"
-                    >
-                      <RiDeleteBinLine className="h-4 w-4" />
-                      Supprimer le message
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(message)}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-red-500"
+                      >
+                        <RiDeleteBinLine className="h-4 w-4" />
+                        Supprimer le message
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -155,6 +160,8 @@ function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEma
 
 export default function ContactMessagesPage() {
   const colors = useColors()
+  const canProcess = useCanManage('messages', 'process')
+  const canDelete = useCanManage('messages', 'delete')
   const [messages, setMessages] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -197,6 +204,7 @@ export default function ContactMessagesPage() {
   }, [filter, searchTerm])
 
   const handleToggleRead = async (message) => {
+    if (!canProcess) return
     const nextRead = !message.read
     try {
       await setContactMessageRead(message.id, nextRead)
@@ -209,6 +217,7 @@ export default function ContactMessagesPage() {
   }
 
   const handleDelete = async () => {
+    if (!canDelete) return
     try {
       await deleteContactMessage(deleteTarget.id)
       setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id))
@@ -235,7 +244,7 @@ export default function ContactMessagesPage() {
   const visible = filtered.slice(0, visibleCount)
   const unreadCount = messages.filter((m) => !m.read).length
 
-  const selectableIds = visible.map((m) => m.id)
+  const selectableIds = canProcess || canDelete ? visible.map((m) => m.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
 
   const toggleSelect = (id) => {
@@ -252,6 +261,7 @@ export default function ContactMessagesPage() {
   }
 
   const handleBulkSetRead = async (nextRead) => {
+    if (!canProcess) return
     const targets = messages.filter((m) => selectedIds.has(m.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -273,6 +283,7 @@ export default function ContactMessagesPage() {
   }
 
   const handleBulkDelete = async () => {
+    if (!canDelete) return
     const targetIds = new Set(selectedIds)
     if (targetIds.size === 0) return
     setBulkActing(true)
@@ -297,6 +308,8 @@ export default function ContactMessagesPage() {
         onToggleRead={handleToggleRead}
         onDelete={(m) => setDeleteTarget(m)}
         senderEmail={senderEmail}
+        canProcess={canProcess}
+        canDelete={canDelete}
       />
 
       <ConfirmModal
@@ -380,33 +393,39 @@ export default function ContactMessagesPage() {
             {selectedIds.size} message{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              disabled={bulkActing}
-              onClick={() => handleBulkSetRead(true)}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
-            >
-              Marquer lu
-            </button>
-            <button
-              type="button"
-              disabled={bulkActing}
-              onClick={() => handleBulkSetRead(false)}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
-            >
-              Marquer non lu
-            </button>
-            <button
-              type="button"
-              disabled={bulkActing}
-              onClick={() => setBulkDeleteModalOpen(true)}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
-            >
-              Supprimer
-            </button>
+            {canProcess && (
+              <>
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkSetRead(true)}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+                >
+                  Marquer lu
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkSetRead(false)}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
+                >
+                  Marquer non lu
+                </button>
+              </>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+              >
+                Supprimer
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -427,14 +446,16 @@ export default function ContactMessagesPage() {
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
                   <th scope="col" className="w-8 px-4 py-2.5">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
-                      className="h-4 w-4 cursor-pointer rounded"
-                      style={{ accentColor: colors.primary }}
-                      title="Tout sélectionner"
-                    />
+                    {selectableIds.length > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                        title="Tout sélectionner"
+                      />
+                    )}
                   </th>
                   {[
                     { label: 'Expéditeur' },
@@ -459,13 +480,15 @@ export default function ContactMessagesPage() {
                 {visible.map((message) => (
                   <tr key={message.id} className="hover:bg-gray-50">
                     <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(message.id)}
-                        onChange={() => toggleSelect(message.id)}
-                        className="h-4 w-4 cursor-pointer rounded"
-                        style={{ accentColor: colors.primary }}
-                      />
+                      {(canProcess || canDelete) && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(message.id)}
+                          onChange={() => toggleSelect(message.id)}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                        />
+                      )}
                     </td>
                     <td className="px-6 py-3">
                       <p

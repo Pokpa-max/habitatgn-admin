@@ -17,6 +17,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import StatusPill from '@/components/ui/StatusPill'
 import { firebaseDateFormat } from '@/utils/date'
 import { getLeads, updateLeadStatus, deleteLead } from '@/lib/services/leads'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -42,7 +43,7 @@ function StatusBadge({ status }) {
   )
 }
 
-function DetailModal({ lead, open, setOpen, onStatusChange, onDelete }) {
+function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess, canDelete }) {
   const colors = useColors()
   if (!lead) return null
 
@@ -137,35 +138,39 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete }) {
                       </a>
                     )}
 
-                    <div className="mt-1 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        disabled={lead.status === 'contacted'}
-                        onClick={() => onStatusChange(lead, 'contacted')}
-                        className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-                        style={{ borderColor: colors.primary, color: colors.primary }}
-                      >
-                        Marquer contacté
-                      </button>
-                      <button
-                        type="button"
-                        disabled={lead.status === 'closed'}
-                        onClick={() => onStatusChange(lead, 'closed')}
-                        className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-                        style={{ borderColor: colors.success, color: colors.success }}
-                      >
-                        Clôturer
-                      </button>
-                    </div>
+                    {canProcess && (
+                      <div className="mt-1 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          disabled={lead.status === 'contacted'}
+                          onClick={() => onStatusChange(lead, 'contacted')}
+                          className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+                          style={{ borderColor: colors.primary, color: colors.primary }}
+                        >
+                          Marquer contacté
+                        </button>
+                        <button
+                          type="button"
+                          disabled={lead.status === 'closed'}
+                          onClick={() => onStatusChange(lead, 'closed')}
+                          className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+                          style={{ borderColor: colors.success, color: colors.success }}
+                        >
+                          Clôturer
+                        </button>
+                      </div>
+                    )}
 
-                    <button
-                      onClick={() => onDelete(lead)}
-                      className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold"
-                      style={{ color: colors.gray500 }}
-                    >
-                      <RiDeleteBinLine className="h-4 w-4" />
-                      Supprimer cette demande
-                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={() => onDelete(lead)}
+                        className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold"
+                        style={{ color: colors.gray500 }}
+                      >
+                        <RiDeleteBinLine className="h-4 w-4" />
+                        Supprimer cette demande
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -188,6 +193,8 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete }) {
 
 export default function LeadsPage() {
   const colors = useColors()
+  const canProcess = useCanManage('leads', 'process')
+  const canDelete = useCanManage('leads', 'delete')
   const [leads, setLeads] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState('all')
@@ -225,6 +232,7 @@ export default function LeadsPage() {
   }, [filter, searchTerm])
 
   const handleStatusChange = async (lead, status) => {
+    if (!canProcess) return
     try {
       await updateLeadStatus(lead.id, status)
       setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, status } : l)))
@@ -236,6 +244,7 @@ export default function LeadsPage() {
   }
 
   const handleDelete = async () => {
+    if (!canDelete) return
     try {
       await deleteLead(deleteTarget.id)
       setLeads((prev) => prev.filter((l) => l.id !== deleteTarget.id))
@@ -261,7 +270,7 @@ export default function LeadsPage() {
   const visible = filtered.slice(0, visibleCount)
   const newCount = leads.filter((l) => l.status === 'new').length
 
-  const selectableIds = visible.map((l) => l.id)
+  const selectableIds = canProcess || canDelete ? visible.map((l) => l.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
 
   const toggleSelect = (id) => {
@@ -278,6 +287,7 @@ export default function LeadsPage() {
   }
 
   const handleBulkStatus = async (status) => {
+    if (!canProcess) return
     const targets = leads.filter((l) => selectedIds.has(l.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -297,6 +307,7 @@ export default function LeadsPage() {
   }
 
   const handleBulkDelete = async () => {
+    if (!canDelete) return
     const targetIds = new Set(selectedIds)
     if (targetIds.size === 0) return
     setBulkActing(true)
@@ -320,6 +331,8 @@ export default function LeadsPage() {
         setOpen={setDetailOpen}
         onStatusChange={handleStatusChange}
         onDelete={(l) => setDeleteTarget(l)}
+        canProcess={canProcess}
+        canDelete={canDelete}
       />
 
       <ConfirmModal
@@ -402,33 +415,39 @@ export default function LeadsPage() {
             {selectedIds.size} demande{selectedIds.size > 1 ? 's' : ''} sélectionnée{selectedIds.size > 1 ? 's' : ''}
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              disabled={bulkActing}
-              onClick={() => handleBulkStatus('contacted')}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: colors.primary, color: colors.primary, backgroundColor: 'transparent' }}
-            >
-              Marquer contacté
-            </button>
-            <button
-              type="button"
-              disabled={bulkActing}
-              onClick={() => handleBulkStatus('closed')}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
-            >
-              Clôturer
-            </button>
-            <button
-              type="button"
-              disabled={bulkActing}
-              onClick={() => setBulkDeleteModalOpen(true)}
-              className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
-              style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
-            >
-              Supprimer
-            </button>
+            {canProcess && (
+              <>
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkStatus('contacted')}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.primary, color: colors.primary, backgroundColor: 'transparent' }}
+                >
+                  Marquer contacté
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkStatus('closed')}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+                >
+                  Clôturer
+                </button>
+              </>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                disabled={bulkActing}
+                onClick={() => setBulkDeleteModalOpen(true)}
+                className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+              >
+                Supprimer
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -449,14 +468,16 @@ export default function LeadsPage() {
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
                   <th scope="col" className="w-8 px-4 py-2.5">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
-                      className="h-4 w-4 cursor-pointer rounded"
-                      style={{ accentColor: colors.primary }}
-                      title="Tout sélectionner"
-                    />
+                    {selectableIds.length > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                        title="Tout sélectionner"
+                      />
+                    )}
                   </th>
                   {[
                     { label: 'Demandeur' },
@@ -481,13 +502,15 @@ export default function LeadsPage() {
                 {visible.map((lead) => (
                   <tr key={lead.id} className="hover:bg-gray-50">
                     <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(lead.id)}
-                        onChange={() => toggleSelect(lead.id)}
-                        className="h-4 w-4 cursor-pointer rounded"
-                        style={{ accentColor: colors.primary }}
-                      />
+                      {(canProcess || canDelete) && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(lead.id)}
+                          onChange={() => toggleSelect(lead.id)}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                        />
+                      )}
                     </td>
                     <td className="px-6 py-3">
                       <p className="text-sm font-semibold text-gray-900">{lead.name}</p>

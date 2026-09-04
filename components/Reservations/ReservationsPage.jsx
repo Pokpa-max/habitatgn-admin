@@ -21,6 +21,7 @@ import {
   updateBookingStatus,
 } from '@/lib/services/bookings'
 import { getAgentRequestByUserId } from '@/lib/services/agentRequests'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -44,7 +45,7 @@ function nightsBetween(checkIn, checkOut) {
   return diff > 0 ? diff : null
 }
 
-function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating }) {
+function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating, canProcess }) {
   const colors = useColors()
   if (!booking) return null
 
@@ -169,7 +170,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
                 </div>
 
                 <div className="flex gap-3 border-t border-gray-100 bg-gray-50/80 px-6 py-4">
-                  {booking.status === 'pending' ? (
+                  {booking.status === 'pending' && canProcess ? (
                     <>
                       <button
                         type="button"
@@ -211,6 +212,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating 
 
 export default function ReservationsPage() {
   const colors = useColors()
+  const canProcess = useCanManage('reservations', 'process')
   const [bookings, setBookings] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -267,6 +269,7 @@ export default function ReservationsPage() {
   }, [])
 
   const handleStatusChange = async (booking, status) => {
+    if (!canProcess) return
     setUpdatingId(booking.id)
     try {
       await updateBookingStatus(booking.id, status)
@@ -301,7 +304,7 @@ export default function ReservationsPage() {
 
   const visible = filtered.slice(0, visibleCount)
 
-  const selectableIds = visible.map((b) => b.id)
+  const selectableIds = canProcess ? visible.map((b) => b.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
 
   const toggleSelect = (id) => {
@@ -318,6 +321,7 @@ export default function ReservationsPage() {
   }
 
   const handleBulkStatus = async (status) => {
+    if (!canProcess) return
     const targets = bookings.filter((b) => selectedIds.has(b.id))
     if (targets.length === 0) return
     setBulkActing(true)
@@ -346,6 +350,7 @@ export default function ReservationsPage() {
         setOpen={setDetailOpen}
         onStatusChange={handleStatusChange}
         updating={updatingId === detailBooking?.id}
+        canProcess={canProcess}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -403,7 +408,7 @@ export default function ReservationsPage() {
         </div>
 
         {/* Actions groupées */}
-        {selectedIds.size > 0 && (
+        {canProcess && selectedIds.size > 0 && (
           <div
             className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
             style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
@@ -450,14 +455,16 @@ export default function ReservationsPage() {
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     <th scope="col" className="w-8 px-4 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 cursor-pointer rounded"
-                        style={{ accentColor: colors.primary }}
-                        title="Tout sélectionner"
-                      />
+                      {canProcess && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
                     </th>
                     {[
                       { label: 'Bien' },
@@ -493,13 +500,15 @@ export default function ReservationsPage() {
                         className="cursor-pointer hover:bg-gray-50"
                       >
                         <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(booking.id)}
-                            onChange={() => toggleSelect(booking.id)}
-                            className="h-4 w-4 cursor-pointer rounded"
-                            style={{ accentColor: colors.primary }}
-                          />
+                          {canProcess && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(booking.id)}
+                              onChange={() => toggleSelect(booking.id)}
+                              className="h-4 w-4 cursor-pointer rounded"
+                              style={{ accentColor: colors.primary }}
+                            />
+                          )}
                         </td>
                         <td className="px-6 py-3">
                           <p className="text-sm font-semibold text-gray-900">

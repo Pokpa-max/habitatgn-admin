@@ -14,10 +14,11 @@ import PaginationButton from '@/components/Orders/PaginationButton'
 import StatusPill from '@/components/ui/StatusPill'
 import { firebaseDateFormat } from '@/utils/date'
 import { REQUEST_STATUSES } from './statusConfig'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange }) {
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess }) {
   const colors = useColors()
   const [updating, setUpdating] = useState(false)
   if (!request) return null
@@ -80,28 +81,32 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange }) {
                     </div>
                   </div>
 
-                  <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Changer le statut
-                  </p>
-                  <div className="space-y-1">
-                    {REQUEST_STATUSES.map((s) => {
-                      const active = (request.status || 'pending') === s.value
-                      return (
-                        <button
-                          key={s.value}
-                          disabled={active || updating}
-                          onClick={() => change(s.value)}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: active ? colors.primary : colors.gray300 }}
-                          />
-                          {s.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {canProcess && (
+                    <>
+                      <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        Changer le statut
+                      </p>
+                      <div className="space-y-1">
+                        {REQUEST_STATUSES.map((s) => {
+                          const active = (request.status || 'pending') === s.value
+                          return (
+                            <button
+                              key={s.value}
+                              disabled={active || updating}
+                              onClick={() => change(s.value)}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ backgroundColor: active ? colors.primary : colors.gray300 }}
+                              />
+                              {s.label}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )}
 
                   {request.phone && (
                     <a
@@ -142,6 +147,7 @@ export default function ServiceRequestsPanel({
   searchPlaceholder,
 }) {
   const colors = useColors()
+  const canProcess = useCanManage('services', 'process')
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -169,6 +175,7 @@ export default function ServiceRequestsPanel({
   }, [statusFilter, searchTerm])
 
   const handleStatusChange = async (request, status) => {
+    if (!canProcess) return
     try {
       await updateStatus(request.id, status)
       setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, status } : r)))
@@ -198,6 +205,7 @@ export default function ServiceRequestsPanel({
         setOpen={setDetailOpen}
         detailFields={detailFields}
         onStatusChange={handleStatusChange}
+        canProcess={canProcess}
       />
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
