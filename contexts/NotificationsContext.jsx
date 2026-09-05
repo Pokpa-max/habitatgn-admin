@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { onSnapshot, query, where } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase/client_config'
+import { auth, db } from '@/lib/firebase/client_config'
 import { agentRequestsCollectionRef } from '@/lib/services/agentRequests'
 import { workersCollectionRef } from '@/lib/services/workers'
 import { contactMessagesCollectionRef } from '@/lib/services/contactMessages'
@@ -62,7 +62,7 @@ export function NotificationsProvider({ children }) {
     let unsubLeads = null
 
     // Start Firestore listeners only once the user is authenticated
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
       // Clean up previous listeners on auth change
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()
@@ -93,179 +93,206 @@ export function NotificationsProvider({ children }) {
         return
       }
 
-      const qAgents = query(
-        agentRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      // Un manager restreint (permissions Firestore, voir managerModules.js)
+      // ne doit pas ouvrir de listener sur des collections hors de ses
+      // modules accordés — sinon Firestore rejette (permission-denied)
+      // à chaque page puisque ce contexte est monté globalement.
+      const tokenResult = await user.getIdTokenResult().catch(() => null)
+      const role = tokenResult?.claims?.role
+      let permissions = null
+      if (role === 'manager') {
+        const snap = await getDoc(doc(db, 'users', user.uid)).catch(() => null)
+        permissions = snap?.data()?.permissions ?? null
+      }
+      const canAccess = (module) => role === 'admin' || !permissions || permissions.includes(module)
 
-      unsubAgents = onSnapshot(qAgents, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingAgents(ids.size)
+      if (canAccess('agents')) {
+        const qAgents = query(
+          agentRequestsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-        if (knownAgentIds.current === null) {
-          // First load — record baseline, no toast
-          knownAgentIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownAgentIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} agent !`,
-              'success'
-            )
+        unsubAgents = onSnapshot(qAgents, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingAgents(ids.size)
+
+          if (knownAgentIds.current === null) {
+            // First load — record baseline, no toast
+            knownAgentIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownAgentIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} agent !`,
+                'success'
+              )
+            }
+            knownAgentIds.current = ids
           }
-          knownAgentIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qWorkers = query(
-        workersCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('workers')) {
+        const qWorkers = query(
+          workersCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubWorkers = onSnapshot(qWorkers, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingWorkers(ids.size)
+        unsubWorkers = onSnapshot(qWorkers, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingWorkers(ids.size)
 
-        if (knownWorkerIds.current === null) {
-          knownWorkerIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownWorkerIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouveau${n > 1 ? 'x' : ''} profil${n > 1 ? 's' : ''} ouvrier en attente !`,
-              'success'
-            )
+          if (knownWorkerIds.current === null) {
+            knownWorkerIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownWorkerIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              notify(
+                `${n} nouveau${n > 1 ? 'x' : ''} profil${n > 1 ? 's' : ''} ouvrier en attente !`,
+                'success'
+              )
+            }
+            knownWorkerIds.current = ids
           }
-          knownWorkerIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qMessages = query(
-        contactMessagesCollectionRef,
-        where('read', '==', false)
-      )
+      if (canAccess('messages')) {
+        const qMessages = query(
+          contactMessagesCollectionRef,
+          where('read', '==', false)
+        )
 
-      unsubMessages = onSnapshot(qMessages, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setUnreadMessages(ids.size)
+        unsubMessages = onSnapshot(qMessages, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setUnreadMessages(ids.size)
 
-        if (knownMessageIds.current === null) {
-          knownMessageIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownMessageIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''} de contact !`,
-              'success'
-            )
+          if (knownMessageIds.current === null) {
+            knownMessageIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownMessageIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              notify(
+                `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''} de contact !`,
+                'success'
+              )
+            }
+            knownMessageIds.current = ids
           }
-          knownMessageIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qServiceRequests = query(
-        serviceRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('services')) {
+        const qServiceRequests = query(
+          serviceRequestsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubServiceRequests = onSnapshot(qServiceRequests, (snapshot) => {
-        const docs = snapshot.docs.map((d) => ({ id: d.id, category: d.data().category }))
-        const ids = new Set(docs.map((d) => d.id))
+        unsubServiceRequests = onSnapshot(qServiceRequests, (snapshot) => {
+          const docs = snapshot.docs.map((d) => ({ id: d.id, category: d.data().category }))
+          const ids = new Set(docs.map((d) => d.id))
 
-        setPendingMovingRequests(docs.filter((d) => d.category === 'demenagement').length)
-        setPendingRentalRequests(docs.filter((d) => d.category === 'gestion-locative').length)
-        setPendingLegalRequests(docs.filter((d) => d.category === 'securisation-fonciere').length)
-        setPendingArtisanRequests(docs.filter((d) => !MAIN_CATEGORIES.includes(d.category)).length)
+          setPendingMovingRequests(docs.filter((d) => d.category === 'demenagement').length)
+          setPendingRentalRequests(docs.filter((d) => d.category === 'gestion-locative').length)
+          setPendingLegalRequests(docs.filter((d) => d.category === 'securisation-fonciere').length)
+          setPendingArtisanRequests(docs.filter((d) => !MAIN_CATEGORIES.includes(d.category)).length)
 
-        if (knownServiceRequestIds.current === null) {
-          knownServiceRequestIds.current = ids
-        } else {
-          const newOnes = docs.filter((d) => !knownServiceRequestIds.current.has(d.id))
-          if (newOnes.length > 0) {
-            const byCategory = newOnes.reduce((acc, d) => {
-              const label = CATEGORY_LABELS[d.category] || "d'intervention"
-              acc[label] = (acc[label] || 0) + 1
-              return acc
-            }, {})
-            Object.entries(byCategory).forEach(([label, n]) => {
-              notify(`${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} ${label} !`, 'success')
-            })
+          if (knownServiceRequestIds.current === null) {
+            knownServiceRequestIds.current = ids
+          } else {
+            const newOnes = docs.filter((d) => !knownServiceRequestIds.current.has(d.id))
+            if (newOnes.length > 0) {
+              const byCategory = newOnes.reduce((acc, d) => {
+                const label = CATEGORY_LABELS[d.category] || "d'intervention"
+                acc[label] = (acc[label] || 0) + 1
+                return acc
+              }, {})
+              Object.entries(byCategory).forEach(([label, n]) => {
+                notify(`${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} ${label} !`, 'success')
+              })
+            }
+            knownServiceRequestIds.current = ids
           }
-          knownServiceRequestIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qBookings = query(
-        bookingsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('reservations')) {
+        const qBookings = query(
+          bookingsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubBookings = onSnapshot(qBookings, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingBookings(ids.size)
+        unsubBookings = onSnapshot(qBookings, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingBookings(ids.size)
 
-        if (knownBookingIds.current === null) {
-          knownBookingIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownBookingIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} réservation${n > 1 ? 's' : ''} !`,
-              'success'
-            )
+          if (knownBookingIds.current === null) {
+            knownBookingIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownBookingIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} réservation${n > 1 ? 's' : ''} !`,
+                'success'
+              )
+            }
+            knownBookingIds.current = ids
           }
-          knownBookingIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qCareerApplications = query(
-        careerApplicationsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('careers')) {
+        const qCareerApplications = query(
+          careerApplicationsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubCareerApplications = onSnapshot(qCareerApplications, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingCareerApplications(ids.size)
+        unsubCareerApplications = onSnapshot(qCareerApplications, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingCareerApplications(ids.size)
 
-        if (knownCareerApplicationIds.current === null) {
-          knownCareerApplicationIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownCareerApplicationIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} emploi !`,
-              'success'
-            )
+          if (knownCareerApplicationIds.current === null) {
+            knownCareerApplicationIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownCareerApplicationIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} emploi !`,
+                'success'
+              )
+            }
+            knownCareerApplicationIds.current = ids
           }
-          knownCareerApplicationIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qLeads = query(leadsCollectionRef, where('status', '==', 'new'))
+      if (canAccess('leads')) {
+        const qLeads = query(leadsCollectionRef, where('status', '==', 'new'))
 
-      unsubLeads = onSnapshot(qLeads, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingLeads(ids.size)
+        unsubLeads = onSnapshot(qLeads, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingLeads(ids.size)
 
-        if (knownLeadIds.current === null) {
-          knownLeadIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownLeadIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de visite !`,
-              'success'
-            )
+          if (knownLeadIds.current === null) {
+            knownLeadIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownLeadIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de visite !`,
+                'success'
+              )
+            }
+            knownLeadIds.current = ids
           }
-          knownLeadIds.current = ids
-        }
-      })
+        })
+      }
     })
 
     return () => {
