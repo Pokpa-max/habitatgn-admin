@@ -36,6 +36,7 @@ import { CONAKRY_COMMUNES } from '../../_data'
 import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
+const MAX_IMAGES = 4
 
 export const PRODUCT_CATEGORIES = [
   { value: 'furniture', label: 'Meubles' },
@@ -166,8 +167,13 @@ export default function MarketplaceProductsPage() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || [])
-    if (files.length) {
-      setImageFiles((prev) => [...prev, ...files])
+    const remaining = MAX_IMAGES - existingImageUrls.length - imageFiles.length
+    if (files.length > remaining) {
+      notify(`Maximum ${MAX_IMAGES} photos par produit — ${files.length - remaining} photo(s) ignorée(s)`, 'error')
+    }
+    const accepted = files.slice(0, Math.max(0, remaining))
+    if (accepted.length) {
+      setImageFiles((prev) => [...prev, ...accepted])
     }
     e.target.value = ''
   }
@@ -499,7 +505,10 @@ export default function MarketplaceProductsPage() {
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-900">
-              Images du produit
+              Images du produit{' '}
+              <span className="font-normal text-gray-400">
+                ({existingImageUrls.length + imageFiles.length}/{MAX_IMAGES})
+              </span>
             </label>
             <div className="flex flex-wrap items-center gap-3">
               {existingImageUrls.map((url, i) => (
@@ -540,16 +549,18 @@ export default function MarketplaceProductsPage() {
                   </button>
                 </div>
               ))}
-              <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
-                <RiImageAddLine className="h-6 w-6 text-gray-400" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
+              {existingImageUrls.length + imageFiles.length < MAX_IMAGES && (
+                <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
+                  <RiImageAddLine className="h-6 w-6 text-gray-400" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
           </div>
 

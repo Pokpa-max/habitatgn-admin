@@ -11,6 +11,8 @@ import { addPropertyOwner } from '@/lib/services/propertyOwners'
 import { addProperty, updateProperty } from '@/lib/services/propertyService'
 import { REGIONS, currencyOptions } from '../../_data'
 
+const MAX_IMAGES = 4
+
 const resolveExistingImages = (selectedItem) => {
   if (!selectedItem) return []
   const imgs = selectedItem.images
@@ -311,8 +313,13 @@ export default function PropertyDrawerForm({
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || [])
-    if (files.length) {
-      setImageFiles((prev) => [...prev, ...files])
+    const remaining = MAX_IMAGES - existingImageUrls.length - imageFiles.length
+    if (files.length > remaining) {
+      notify(`Maximum ${MAX_IMAGES} photos par bien — ${files.length - remaining} photo(s) ignorée(s)`, 'error')
+    }
+    const accepted = files.slice(0, Math.max(0, remaining))
+    if (accepted.length) {
+      setImageFiles((prev) => [...prev, ...accepted])
     }
     e.target.value = ''
   }
@@ -805,7 +812,12 @@ export default function PropertyDrawerForm({
             </div>
 
             <div>
-              <label className={labelClass}>Photos</label>
+              <label className={labelClass}>
+                Photos{' '}
+                <span className="font-normal text-gray-400">
+                  ({existingImageUrls.length + imageFiles.length}/{MAX_IMAGES})
+                </span>
+              </label>
               <div className="flex flex-wrap items-center gap-3">
                 {existingImageUrls.map((url, i) => (
                   <div key={`existing-${i}`} className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
@@ -831,10 +843,12 @@ export default function PropertyDrawerForm({
                     </button>
                   </div>
                 ))}
-                <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
-                  <RiImageAddLine className="h-6 w-6 text-gray-400" />
-                  <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
-                </label>
+                {existingImageUrls.length + imageFiles.length < MAX_IMAGES && (
+                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
+                    <RiImageAddLine className="h-6 w-6 text-gray-400" />
+                    <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+                  </label>
+                )}
               </div>
             </div>
 
