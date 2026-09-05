@@ -81,6 +81,9 @@ function ManagerDashboard() {
   const tiles = MANAGER_TILES.filter(
     (tile) => !permissions || permissions.includes(tile.module)
   )
+  // Le graphe lit managed_properties (Firestore : isAdminOrManager("properties")) —
+  // ne l'afficher que si ce module est bien accordé, sinon permission-denied.
+  const canSeeOccupationChart = !permissions || permissions.includes('properties')
 
   return (
     <div className="space-y-6">
@@ -423,7 +426,6 @@ function DashboardCard() {
   const [leadsLoading, setLeadsLoading] = useState(true)
   const [routeToBatimoo, setRouteToBatimoo] = useState(true)
   const [togglingSetting, setTogglingSetting] = useState(false)
-  const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     if (AuthUser.claims?.userType !== 'admin') return
@@ -566,45 +568,6 @@ function DashboardCard() {
 
   return (
     <div className="space-y-6">
-      {/* Onglets — "Vue d'ensemble" reproduit exactement la proposition
-          validée (tuiles, hiérarchie d'actions, demandes de visite,
-          réglage BâtiMoo). Le graphique de revenu et les indicateurs
-          additionnels, qui n'étaient pas dans la maquette, vivent dans
-          un second onglet séparé plutôt que d'être mélangés dedans. */}
-      <div className="flex gap-2 border-b border-gray-200">
-        {[
-          { value: 'overview', label: "Vue d'ensemble" },
-          { value: 'stats', label: 'Statistiques' },
-        ].map((tab) => {
-          const active = activeTab === tab.value
-          return (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className="border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
-              style={
-                active
-                  ? { borderColor: colors.primary, color: colors.primary }
-                  : { borderColor: 'transparent', color: colors.gray500 }
-              }
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Toujours monté (juste masqué hors de l'onglet Statistiques) pour
-          que sa lecture Firestore alimente en continu la tuile "Revenus
-          du mois" ci-dessous, même si l'onglet Statistiques n'a jamais
-          été ouvert. */}
-      <div className={activeTab === 'stats' ? 'space-y-6' : 'hidden'}>
-        <RevenueChart onCurrentMonthRevenue={setMonthlyRevenue} />
-        <PropertyOccupationChart />
-      </div>
-
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
       {/* Ligne principale — reprend exactement les 4 tuiles de la
           proposition de palette validée (mêmes libellés, même tuile
           orange accent), avec les vraies données. */}
@@ -681,6 +644,14 @@ function DashboardCard() {
             </a>
           </Link>
         </div>
+      </div>
+
+      {/* Statistiques — revenu plateforme et répartition du parc géré,
+          visibles directement dans la vue d'ensemble plutôt que planquées
+          dans un onglet à part. */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RevenueChart onCurrentMonthRevenue={setMonthlyRevenue} />
+        <PropertyOccupationChart />
       </div>
 
       {/* Demandes de visite récentes — même tableau, même StatusPill que
@@ -801,11 +772,7 @@ function DashboardCard() {
           </label>
         </div>
       </div>
-        </div>
-      )}
 
-      {activeTab === 'stats' && (
-        <div className="space-y-6">
       {/* Autres indicateurs — le reste des chiffres existants, en
           traitement neutre/primaire par défaut (aucun accent en plus,
           l'orange reste réservé à la tuile "Demandes de visite" ci-dessus). */}
@@ -835,8 +802,6 @@ function DashboardCard() {
           />
         </div>
       </div>
-        </div>
-      )}
     </div>
   )
 }
