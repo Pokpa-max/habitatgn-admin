@@ -28,6 +28,7 @@ import { useRouter } from 'next/router'
 import { db } from '../lib/firebase/client_config'
 import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
 import ChangePasswordModal from './ChangePasswordModal'
+import Loader from './Loader'
 
 const navigation = [
   {
@@ -146,6 +147,11 @@ export default function Scaffold({ children, title, subNav }) {
   const colors = useColors()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
+  // Le temps que AuthUser.signOut() se termine puis que la redirection vers
+  // /auth/login se déclenche, AuthUser.claims devient déjà vide — sans ce
+  // flag, canSeeNavItem masque tout le menu pendant ce court instant,
+  // donnant l'impression que le menu "disparaît" avant la déconnexion.
+  const [signingOut, setSigningOut] = useState(false)
   const AuthUser = useAuthUser()
   const router = useRouter()
   // Purement cosmétique (masque les items non autorisés) — la vraie barrière
@@ -178,6 +184,11 @@ export default function Scaffold({ children, title, subNav }) {
   }
 
   const currentPath = router.pathname
+
+  const handleSignOut = () => {
+    setSigningOut(true)
+    AuthUser.signOut()
+  }
 
   return (
     <>
@@ -230,6 +241,15 @@ export default function Scaffold({ children, title, subNav }) {
       `}</style>
 
       <ChangePasswordModal open={passwordModalOpen} setOpen={setPasswordModalOpen} />
+
+      {signingOut && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
+          style={{ backgroundColor: colors.primary }}
+        >
+          <Loader size={10} />
+        </div>
+      )}
 
       <div className="relative">
         {/* Mobile Sidebar */}
@@ -442,7 +462,7 @@ export default function Scaffold({ children, title, subNav }) {
                   Changer le mot de passe
                 </button>
                 <button
-                  onClick={AuthUser.signOut}
+                  onClick={handleSignOut}
                   className="logout-btn mt-1.5 flex w-full items-center gap-2 text-xs font-medium"
                 >
                   <RiLogoutBoxRLine className="h-4 w-4" />
