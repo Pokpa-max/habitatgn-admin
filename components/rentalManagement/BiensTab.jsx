@@ -62,7 +62,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [menuAnchor, setMenuAnchor] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
-  const [bulkBoosting, setBulkBoosting] = useState(false)
+  const [bulkActing, setBulkActing] = useState(false)
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -295,11 +296,15 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   })
   const visible = filtered.slice(0, visibleCount)
 
-  // Sélection multiple : uniquement les vraies annonces (houses/lands/daily_rentals),
-  // la mise en avant ne concerne pas la gestion locative interne. Nécessite aussi
-  // la permission "process" puisque la seule action groupée ici est la mise en avant.
-  const selectableIds = canProcess ? filtered.filter(isPublicListing).map((p) => p.id) : []
+  // Sélection multiple : tout bien géré ou toute annonce publique, dès lors
+  // qu'au moins une action groupée est possible (traiter et/ou supprimer).
+  // Chaque action groupée filtre ensuite elle-même sa cible réelle (ex: la
+  // mise en avant et la vérification ne s'appliquent qu'aux vraies annonces).
+  const selectableIds = canProcess || canDelete ? filtered.map((p) => p.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+  const selectedPublicCount = filtered.filter(
+    (p) => selectedIds.has(p.id) && isPublicListing(p)
+  ).length
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
@@ -318,7 +323,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     if (!canProcess) return
     const targets = filtered.filter((p) => selectedIds.has(p.id) && isPublicListing(p))
     if (targets.length === 0) return
-    setBulkBoosting(true)
+    setBulkActing(true)
     try {
       const boostedUntil = days
         ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
@@ -340,7 +345,113 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     } catch (e) {
       notify('Erreur lors de la mise en avant groupée', 'error')
     }
-    setBulkBoosting(false)
+    setBulkActing(false)
+  }
+
+  const handleBulkToggleStatus = async (makeInactive) => {
+    if (!canProcess) return
+    const targets = filtered.filter((p) => selectedIds.has(p.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      const newStatus = makeInactive ? 'inactive' : 'vacant'
+      await Promise.all(
+        targets.map((p) => {
+          const targetColl = p._collection || 'managed_properties'
+          const updateData = { status: newStatus }
+          if (targetColl === 'houses' || targetColl === 'daily_rentals') {
+            updateData.active = !makeInactive
+            updateData.isAvailable = !makeInactive
+            updateData.published = !makeInactive
+          }
+          if (targetColl === 'lands') {
+            updateData.active = !makeInactive
+            updateData.published = !makeInactive
+          }
+          return targetColl === 'managed_properties'
+            ? editManagedProperty(p.id, updateData, targetColl)
+            : updateProperty(p.id, updateData, targetColl)
+        })
+      )
+      const targetIds = new Set(targets.map((p) => p.id))
+      setProperties((prev) =>
+        prev.map((p) => (targetIds.has(p.id) ? { ...p, status: newStatus, active: !makeInactive } : p))
+      )
+      notify(
+        `${targets.length} bien${targets.length > 1 ? 's' : ''} ${makeInactive ? 'désactivé(s)' : 'réactivé(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée du statut', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkVerify = async (verified) => {
+    if (!canProcess) return
+    const targets = filtered.filter((p) => selectedIds.has(p.id) && isPublicListing(p))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((p) => updateProperty(p.id, { verified }, p._collection)))
+      const targetIds = new Set(targets.map((p) => p.id))
+      setProperties((prev) =>
+        prev.map((p) => (targetIds.has(p.id) ? { ...p, verified } : p))
+      )
+      notify(
+        `${targets.length} annonce${targets.length > 1 ? 's' : ''} ${verified ? 'vérifiée(s)' : 'dé-vérifiée(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la vérification groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkDelete = async () => {
+    if (!canDelete) return
+    const targets = filtered.filter((p) => selectedIds.has(p.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      const checks = await Promise.all(
+        targets.map(async (p) => {
+          const [leases, payments, tickets, expenses] = await Promise.all([
+            getLeasesByProperty(p.id),
+            getPaymentsByProperty(p.id),
+            getTicketsByProperty(p.id),
+            getExpensesByProperty(p.id),
+          ])
+          const hasHistory =
+            leases.length > 0 || payments.length > 0 || tickets.length > 0 || expenses.length > 0
+          return { property: p, hasHistory }
+        })
+      )
+      const deletable = checks.filter((c) => !c.hasHistory).map((c) => c.property)
+      const blockedCount = checks.length - deletable.length
+      if (deletable.length > 0) {
+        await Promise.all(
+          deletable.map((p) => deleteManagedProperty(p.id, p._collection || 'managed_properties'))
+        )
+        const deletedIds = new Set(deletable.map((p) => p.id))
+        setProperties((prev) => prev.filter((p) => !deletedIds.has(p.id)))
+      }
+      if (blockedCount > 0) {
+        notify(
+          `${deletable.length} bien(s) supprimé(s), ${blockedCount} ignoré(s) (historique rattaché)`,
+          deletable.length > 0 ? 'success' : 'error'
+        )
+      } else {
+        notify(`${deletable.length} bien${deletable.length > 1 ? 's' : ''} supprimé(s)`, 'success')
+      }
+      setSelectedIds(new Set())
+      setBulkDeleteConfirm(false)
+    } catch (e) {
+      notify('Erreur lors de la suppression groupée', 'error')
+    }
+    setBulkActing(false)
   }
 
   return (
@@ -384,36 +495,122 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             <span className="text-sm font-semibold" style={{ color: colors.primary }}>
               {selectedIds.size} bien{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
             </span>
-            <div className="ml-auto flex items-center gap-2">
-              <RiRocketLine className="h-4 w-4" style={{ color: colors.primary }} />
-              <span className="text-xs font-semibold text-gray-600">Mettre en avant :</span>
-              {[7, 15, 30].map((days) => (
+
+            {canProcess && (
+              <div className="flex items-center gap-1.5">
                 <button
-                  key={days}
                   type="button"
-                  disabled={bulkBoosting}
-                  onClick={() => handleBulkBoost(days)}
+                  disabled={bulkActing}
+                  onClick={() => handleBulkToggleStatus(true)}
                   className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
                 >
-                  {days}j
+                  Désactiver
                 </button>
-              ))}
-              <button
-                type="button"
-                disabled={bulkBoosting}
-                onClick={() => handleBulkBoost(null)}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
-              >
-                Retirer
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedIds(new Set())}
-                className="text-xs font-semibold text-gray-400 hover:text-gray-600"
-              >
-                Annuler
-              </button>
-            </div>
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkToggleStatus(false)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Réactiver
+                </button>
+              </div>
+            )}
+
+            {canProcess && selectedPublicCount > 0 && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <RiShieldCheckLine className="h-4 w-4" style={{ color: colors.primary }} />
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkVerify(true)}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Vérifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkVerify(false)}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Retirer vérif.
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <RiRocketLine className="h-4 w-4" style={{ color: colors.primary }} />
+                  <span className="text-xs font-semibold text-gray-600">Mettre en avant :</span>
+                  {[7, 15, 30].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      disabled={bulkActing}
+                      onClick={() => handleBulkBoost(days)}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      {days}j
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkBoost(null)}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Retirer
+                  </button>
+                </div>
+              </>
+            )}
+
+            {canDelete && (
+              <div className="flex items-center gap-2">
+                {bulkDeleteConfirm ? (
+                  <>
+                    <span className="text-xs font-semibold text-gray-500">Confirmer ?</span>
+                    <button
+                      type="button"
+                      disabled={bulkActing}
+                      onClick={handleBulkDelete}
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                      style={{ backgroundColor: colors.error }}
+                    >
+                      Oui, supprimer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBulkDeleteConfirm(false)}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      Non
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setBulkDeleteConfirm(true)}
+                    className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-red-50"
+                    style={{ borderColor: colors.error, color: colors.error }}
+                  >
+                    <RiDeleteBinLine className="h-3.5 w-3.5" />
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedIds(new Set())
+                setBulkDeleteConfirm(false)
+              }}
+              className="ml-auto text-xs font-semibold text-gray-400 hover:text-gray-600"
+            >
+              Annuler
+            </button>
           </div>
         )}
 
@@ -468,7 +665,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         className="cursor-pointer transition-colors hover:bg-gray-50"
                       >
                         <td className="w-8 py-4 pl-4 pr-2" onClick={(e) => e.stopPropagation()}>
-                          {canProcess && isPublicListing(property) && (
+                          {(canProcess || canDelete) && (
                             <input
                               type="checkbox"
                               checked={selectedIds.has(property.id)}
