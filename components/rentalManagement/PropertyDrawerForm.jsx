@@ -11,7 +11,7 @@ import { addPropertyOwner } from '@/lib/services/propertyOwners'
 import { addProperty, updateProperty } from '@/lib/services/propertyService'
 import { REGIONS, currencyOptions } from '../../_data'
 
-const MAX_IMAGES = 4
+const MAX_IMAGES = 5
 
 const resolveExistingImages = (selectedItem) => {
   if (!selectedItem) return []
