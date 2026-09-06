@@ -38,14 +38,14 @@ export default function ServicePricingTab() {
 
       {activeSection === 'moving' && (
         <PricingPackagesTab
-          collectionName="movingPackages"
+          collectionName="moving_packages"
           title="Tarifs — Déménagement"
           description="Offres proposées sur le formulaire de déménagement du site public"
         />
       )}
       {activeSection === 'rental' && (
         <PricingPackagesTab
-          collectionName="rentalPackages"
+          collectionName="rental_packages"
           title="Tarifs — Gestion locative"
           description="Offres proposées sur le formulaire de gestion locative du site public"
           priceLabel="Pourcentage (%)"
@@ -55,7 +55,7 @@ export default function ServicePricingTab() {
       )}
       {activeSection === 'legal' && (
         <PricingPackagesTab
-          collectionName="verificationPackages"
+          collectionName="verification_packages"
           title="Tarifs — Sécurisation foncière"
           description="Offres proposées sur le formulaire de sécurisation foncière du site public"
           showDelayDays

@@ -459,7 +459,7 @@ function DashboardCard() {
         const agentRequestsRef = collection(db, 'agent_requests')
         const workersRef = collection(db, 'workers')
         const usersRef = collection(db, 'users')
-        const legalPartnersRef = collection(db, 'legalPartners')
+        const legalPartnersRef = collection(db, 'legal_partners')
         const agenciesRef = collection(db, 'partner_agencies')
         const housesRef = collection(db, 'houses')
         const landsRef = collection(db, 'lands')
