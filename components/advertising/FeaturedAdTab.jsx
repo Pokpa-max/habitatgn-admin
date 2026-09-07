@@ -145,6 +145,11 @@ export default function FeaturedAdTab() {
               Bannière affichée une fois par session aux visiteurs du site public. Plusieurs images
               défilent automatiquement toutes les 5 secondes.
             </p>
+            <p className="mt-2 text-xs font-medium text-amber-700">
+              Format recommandé : image large et basse, environ 1200 × 280&nbsp;px (ratio ~4:1), avec le
+              texte ou logo bien centré. La bannière remplit toute la largeur de l'écran en hauteur
+              fixe : une image trop carrée ou verticale sera rognée sur les côtés.
+            </p>
           </div>
 
           <Switch.Group as="div" className="flex shrink-0 items-center gap-3">
