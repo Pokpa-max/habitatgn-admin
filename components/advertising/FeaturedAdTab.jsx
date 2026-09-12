@@ -198,7 +198,7 @@ export default function FeaturedAdTab() {
                       replaceTargetIndex.current = index
                       replaceInputRef.current?.click()
                     }}
-                    className="absolute inset-x-0 bottom-0 bg-black/55 py-1 text-[10px] font-semibold text-white"
+                    className="absolute inset-x-0 bottom-0 bg-black/80 py-1 text-[10px] font-semibold text-white"
                   >
                     Remplacer
                   </button>
