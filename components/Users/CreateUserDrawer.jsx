@@ -2,7 +2,7 @@ import { useAuthUser } from 'next-firebase-auth'
 import React from 'react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiCheckLine, RiEyeLine, RiEyeOffLine, RiImageAddLine } from 'react-icons/ri'
+import { RiCheckLine, RiEyeLine, RiEyeOffLine, RiImageAddLine, RiFileCopyLine, RiRefreshLine } from 'react-icons/ri'
 import Loader from '../Loader'
 import { createAccount } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
@@ -65,6 +65,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
   const [showPassword, setShowPassword] = useState(false)
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
+  const [createdCredentials, setCreatedCredentials] = useState(null)
 
   const {
     handleSubmit,
@@ -99,6 +100,18 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
     }
   }, [open, defaultRole, setValue])
 
+  const generateSecurePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*'
+    const randomValues = new Uint32Array(14)
+    window.crypto.getRandomValues(randomValues)
+    return Array.from(randomValues, (n) => chars[n % chars.length]).join('')
+  }
+
+  const handleGeneratePassword = () => {
+    setValue('passWord', generateSecurePassword(), { shouldValidate: true })
+    setShowPassword(true)
+  }
+
   const handlePhotoChange = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -116,10 +129,14 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
 
       const newUser = await createAccount({ ...data, imageUrl })
       notify('Compte créé avec succès', 'success')
+      setCreatedCredentials({
+        email: data.email,
+        password: data.passWord,
+        name: data.fullName || [data.firstname, data.lastname].filter(Boolean).join(' '),
+      })
       reset()
       setPhotoFile(null)
       setPhotoPreview(null)
-      setOpen(false)
       if (props.onCreate) {
         props.onCreate(newUser)
       }
@@ -128,6 +145,24 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
       console.error(error)
     }
     setLoading(false)
+  }
+
+  const closeDrawer = () => {
+    setCreatedCredentials(null)
+    reset()
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    setShowPassword(false)
+    setOpen(false)
+  }
+
+  const handleCopy = async (text, label) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      notify(`${label} copié`, 'success')
+    } catch (error) {
+      notify('Impossible de copier', 'error')
+    }
   }
 
   return (
@@ -159,9 +194,11 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
 
       <DrawerForm
         open={open}
-        setOpen={setOpen}
+        setOpen={closeDrawer}
         title={
-          role === 'agent'
+          createdCredentials
+            ? 'Compte créé'
+            : role === 'agent'
             ? 'Ajouter un Agent'
             : role === 'worker'
             ? 'Ajouter un Ouvrier'
@@ -170,36 +207,114 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
         description="Création de compte"
         onSubmit={handleSubmit(CreatedAccountSubmit)}
         footerButtons={
-          <>
-            {loading ? (
-              <div
-                className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
+          createdCredentials ? (
+            <button
+              type="button"
+              onClick={closeDrawer}
+              className="inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+              style={{ backgroundColor: colors.primary || '#0A4D9C' }}
+            >
+              Terminé
+            </button>
+          ) : loading ? (
+            <div
+              className="inline-flex justify-center rounded px-6 py-2 text-sm font-semibold text-white"
+              style={{ backgroundColor: colors.primary || '#0A4D9C' }}
+            >
+              <Loader />
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="rounded border border-gray-300 bg-white px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                onClick={closeDrawer}
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
                 style={{ backgroundColor: colors.primary || '#0A4D9C' }}
               >
-                <Loader />
-              </div>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="rounded border border-gray-300 bg-white px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                  onClick={() => setOpen(false)}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
-                  style={{ backgroundColor: colors.primary || '#0A4D9C' }}
-                >
-                  <RiCheckLine className="h-4 w-4" />
-                  Créer le compte
-                </button>
-              </>
-            )}
-          </>
+                <RiCheckLine className="h-4 w-4" />
+                Créer le compte
+              </button>
+            </>
+          )
         }
       >
+        {createdCredentials ? (
+          <div className="flex flex-col items-center gap-5 px-6 py-10 text-center sm:p-8">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-full"
+              style={{ backgroundColor: colors.primaryVeryLight }}
+            >
+              <RiCheckLine className="h-7 w-7" style={{ color: colors.primary }} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-gray-900">Compte créé avec succès</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Transmettez ces identifiants à{' '}
+                {createdCredentials.name || 'la personne concernée'}.
+              </p>
+            </div>
+
+            <div className="w-full space-y-3 text-left">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Email
+                </label>
+                <div className="flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-3">
+                  <span className="flex-1 truncate text-sm font-medium text-gray-900">
+                    {createdCredentials.email}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(createdCredentials.email, 'Email')}
+                    className="flex-shrink-0 rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+                    title="Copier l'email"
+                  >
+                    <RiFileCopyLine className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Mot de passe
+                </label>
+                <div className="flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-3">
+                  <span className="flex-1 truncate text-sm font-medium text-gray-900">
+                    {createdCredentials.password}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(createdCredentials.password, 'Mot de passe')}
+                    className="flex-shrink-0 rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+                    title="Copier le mot de passe"
+                  >
+                    <RiFileCopyLine className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  handleCopy(
+                    `Email : ${createdCredentials.email}\nMot de passe : ${createdCredentials.password}`,
+                    'Identifiants'
+                  )
+                }
+                className="w-full rounded-2xl border border-dashed px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-gray-50"
+                style={{ borderColor: colors.primary, color: colors.primary }}
+              >
+                Copier email + mot de passe
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="space-y-5 px-6 py-6 sm:p-8">
           {/* Rôle en premier : détermine les champs affichés en dessous */}
           <div>
@@ -271,17 +386,30 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
-                {...register('passWord', { required: 'Champs requis' })}
-                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 pr-10 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+                {...register('passWord', {
+                  required: 'Champs requis',
+                  minLength: { value: 6, message: 'Minimum 6 caractères' },
+                })}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 pr-20 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Mot de passe"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-              >
-                {showPassword ? <RiEyeOffLine className="h-5 w-5" /> : <RiEyeLine className="h-5 w-5" />}
-              </button>
+              <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={handleGeneratePassword}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
+                  title="Générer un mot de passe sécurisé"
+                >
+                  <RiRefreshLine className="h-4.5 w-4.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600 focus:outline-none"
+                >
+                  {showPassword ? <RiEyeOffLine className="h-4.5 w-4.5" /> : <RiEyeLine className="h-4.5 w-4.5" />}
+                </button>
+              </div>
             </div>
             {errors?.passWord && (
               <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.passWord.message}</p>
@@ -648,6 +776,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             </div>
           )}
         </div>
+        )}
       </DrawerForm>
     </>
   )

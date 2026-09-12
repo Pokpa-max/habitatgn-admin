@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useAuthUser } from 'next-firebase-auth'
 import {
   RiCheckLine,
   RiCloseLine,
@@ -13,12 +14,14 @@ import {
   RiAddLine,
   RiMoneyDollarCircleLine,
   RiRocketLine,
+  RiLockPasswordLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
+import ResetPasswordModal from '@/components/Users/ResetPasswordModal'
 import {
   getAgentRequests,
   approveAgentRequest,
@@ -28,6 +31,7 @@ import {
   desableUser,
   desableUserFirestore,
   getUserAvailability,
+  resetManagerPassword,
 } from '@/lib/services/managers'
 import {
   getAllAgentPayments,
@@ -74,6 +78,8 @@ const PROPERTY_TYPE_LABELS = {
 
 export default function AgentsPage() {
   const colors = useColors()
+  const AuthUser = useAuthUser()
+  const isAdmin = AuthUser.claims?.userType === 'admin'
   const canProcess = useCanManage('agents', 'process')
   const canPayments = useCanManage('agents', 'payments')
   const [requests, setRequests] = useState([])
@@ -83,6 +89,8 @@ export default function AgentsPage() {
   const [actioningId, setActioningId] = useState(null)
   const [blockTarget, setBlockTarget] = useState(null)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState(null)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -372,6 +380,16 @@ export default function AgentsPage() {
         setOpen={setPaymentModalOpen}
         defaultAmount={subscriptionAmount}
         onConfirm={handleRecordPayment}
+      />
+
+      <ResetPasswordModal
+        manager={passwordTarget}
+        open={passwordModalOpen}
+        setOpen={setPasswordModalOpen}
+        onReset={async (agent, newPassword) => {
+          await resetManagerPassword(agent.userId, newPassword)
+          notify('Mot de passe modifié avec succès', 'success')
+        }}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -762,6 +780,23 @@ export default function AgentsPage() {
                                           {request.isAvailable
                                             ? 'Bloquer le compte'
                                             : 'Débloquer le compte'}
+                                        </button>
+                                      )}
+                                      {isAdmin && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setMenuOpenId(null)
+                                            setPasswordTarget(request)
+                                            setPasswordModalOpen(true)
+                                          }}
+                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                                        >
+                                          <RiLockPasswordLine
+                                            className="h-4 w-4"
+                                            style={{ color: colors.primary }}
+                                          />
+                                          Modifier le mot de passe
                                         </button>
                                       )}
                                     </>

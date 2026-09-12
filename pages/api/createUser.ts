@@ -51,6 +51,16 @@ export default async function handler(
       name,
       passWord,
       type,
+    } = req.body
+
+    if (!email || typeof passWord !== 'string' || passWord.length < 6) {
+      return res.status(400).json({
+        code: 0,
+        message: 'Le mot de passe doit contenir au moins 6 caractères.',
+      })
+    }
+
+    const {
       phoneNumber,
       agence,
       // Champs spécifiques agent (mêmes noms que agentRequestService.ts côté site public)

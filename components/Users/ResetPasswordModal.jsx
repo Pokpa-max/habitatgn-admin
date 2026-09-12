@@ -4,7 +4,7 @@ import { RiLockPasswordLine, RiCheckLine, RiCloseLine, RiEyeLine, RiEyeOffLine }
 import { useColors } from '../../contexts/ColorContext'
 
 // Admin uniquement : force un nouveau mot de passe sur le compte d'un
-// manager, sans avoir besoin de connaître l'ancien (voir
+// manager/agent/ouvrier, sans avoir besoin de connaître l'ancien (voir
 // lib/services/managers.ts -> resetManagerPassword, pages/api/resetManagerPassword.ts).
 function ResetPasswordModal({ manager, open, setOpen, onReset }) {
   const colors = useColors()
@@ -84,7 +84,7 @@ function ResetPasswordModal({ manager, open, setOpen, onReset }) {
                       Réinitialiser le mot de passe
                     </Dialog.Title>
                     <p className="mt-0.5 truncate text-xs text-gray-500">
-                      {manager.firstname || manager.name || manager.email}
+                      {manager.firstname || manager.name || manager.fullName || manager.email}
                     </p>
                   </div>
                 </div>

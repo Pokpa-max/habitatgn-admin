@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import Link from 'next/link'
+import { useAuthUser } from 'next-firebase-auth'
 import {
   RiCheckLine,
   RiCloseLine,
@@ -15,12 +16,14 @@ import {
   RiArrowRightSLine,
   RiForbidLine,
   RiLockUnlockLine,
+  RiLockPasswordLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
+import ResetPasswordModal from '@/components/Users/ResetPasswordModal'
 import {
   getWorkers,
   approveWorker,
@@ -32,6 +35,7 @@ import {
   desableUser,
   desableUserFirestore,
   getUserAvailability,
+  resetManagerPassword,
 } from '@/lib/services/managers'
 import {
   getAllWorkerPayments,
@@ -88,8 +92,10 @@ function ActionsModal({
   onReject,
   onToggleBlock,
   onRecordPayment,
+  onResetPassword,
   canProcess,
   canPayments,
+  isAdmin,
 }) {
   const colors = useColors()
   if (!worker) return null
@@ -194,6 +200,17 @@ function ActionsModal({
                     />
                   )}
 
+                  {isAdmin && status === 'approved' && worker.userId && (
+                    <ActionRow
+                      as="button"
+                      onClick={onResetPassword}
+                      icon={RiLockPasswordLine}
+                      iconColor={colors.primary}
+                      iconBg={colors.primaryVeryLight}
+                      label="Modifier le mot de passe"
+                    />
+                  )}
+
                   {status === 'rejected' && !worker.suspendedByAdmin && (
                     <p className="px-3 py-2.5 text-sm text-gray-400">
                       Aucune action disponible
@@ -220,6 +237,8 @@ function ActionsModal({
 
 export default function WorkersPage() {
   const colors = useColors()
+  const AuthUser = useAuthUser()
+  const isAdmin = AuthUser.claims?.userType === 'admin'
   const canProcess = useCanManage('workers', 'process')
   const canPayments = useCanManage('workers', 'payments')
   const [workers, setWorkers] = useState([])
@@ -231,6 +250,8 @@ export default function WorkersPage() {
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [actionsTarget, setActionsTarget] = useState(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState(null)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
@@ -524,8 +545,14 @@ export default function WorkersPage() {
           setPaymentTarget(actionsTarget)
           setPaymentModalOpen(true)
         }}
+        onResetPassword={() => {
+          setActionsModalOpen(false)
+          setPasswordTarget(actionsTarget)
+          setPasswordModalOpen(true)
+        }}
         canProcess={canProcess}
         canPayments={canPayments}
+        isAdmin={isAdmin}
       />
 
       <RecordPaymentModal
@@ -533,6 +560,16 @@ export default function WorkersPage() {
         setOpen={setPaymentModalOpen}
         defaultAmount={subscriptionAmount}
         onConfirm={handleRecordPayment}
+      />
+
+      <ResetPasswordModal
+        manager={passwordTarget}
+        open={passwordModalOpen}
+        setOpen={setPasswordModalOpen}
+        onReset={async (worker, newPassword) => {
+          await resetManagerPassword(worker.userId, newPassword)
+          notify('Mot de passe modifié avec succès', 'success')
+        }}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
