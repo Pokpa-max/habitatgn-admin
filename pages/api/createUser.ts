@@ -3,7 +3,8 @@ import { authAdmin, dbAdmin } from 'lib/firebase-admin/admin_config'
 import { setCustomUserClaims } from '@/utils/firebase/auth'
 import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 import { FieldValue } from 'firebase-admin/firestore'
-import { ALL_MANAGER_MODULE_KEYS } from '@/lib/constants/managerModules'
+import { ALL_MANAGER_MODULE_KEYS, hasManagerAction } from '@/lib/constants/managerModules'
+import { logAuditEvent } from '@/lib/firebase-admin/auditLog'
 
 // Même logique que habitatgnweb/src/lib/workerSearchIndex.ts — nécessaire pour que
 // les ouvriers créés depuis l'admin soient trouvables dans la recherche libre du
@@ -79,14 +80,37 @@ export default async function handler(
       imageUrl,
     } = req.body
 
-    // 1. Create user in Firebase Auth
-    const userRecord = await createUserAuth(email, passWord, name)
-
-    // 2. Determine user type and set custom claims IMMEDIATELY
     const validTypes = ['admin', 'manager', 'agent', 'worker', 'ouvrier']
     let userType = validTypes.includes(type) ? type : 'manager'
     if (userType === 'ouvrier') userType = 'worker'
 
+    // Un manager ne peut jamais créer un compte admin/manager (escalade de
+    // privilèges), et ne peut créer un agent/ouvrier que s'il a la
+    // permission "process" sur le module correspondant — même contrôle que
+    // celui qui masque les boutons "Approuver" côté interface (voir
+    // hooks/useCanManage.js), mais appliqué ici côté serveur car cette route
+    // passe par l'Admin SDK et ne peut pas être vérifiée par les règles Firestore.
+    if (caller.userType !== 'admin') {
+      if (userType === 'admin' || userType === 'manager') {
+        return res.status(403).json({
+          code: 0,
+          message: 'Seul un administrateur peut créer ce type de compte.',
+        })
+      }
+      const moduleKey = userType === 'agent' ? 'agents' : 'workers'
+      const callerSnap = await dbAdmin.collection('users').doc(caller.uid).get()
+      if (!hasManagerAction(callerSnap.data()?.permissions, moduleKey, 'process')) {
+        return res.status(403).json({
+          code: 0,
+          message: "Vous n'avez pas la permission de créer ce type de compte.",
+        })
+      }
+    }
+
+    // 1. Create user in Firebase Auth
+    const userRecord = await createUserAuth(email, passWord, name)
+
+    // 2. Set custom claims IMMEDIATELY
     await setCustomUserClaims(userRecord.uid, userType)
 
     const { uid } = userRecord
@@ -165,6 +189,16 @@ export default async function handler(
     }
 
     await batch.commit()
+
+    await logAuditEvent({
+      action: 'user.create',
+      actorUid: caller.uid,
+      actorEmail: caller.email,
+      actorType: caller.userType,
+      targetUid: uid,
+      targetEmail: email,
+      details: { type: userType },
+    })
 
     res.status(200).json({ code: 1, message: 'User created successfully', uid })
   } catch (error: any) {

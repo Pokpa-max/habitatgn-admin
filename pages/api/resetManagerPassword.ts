@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { authAdmin } from '@/lib/firebase-admin/admin_config'
 import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
+import { logAuditEvent } from '@/lib/firebase-admin/auditLog'
 
 // Réinitialisation directe du mot de passe d'un manager par un admin — action
 // plus sensible que le reste (créer un compte, activer/désactiver...), donc
@@ -26,6 +27,13 @@ export default async function handler(
 
   try {
     await authAdmin.updateUser(uid, { password: newPassword })
+    await logAuditEvent({
+      action: 'user.password_reset',
+      actorUid: caller.uid,
+      actorEmail: caller.email,
+      actorType: caller.userType,
+      targetUid: uid,
+    })
     res.status(200).json({ code: 1, message: 'Mot de passe réinitialisé.' })
   } catch (error: any) {
     console.error('Error resetting password:', error)

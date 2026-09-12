@@ -2,7 +2,15 @@ import { useAuthUser } from 'next-firebase-auth'
 import React from 'react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiCheckLine, RiEyeLine, RiEyeOffLine, RiImageAddLine, RiFileCopyLine, RiRefreshLine } from 'react-icons/ri'
+import {
+  RiCheckLine,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiImageAddLine,
+  RiFileCopyLine,
+  RiRefreshLine,
+  RiErrorWarningLine,
+} from 'react-icons/ri'
 import Loader from '../Loader'
 import { createAccount } from '../../lib/services/managers'
 import { notify } from '../../utils/toast'
@@ -312,6 +320,17 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
               >
                 Copier email + mot de passe
               </button>
+
+              <div
+                className="flex items-start gap-2 rounded-2xl px-4 py-3 text-left"
+                style={{ backgroundColor: '#FEF3C7' }}
+              >
+                <RiErrorWarningLine className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: '#D97706' }} />
+                <p className="text-xs font-medium" style={{ color: '#92400E' }}>
+                  Ce mot de passe ne sera plus jamais affiché après la fermeture de cette
+                  fenêtre. Copiez-le et transmettez-le maintenant.
+                </p>
+              </div>
             </div>
           </div>
         ) : (

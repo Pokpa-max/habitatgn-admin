@@ -25,7 +25,7 @@ import {
 import { notify } from '../../utils/toast'
 import CreateUserDrawer from './CreateUserDrawer'
 import { useColors } from '../../contexts/ColorContext'
-import { useAuthUser } from 'next-firebase-auth'
+import { useIsAdmin } from '../../hooks/useIsAdmin'
 
 function UsersList({
   data,
@@ -68,8 +68,7 @@ function UserTable({
   isStaffTab,
 }) {
   const colors = useColors()
-  const AuthUser = useAuthUser()
-  const isAdmin = AuthUser.claims?.userType === 'admin'
+  const isAdmin = useIsAdmin()
   const [openModal, setOpenModal] = useState(false)
   const [selectUser, setSelectUser] = useState(null)
   const [openDrawer, setOpenDrawer] = useState(false)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useAuthUser } from 'next-firebase-auth'
+import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
   RiCheckLine,
   RiCloseLine,
@@ -78,8 +78,7 @@ const PROPERTY_TYPE_LABELS = {
 
 export default function AgentsPage() {
   const colors = useColors()
-  const AuthUser = useAuthUser()
-  const isAdmin = AuthUser.claims?.userType === 'admin'
+  const isAdmin = useIsAdmin()
   const canProcess = useCanManage('agents', 'process')
   const canPayments = useCanManage('agents', 'payments')
   const [requests, setRequests] = useState([])

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import Link from 'next/link'
-import { useAuthUser } from 'next-firebase-auth'
+import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
   RiCheckLine,
   RiCloseLine,
@@ -237,8 +237,7 @@ function ActionsModal({
 
 export default function WorkersPage() {
   const colors = useColors()
-  const AuthUser = useAuthUser()
-  const isAdmin = AuthUser.claims?.userType === 'admin'
+  const isAdmin = useIsAdmin()
   const canProcess = useCanManage('workers', 'process')
   const canPayments = useCanManage('workers', 'payments')
   const [workers, setWorkers] = useState([])
