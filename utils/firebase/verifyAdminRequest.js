@@ -11,8 +11,9 @@ export async function verifyAdminRequest(req) {
 
   try {
     const decodedToken = await authAdmin.verifyIdToken(token)
-    const isAdmin = decodedToken.userType === 'admin' || decodedToken.userType === 'manager'
-    return isAdmin ? decodedToken : null
+    const userType = decodedToken.userType || decodedToken.role
+    const isAdmin = userType === 'admin' || userType === 'manager'
+    return isAdmin ? { ...decodedToken, userType: userType || 'manager' } : null
   } catch (e) {
     return null
   }

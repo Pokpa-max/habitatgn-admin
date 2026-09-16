@@ -90,7 +90,8 @@ export default async function handler(
     // celui qui masque les boutons "Approuver" côté interface (voir
     // hooks/useCanManage.js), mais appliqué ici côté serveur car cette route
     // passe par l'Admin SDK et ne peut pas être vérifiée par les règles Firestore.
-    if (caller.userType !== 'admin') {
+    const callerType = (caller as any).userType || (caller as any).role
+    if (callerType !== 'admin') {
       if (userType === 'admin' || userType === 'manager') {
         return res.status(403).json({
           code: 0,
@@ -108,7 +109,7 @@ export default async function handler(
     }
 
     // 1. Create user in Firebase Auth
-    const userRecord = await createUserAuth(email, passWord, name)
+    const userRecord = await createUserAuth(email, passWord, name || '')
 
     // 2. Set custom claims IMMEDIATELY
     await setCustomUserClaims(userRecord.uid, userType)
@@ -118,8 +119,8 @@ export default async function handler(
 
     // 3. Save to Firestore with new structure and NO password
     batch.set(dbAdmin.collection('users').doc(uid), {
-      email,
-      name,
+      email: email || '',
+      name: name || '',
       type: userType,
       role: userType,
       createdAt: FieldValue.serverTimestamp(),
@@ -144,14 +145,15 @@ export default async function handler(
         {
           userId: uid,
           accountType: accountType || 'particulier',
-          fullName: name,
+          fullName: name || '',
           agencyName: accountType === 'agence' ? agencyName || '' : '',
-          email,
+          email: email || '',
           phone: phoneNumber || '',
           commune: commune || '',
           propertyTypes: Array.isArray(propertyTypes) ? propertyTypes : [],
           message: message || '',
           status: 'approved',
+          approvedAt: FieldValue.serverTimestamp(),
           createdAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -163,7 +165,7 @@ export default async function handler(
         dbAdmin.collection('workers').doc(uid),
         {
           userId: uid,
-          name,
+          name: name || '',
           phone: phoneNumber || '',
           whatsapp: whatsapp || '',
           specialties: workerSpecialties,
@@ -177,7 +179,7 @@ export default async function handler(
             workerCommunes.map((c: string) => `${s}::${c}`)
           ),
           searchIndex: buildWorkerSearchIndex({
-            name,
+            name: name || '',
             specialties: workerSpecialties,
             communes: workerCommunes,
           }),

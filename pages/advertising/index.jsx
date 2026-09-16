@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   RiImageLine,
   RiAdvertisementLine,
+  RiMegaphoneLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -15,11 +16,13 @@ import Header from '@/components/Header'
 import { useColors } from '@/contexts/ColorContext'
 import HeroTab from '@/components/advertising/HeroTab'
 import FeaturedAdTab from '@/components/advertising/FeaturedAdTab'
+import LaunchOfferTab from '@/components/advertising/LaunchOfferTab'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const TABS = [
   { value: 'hero', label: 'Section héro', icon: RiImageLine },
   { value: 'featured-ad', label: 'Bannière vedette', icon: RiAdvertisementLine },
+  { value: 'launch-offer', label: 'Offre de lancement', icon: RiMegaphoneLine },
 ]
 
 function Advertising() {
@@ -53,6 +56,7 @@ function Advertising() {
 
       {activeTab === 'hero' && <HeroTab />}
       {activeTab === 'featured-ad' && <FeaturedAdTab />}
+      {activeTab === 'launch-offer' && <LaunchOfferTab />}
     </Scaffold>
   )
 }

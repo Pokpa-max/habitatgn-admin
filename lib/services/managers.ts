@@ -112,7 +112,7 @@ export const createAccount = async (data) => {
     ...roleFields,
   })
 
-  if (response.code == 0) throw new Error()
+  if (response.code == 0) throw new Error(response.message || 'Erreur lors de la création du compte')
 
   return {
     id: response.uid,

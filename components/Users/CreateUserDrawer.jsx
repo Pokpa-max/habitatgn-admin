@@ -75,6 +75,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
   const [photoPreview, setPhotoPreview] = useState(null)
   const [createdCredentials, setCreatedCredentials] = useState(null)
 
+  const defaultUserRole = defaultRole ? userRole.find((r) => r.value === defaultRole) : undefined
   const {
     handleSubmit,
     register,
@@ -86,6 +87,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
   } = useForm({
     mode: 'onBlur',
     defaultValues: {
+      userRole: defaultUserRole,
       desabled: false,
       agentAccountType: 'particulier',
       workerAccountType: 'individual',
@@ -149,7 +151,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
         props.onCreate(newUser)
       }
     } catch (error) {
-      notify('Ce compte existe déjà ou une erreur est survenue', 'error')
+      notify(error.message || 'Ce compte existe déjà ou une erreur est survenue', 'error')
       console.error(error)
     }
     setLoading(false)

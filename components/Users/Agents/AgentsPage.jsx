@@ -429,6 +429,7 @@ export default function AgentsPage() {
           defaultRole="agent"
           onCreate={() => {
             fetchAgentsData()
+            setStatusFilter('approved')
           }}
         />
 

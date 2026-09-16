@@ -609,6 +609,7 @@ export default function WorkersPage() {
           defaultRole="worker"
           onCreate={() => {
             fetchWorkersData()
+            setStatusFilter('approved')
           }}
         />
 

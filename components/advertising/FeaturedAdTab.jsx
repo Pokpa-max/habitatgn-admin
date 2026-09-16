@@ -32,6 +32,8 @@ export default function FeaturedAdTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [enabled, setEnabled] = useState(false)
+  const [text, setText] = useState('')
+  const [linkUrl, setLinkUrl] = useState('/contact')
   const [ads, setAds] = useState([])
   const [uploadingNew, setUploadingNew] = useState(false)
   const [replacingIndex, setReplacingIndex] = useState(null)
@@ -46,7 +48,9 @@ export default function FeaturedAdTab() {
       try {
         const settings = await getFeaturedAdSettings()
         setEnabled(settings.enabled)
-        setAds(settings.ads)
+        setText(settings.text || '')
+        setLinkUrl(settings.linkUrl || '/contact')
+        setAds(settings.ads || [])
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -113,13 +117,9 @@ export default function FeaturedAdTab() {
 
   const handleSave = async () => {
     if (!canProcess) return
-    if (enabled && ads.length === 0) {
-      notify("Ajoutez au moins une image avant d'activer la publicité", 'error')
-      return
-    }
     setSaving(true)
     try {
-      await saveFeaturedAdSettings({ enabled, ads })
+      await saveFeaturedAdSettings({ enabled, text, linkUrl, ads })
       notify('Publicité vedette mise à jour', 'success')
     } catch (e) {
       notify('Une erreur est survenue', 'error')
@@ -142,13 +142,10 @@ export default function FeaturedAdTab() {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Publicité vedette</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Bannière affichée une fois par session aux visiteurs du site public. Plusieurs images
-              défilent automatiquement toutes les 5 secondes.
+              Gestion de la bannière vedette en temps réel (document Firestore <code>site_settings/featured_ad</code>).
             </p>
             <p className="mt-2 text-xs font-medium text-amber-700">
-              Format recommandé : image large et basse, environ 1200 × 280&nbsp;px (ratio ~4:1), avec le
-              texte ou logo bien centré. La bannière remplit toute la largeur de l'écran en hauteur
-              fixe : une image trop carrée ou verticale sera rognée sur les côtés.
+              Format d'image recommandé : environ 1200 × 280&nbsp;px (ratio ~4:1).
             </p>
           </div>
 
@@ -175,6 +172,37 @@ export default function FeaturedAdTab() {
               />
             </Switch>
           </Switch.Group>
+        </div>
+
+        {/* Paramètres principaux : texte et lien */}
+        <div className="mb-6 grid grid-cols-1 gap-4 rounded-xl border border-gray-100 bg-gray-50/50 p-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+              Texte personnalisé de la publicité
+            </label>
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              disabled={!canProcess}
+              placeholder="Ex: Profitez de nos offres exceptionnelles ce mois-ci..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+              Lien de destination au clic
+            </label>
+            <input
+              type="text"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              disabled={!canProcess}
+              placeholder="/contact, /lands ou https://..."
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60"
+            />
+          </div>
         </div>
 
         {/* Liste des images */}
