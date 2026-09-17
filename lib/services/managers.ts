@@ -26,22 +26,23 @@ export const getUserAvailability = async (userId) => {
 }
 
 export const desableUser = async (userId, desableAccount) => {
-  try {
-    const idToken = await auth.currentUser?.getIdToken()
-    fetch('/api/userActivity/desableUser', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(idToken ? { Authorization: idToken } : {}),
-      },
-      body: JSON.stringify({
-        id: userId,
-        desableAccount: desableAccount,
-      }),
-    })
-  } catch (error) {
-    console.error('error: ', error)
+  const idToken = await auth.currentUser?.getIdToken()
+  const response = await fetch('/api/userActivity/desableUser', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(idToken ? { Authorization: idToken } : {}),
+    },
+    body: JSON.stringify({
+      id: userId,
+      desableAccount,
+    }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || "Impossible de modifier l'accès au compte")
   }
+  return payload
 }
 
 // Réinitialisation par un admin du mot de passe d'un manager (pas besoin de

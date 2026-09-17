@@ -46,6 +46,9 @@ export default async function handler(
     return res.status(403).json({ code: 0, message: 'Accès refusé.' })
   }
 
+  let createdUid: string | null = null
+  let firestoreCommitted = false
+
   try {
     const {
       email,
@@ -110,6 +113,7 @@ export default async function handler(
 
     // 1. Create user in Firebase Auth
     const userRecord = await createUserAuth(email, passWord, name || '')
+    createdUid = userRecord.uid
 
     // 2. Set custom claims IMMEDIATELY
     await setCustomUserClaims(userRecord.uid, userType)
@@ -191,6 +195,7 @@ export default async function handler(
     }
 
     await batch.commit()
+    firestoreCommitted = true
 
     await logAuditEvent({
       action: 'user.create',
@@ -204,6 +209,16 @@ export default async function handler(
 
     res.status(200).json({ code: 1, message: 'User created successfully', uid })
   } catch (error: any) {
+    // Firebase Auth et Firestore ne partagent pas de transaction. Si la
+    // création échoue avant l'écriture Firestore, on supprime le compte Auth
+    // orphelin afin que l'adresse e-mail puisse être réutilisée.
+    if (createdUid && !firestoreCommitted) {
+      try {
+        await authAdmin.deleteUser(createdUid)
+      } catch (cleanupError) {
+        console.error('Error cleaning up incomplete user:', cleanupError)
+      }
+    }
     console.error('Error creating user:', error)
     // Handle specific error codes if needed, e.g., email already exists
     res.status(500).json({ code: 0, message: error.message || 'Une erreur est survenue' })
