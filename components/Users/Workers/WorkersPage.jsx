@@ -17,6 +17,7 @@ import {
   RiForbidLine,
   RiLockUnlockLine,
   RiLockPasswordLine,
+  RiVerifiedBadgeFill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -30,6 +31,7 @@ import {
   rejectWorker,
   hideWorkerFromPublic,
   restoreWorkerVisibility,
+  toggleWorkerCertification,
 } from '@/lib/services/workers'
 import {
   desableUser,
@@ -91,6 +93,7 @@ function ActionsModal({
   onApprove,
   onReject,
   onToggleBlock,
+  onToggleCertification,
   onRecordPayment,
   onResetPassword,
   canProcess,
@@ -175,6 +178,17 @@ function ActionsModal({
                         tone="danger"
                       />
                     </>
+                  )}
+
+                  {canProcess && status === 'approved' && (
+                    <ActionRow
+                      as="button"
+                      onClick={onToggleCertification}
+                      icon={RiVerifiedBadgeFill}
+                      iconColor={worker.isCertified ? colors.gray500 : '#2563EB'}
+                      iconBg={worker.isCertified ? colors.gray100 : '#EFF6FF'}
+                      label={worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
+                    />
                   )}
 
                   {canPayments && status === 'approved' && (
@@ -420,6 +434,52 @@ export default function WorkersPage() {
     setBulkActing(false)
   }
 
+  const handleToggleCertification = async (worker) => {
+    if (!canProcess || !worker) return
+    const nextCertified = !worker.isCertified
+    setActioningId(worker.id)
+    try {
+      await toggleWorkerCertification(worker.id, nextCertified)
+      setWorkers((prev) =>
+        prev.map((w) => (w.id === worker.id ? { ...w, isCertified: nextCertified } : w))
+      )
+      notify(
+        nextCertified
+          ? 'Badge Certifié attribué avec succès'
+          : 'Badge Certifié retiré',
+        'success'
+      )
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setActioningId(null)
+    setActionsModalOpen(false)
+  }
+
+  const handleBulkCertify = async (certified) => {
+    if (!canProcess) return
+    const targets = filtered.filter((w) => selectedIds.has(w.id) && w.isCertified !== certified)
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => toggleWorkerCertification(w.id, certified)))
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) =>
+        prev.map((w) => (targetIds.has(w.id) ? { ...w, isCertified: certified } : w))
+      )
+      notify(
+        certified
+          ? `${targets.length} ouvrier(s) certifié(s)`
+          : `${targets.length} badge(s) certifié(s) retiré(s)`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'action groupée", 'error')
+    }
+    setBulkActing(false)
+  }
+
   const handleBulkBlock = async (blocked) => {
     if (!canProcess) return
     const targets = filtered.filter((w) => selectedIds.has(w.id) && w.userId)
@@ -539,6 +599,7 @@ export default function WorkersPage() {
           setBlockTarget(actionsTarget)
           setBlockModalOpen(true)
         }}
+        onToggleCertification={() => handleToggleCertification(actionsTarget)}
         onRecordPayment={() => {
           setActionsModalOpen(false)
           setPaymentTarget(actionsTarget)
@@ -591,14 +652,17 @@ export default function WorkersPage() {
                   className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
                 />
               </div>
-              <button
-                onClick={() => setCreateDrawerOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <RiAddLine className="h-4 w-4" />
-                Ajouter un Ouvrier
-              </button>
+              {canProcess && (
+                <button
+                  type="button"
+                  onClick={() => setCreateDrawerOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <RiAddLine className="h-4 w-4" />
+                  Ajouter un Ouvrier
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -687,15 +751,34 @@ export default function WorkersPage() {
                 </>
               )}
               {canProcess && statusFilter === 'approved' && (
-                <button
-                  type="button"
-                  disabled={bulkActing}
-                  onClick={() => handleBulkBlock(true)}
-                  className="rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold hover:bg-amber-50 disabled:opacity-60"
-                  style={{ borderColor: colors.warning, color: colors.warning }}
-                >
-                  Bloquer
-                </button>
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkCertify(true)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+                  >
+                    <RiVerifiedBadgeFill className="h-3.5 w-3.5 text-blue-600" />
+                    Certifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkCertify(false)}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Décertifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkBlock(true)}
+                    className="rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold hover:bg-amber-50 disabled:opacity-60"
+                    style={{ borderColor: colors.warning, color: colors.warning }}
+                  >
+                    Bloquer
+                  </button>
+                </>
               )}
               {canProcess && statusFilter === 'rejected' && (
                 <button
@@ -801,9 +884,21 @@ export default function WorkersPage() {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {worker.name}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {worker.name}
+                              </p>
+                              {worker.isCertified && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border border-blue-200"
+                                  style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}
+                                  title="Ouvrier certifié BâtiMoo"
+                                >
+                                  <RiVerifiedBadgeFill className="h-3 w-3 text-blue-600" />
+                                  Certifié
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs uppercase tracking-wide text-gray-400">
                               {worker.accountType === 'enterprise'
                                 ? 'Entreprise'

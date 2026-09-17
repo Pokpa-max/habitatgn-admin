@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   RiImageLine,
   RiAdvertisementLine,
-  RiMegaphoneLine,
+  RiBroadcastLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -22,7 +22,7 @@ import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 const TABS = [
   { value: 'hero', label: 'Section héro', icon: RiImageLine },
   { value: 'featured-ad', label: 'Bannière vedette', icon: RiAdvertisementLine },
-  { value: 'launch-offer', label: 'Offre de lancement', icon: RiMegaphoneLine },
+  { value: 'launch-offer', label: 'Offre de lancement', icon: RiBroadcastLine },
 ]
 
 function Advertising() {

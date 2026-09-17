@@ -411,14 +411,17 @@ export default function AgentsPage() {
                   className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
                 />
               </div>
-              <button
-                onClick={() => setCreateDrawerOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <RiAddLine className="h-4 w-4" />
-                Ajouter un Agent
-              </button>
+              {canProcess && (
+                <button
+                  type="button"
+                  onClick={() => setCreateDrawerOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <RiAddLine className="h-4 w-4" />
+                  Ajouter un Agent
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -554,11 +557,11 @@ export default function AgentsPage() {
           </div>
         ) : (
           <div className="overflow-visible rounded-lg border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+            <div>
+              <table className="w-full table-fixed">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
-                    <th scope="col" className="w-8 px-4 py-3">
+                    <th scope="col" className="w-7 px-2 py-2">
                       {selectableIds.length > 0 && (
                         <input
                           type="checkbox"
@@ -583,7 +586,7 @@ export default function AgentsPage() {
                       <th
                         key={col.label}
                         scope="col"
-                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                        className={`px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-tight text-gray-700 ${
                           col.secondary ? 'hidden lg:table-cell' : ''
                         }`}
                       >
@@ -595,7 +598,7 @@ export default function AgentsPage() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {visible.map((request) => (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="w-8 px-4 py-4">
+                      <td className="w-7 px-2 py-2">
                         {isBulkSelectable(request) && (
                           <input
                             type="checkbox"
@@ -606,56 +609,59 @@ export default function AgentsPage() {
                           />
                         )}
                       </td>
-                      <td className="px-6 py-3">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {request.fullName}
+                      <td className="w-32 px-2 py-2">
+                        <p
+                          className="truncate text-sm font-semibold text-gray-900"
+                          title={request.fullName || ''}
+                        >
+                          {request.fullName || '—'}
                         </p>
-                        <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
+                        <p className="mt-0.5 truncate text-xs uppercase tracking-wide text-gray-400">
                           {request.accountType === 'agence'
                             ? `Agence — ${request.agencyName || ''}`
                             : 'Particulier'}
                         </p>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="w-40 px-2 py-2">
                         {request.email && (
-                          <p className="flex items-center gap-1 text-xs text-gray-500">
-                            <RiMailLine className="h-3.5 w-3.5" />{' '}
-                            {request.email}
+                          <p className="flex min-w-0 items-center gap-1 text-xs text-gray-500" title={request.email}>
+                            <RiMailLine className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{request.email}</span>
                           </p>
                         )}
                         {request.phone && (
-                          <p className="mt-1 flex items-center gap-1 font-mono text-xs text-gray-500">
-                            <RiPhoneLine className="h-3.5 w-3.5" />{' '}
-                            {request.phone}
+                          <p className="mt-0.5 flex min-w-0 items-center gap-1 font-mono text-xs text-gray-500">
+                            <RiPhoneLine className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{request.phone}</span>
                           </p>
                         )}
                       </td>
-                      <td className="hidden px-6 py-3 lg:table-cell">
+                      <td className="hidden w-20 px-2 py-2 lg:table-cell">
                         {request.commune && (
-                          <p className="flex items-center gap-1 text-xs capitalize text-gray-500">
-                            <RiMapPinLine className="h-3.5 w-3.5" />{' '}
-                            {request.commune}
+                          <p className="flex min-w-0 items-center gap-1 truncate text-xs capitalize text-gray-500" title={request.commune}>
+                            <RiMapPinLine className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{request.commune}</span>
                           </p>
                         )}
                       </td>
-                      <td className="hidden px-6 py-3 lg:table-cell">
-                        <div className="flex flex-wrap gap-1.5">
-                          {(request.propertyTypes || []).map((t) => (
-                            <span
-                              key={t}
-                              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
-                            >
-                              {PROPERTY_TYPE_LABELS[t] || t}
-                            </span>
-                          ))}
-                        </div>
+                      <td className="hidden w-28 px-2 py-2 lg:table-cell">
+                        <p
+                          className="truncate text-[13px] text-gray-600"
+                          title={(request.propertyTypes || [])
+                            .map((t) => PROPERTY_TYPE_LABELS[t] || t)
+                            .join(', ')}
+                        >
+                          {(request.propertyTypes || [])
+                            .map((t) => PROPERTY_TYPE_LABELS[t] || t)
+                            .join(' · ') || '—'}
+                        </p>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="w-20 px-2 py-2">
                         <StatusPill tone={request.isAvailable ? 'success' : 'error'}>
                           {request.isAvailable ? 'Actif' : 'Bloqué'}
                         </StatusPill>
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="w-24 px-2 py-2">
                         {request.paymentStatus?.status !== 'unknown' && (
                           <>
                             <StatusPill tone={PAYMENT_STATUS_CONFIG[request.paymentStatus.status].tone}>
@@ -671,15 +677,15 @@ export default function AgentsPage() {
                           </>
                         )}
                       </td>
-                      <td className="hidden px-6 py-3 lg:table-cell">
+                      <td className="hidden w-28 px-2 py-2 lg:table-cell">
                         {request.status === 'approved' ? (
                           request.boostedCount > 0 ? (
                             <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                              className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
                               style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
                             >
-                              <RiRocketLine className="h-3.5 w-3.5" />
-                              {request.boostedCount}/{request.listingsCount} annonce{request.boostedCount > 1 ? 's' : ''}
+                              <RiRocketLine className="h-3 w-3 shrink-0" />
+                              {request.boostedCount}/{request.listingsCount}
                             </span>
                           ) : (
                             <span className="text-xs text-gray-300">—</span>
@@ -688,7 +694,7 @@ export default function AgentsPage() {
                           <span className="text-xs text-gray-300">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="w-12 px-2 py-2">
                         {actioningId === request.id ? (
                           <Loader color="#111827" />
                         ) : (
