@@ -33,6 +33,7 @@ import { getPaymentsByProperty } from '@/lib/services/rentPayments'
 import { getTicketsByProperty } from '@/lib/services/maintenanceTickets'
 import { getExpensesByProperty } from '@/lib/services/propertyExpenses'
 import { updateProperty } from '@/lib/services/propertyService'
+import { notifySiteUser } from '@/lib/services/accountNotifications'
 import { useCanManage } from '@/hooks/useCanManage'
 
 const STATUS_CONFIG = {
@@ -214,6 +215,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
         await editManagedProperty(property.id, updateData, targetColl)
       } else {
         await updateProperty(property.id, updateData, targetColl)
+        // Annonce publique : son auteur est prévenu (désactivée / de nouveau en ligne)
+        void notifySiteUser('listing_status', { collection: targetColl, id: property.id })
       }
       setProperties((prev) =>
         prev.map((p) =>
@@ -263,6 +266,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
         ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
         : null
       await updateProperty(property.id, { boostedUntil }, property._collection)
+      if (days) void notifySiteUser('listing_boost', { collection: property._collection, id: property.id })
       setProperties((prev) =>
         prev.map((p) => (p.id === property.id ? { ...p, boostedUntil } : p))
       )
@@ -331,6 +335,9 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       await Promise.all(
         targets.map((p) => updateProperty(p.id, { boostedUntil }, p._collection))
       )
+      if (days) {
+        targets.forEach((p) => void notifySiteUser('listing_boost', { collection: p._collection, id: p.id }))
+      }
       const targetIds = new Set(targets.map((p) => p.id))
       setProperties((prev) =>
         prev.map((p) => (targetIds.has(p.id) ? { ...p, boostedUntil } : p))
@@ -373,6 +380,9 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             : updateProperty(p.id, updateData, targetColl)
         })
       )
+      targets
+        .filter(isPublicListing)
+        .forEach((p) => void notifySiteUser('listing_status', { collection: p._collection, id: p.id }))
       const targetIds = new Set(targets.map((p) => p.id))
       setProperties((prev) =>
         prev.map((p) => (targetIds.has(p.id) ? { ...p, status: newStatus, active: !makeInactive } : p))

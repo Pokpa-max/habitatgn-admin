@@ -6,11 +6,14 @@ import {
   updatePassword,
 } from 'firebase/auth'
 import { fetchWithPost } from '../../utils/fetch'
+import { notifySiteUser } from '@/lib/services/accountNotifications'
 
 export const userRef = (userId) => doc(db, `users/${userId}`)
 
 export const desableUserFirestore = async (userId, isAvailable) => {
   await updateDoc(userRef(userId), { isAvailable: isAvailable })
+  // Compte débloqué : la personne est prévenue (bloqué, elle ne pourrait pas lire la notification)
+  if (isAvailable) await notifySiteUser('account_reactivated', { userId })
 }
 
 // Modules délégués à un manager (voir lib/constants/managerModules.js et
