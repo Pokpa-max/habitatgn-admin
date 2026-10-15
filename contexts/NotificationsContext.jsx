@@ -10,6 +10,7 @@ import { bookingsCollectionRef } from '@/lib/services/bookings'
 import { careerApplicationsCollectionRef } from '@/lib/services/careerApplications'
 import { leadsCollectionRef } from '@/lib/services/leads'
 import { notify } from '@/utils/toast'
+import { playAlertSound } from '@/utils/alertSound'
 
 const CATEGORY_LABELS = {
   demenagement: 'de déménagement',
@@ -123,6 +124,7 @@ export function NotificationsProvider({ children }) {
             const newOnes = [...ids].filter((id) => !knownAgentIds.current.has(id))
             if (newOnes.length > 0) {
               const n = newOnes.length
+              playAlertSound()
               notify(
                 `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} agent !`,
                 'success'
@@ -149,6 +151,7 @@ export function NotificationsProvider({ children }) {
             const newOnes = [...ids].filter((id) => !knownWorkerIds.current.has(id))
             if (newOnes.length > 0) {
               const n = newOnes.length
+              playAlertSound()
               notify(
                 `${n} nouveau${n > 1 ? 'x' : ''} profil${n > 1 ? 's' : ''} ouvrier en attente !`,
                 'success'
@@ -175,6 +178,7 @@ export function NotificationsProvider({ children }) {
             const newOnes = [...ids].filter((id) => !knownMessageIds.current.has(id))
             if (newOnes.length > 0) {
               const n = newOnes.length
+              playAlertSound()
               notify(
                 `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''} de contact !`,
                 'success'
@@ -211,6 +215,7 @@ export function NotificationsProvider({ children }) {
                 return acc
               }, {})
               Object.entries(byCategory).forEach(([label, n]) => {
+                playAlertSound()
                 notify(`${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} ${label} !`, 'success')
               })
             }
@@ -235,6 +240,7 @@ export function NotificationsProvider({ children }) {
             const newOnes = [...ids].filter((id) => !knownBookingIds.current.has(id))
             if (newOnes.length > 0) {
               const n = newOnes.length
+              playAlertSound()
               notify(
                 `${n} nouvelle${n > 1 ? 's' : ''} réservation${n > 1 ? 's' : ''} !`,
                 'success'
@@ -261,6 +267,7 @@ export function NotificationsProvider({ children }) {
             const newOnes = [...ids].filter((id) => !knownCareerApplicationIds.current.has(id))
             if (newOnes.length > 0) {
               const n = newOnes.length
+              playAlertSound()
               notify(
                 `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} emploi !`,
                 'success'
@@ -284,6 +291,7 @@ export function NotificationsProvider({ children }) {
             const newOnes = [...ids].filter((id) => !knownLeadIds.current.has(id))
             if (newOnes.length > 0) {
               const n = newOnes.length
+              playAlertSound()
               notify(
                 `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de visite !`,
                 'success'
