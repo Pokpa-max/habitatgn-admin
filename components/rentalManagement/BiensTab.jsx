@@ -33,7 +33,7 @@ import { getPaymentsByProperty } from '@/lib/services/rentPayments'
 import { getTicketsByProperty } from '@/lib/services/maintenanceTickets'
 import { getExpensesByProperty } from '@/lib/services/propertyExpenses'
 import { updateProperty } from '@/lib/services/propertyService'
-import { notifySiteUser } from '@/lib/services/accountNotifications'
+import { isListingOnline, notifyFavoritesOfChange, notifySiteUser } from '@/lib/services/accountNotifications'
 import { useCanManage } from '@/hooks/useCanManage'
 
 const STATUS_CONFIG = {
@@ -198,8 +198,10 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const handleToggleStatus = async (property) => {
     if (!property || !canProcess) return
     const isInactive = property.status === 'inactive'
-    const newStatus = isInactive ? 'vacant' : 'inactive'
     const targetColl = property._collection || 'managed_properties'
+    // Annonce publique réactivée : « available » (le site n'affiche que ce
+    // statut) ; « vacant » ne concerne que la gestion locative interne.
+    const newStatus = isInactive ? (isPublicListing(property) ? 'available' : 'vacant') : 'inactive'
     try {
       const updateData = { status: newStatus }
       if (targetColl === 'houses' || targetColl === 'daily_rentals') {
@@ -215,8 +217,13 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
         await editManagedProperty(property.id, updateData, targetColl)
       } else {
         await updateProperty(property.id, updateData, targetColl)
-        // Annonce publique : son auteur est prévenu (désactivée / de nouveau en ligne)
+        // Annonce publique : son auteur est prévenu (désactivée / de nouveau en ligne),
+        // et les personnes qui l'ont en favori si elle est retirée
         void notifySiteUser('listing_status', { collection: targetColl, id: property.id })
+        void notifyFavoritesOfChange(targetColl, property.id, {
+          price: Number(property.price?.amount ?? property.price) || 0,
+          visible: isListingOnline(property),
+        })
       }
       setProperties((prev) =>
         prev.map((p) =>
@@ -361,11 +368,12 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     if (targets.length === 0) return
     setBulkActing(true)
     try {
-      const newStatus = makeInactive ? 'inactive' : 'vacant'
+      // Annonce publique réactivée : « available » (seul statut affiché par le site)
+      const statusFor = (p) => (makeInactive ? 'inactive' : isPublicListing(p) ? 'available' : 'vacant')
       await Promise.all(
         targets.map((p) => {
           const targetColl = p._collection || 'managed_properties'
-          const updateData = { status: newStatus }
+          const updateData = { status: statusFor(p) }
           if (targetColl === 'houses' || targetColl === 'daily_rentals') {
             updateData.active = !makeInactive
             updateData.isAvailable = !makeInactive
@@ -382,10 +390,16 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       )
       targets
         .filter(isPublicListing)
-        .forEach((p) => void notifySiteUser('listing_status', { collection: p._collection, id: p.id }))
+        .forEach((p) => {
+          void notifySiteUser('listing_status', { collection: p._collection, id: p.id })
+          void notifyFavoritesOfChange(p._collection, p.id, {
+            price: Number(p.price?.amount ?? p.price) || 0,
+            visible: isListingOnline(p),
+          })
+        })
       const targetIds = new Set(targets.map((p) => p.id))
       setProperties((prev) =>
-        prev.map((p) => (targetIds.has(p.id) ? { ...p, status: newStatus, active: !makeInactive } : p))
+        prev.map((p) => (targetIds.has(p.id) ? { ...p, status: statusFor(p), active: !makeInactive } : p))
       )
       notify(
         `${targets.length} bien${targets.length > 1 ? 's' : ''} ${makeInactive ? 'désactivé(s)' : 'réactivé(s)'}`,

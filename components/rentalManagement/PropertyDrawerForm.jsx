@@ -9,6 +9,7 @@ import { uploadToCloudinary } from '@/utils/cloudinary'
 import { editManagedProperty } from '@/lib/services/managedProperties'
 import { addPropertyOwner } from '@/lib/services/propertyOwners'
 import { addProperty, updateProperty } from '@/lib/services/propertyService'
+import { isListingOnline, notifyFavoritesOfChange } from '@/lib/services/accountNotifications'
 import { REGIONS, currencyOptions } from '../../_data'
 
 const MAX_IMAGES = 5
@@ -457,6 +458,11 @@ export default function PropertyDrawerForm({
       if (selected) {
         const updated = { ...payload, unitLabel: data.unitLabel || '' }
         const saved = await updateProperty(selected.id, updated, targetCollection)
+        // Baisse de prix ou retrait : les personnes qui suivent l'annonce sont prévenues
+        void notifyFavoritesOfChange(targetCollection, selected.id, {
+          price: Number(selected.price?.amount ?? selected.price) || 0,
+          visible: isListingOnline(selected),
+        })
         onSaved({ ...selected, ...updated, ...saved })
         notify('Bien modifié avec succès', 'success')
       } else {

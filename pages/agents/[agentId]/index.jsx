@@ -43,6 +43,7 @@ import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Agents/paymentStatusCo
 import RecordPaymentModal from '@/components/Users/Agents/RecordPaymentModal'
 import { firebaseDateFormat } from '@/utils/date'
 import BiensTab from '@/components/rentalManagement/BiensTab'
+import AgentReviewsPanel from '@/components/Users/Agents/AgentReviewsPanel'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const PROPERTY_TYPE_LABELS = {
@@ -350,6 +351,9 @@ function AgentDetail() {
 
             {/* Section Gestion des Biens de l'agent */}
             <BiensTab ownerId={agentId} onPropertiesChange={setProperties} />
+
+            {/* Avis vérifiés laissés sur le site public */}
+            <AgentReviewsPanel agentId={agentId} />
           </>
         )}
       </div>
