@@ -7,7 +7,3 @@ export const REQUEST_STATUSES = [
   { value: 'cancelled', label: 'Annulé', tone: 'error' },
 ]
 
-export const STATUS_LABELS = REQUEST_STATUSES.reduce((acc, s) => {
-  acc[s.value] = s.label
-  return acc
-}, {})

@@ -38,7 +38,7 @@ import { useCanManage } from '@/hooks/useCanManage'
 const PAGE_SIZE = 10
 const MAX_IMAGES = 4
 
-export const PRODUCT_CATEGORIES = [
+const PRODUCT_CATEGORIES = [
   { value: 'furniture', label: 'Meubles' },
   { value: 'electronics', label: 'Électronique' },
   { value: 'appliances', label: 'Électroménager' },

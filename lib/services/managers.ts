@@ -8,7 +8,7 @@ import {
 import { fetchWithPost } from '../../utils/fetch'
 import { notifySiteUser } from '@/lib/services/accountNotifications'
 
-export const userRef = (userId) => doc(db, `users/${userId}`)
+const userRef = (userId) => doc(db, `users/${userId}`)
 
 export const desableUserFirestore = async (userId, isAvailable) => {
   await updateDoc(userRef(userId), { isAvailable: isAvailable })
