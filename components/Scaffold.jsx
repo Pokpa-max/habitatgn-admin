@@ -29,6 +29,7 @@ import { db } from '../lib/firebase/client_config'
 import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
 import ChangePasswordModal from './ChangePasswordModal'
 import Loader from './Loader'
+import PushAlertsBanner from './PushAlertsBanner'
 
 const navigation = [
   {
@@ -492,6 +493,9 @@ export default function Scaffold({ children, title, subNav }) {
               BâtiMoo Admin
             </p>
           </div>
+
+          {/* Alertes push : bandeau tant qu'elles ne sont pas activées sur cet appareil */}
+          <PushAlertsBanner />
 
           {/* Content */}
           {subNav ? (
