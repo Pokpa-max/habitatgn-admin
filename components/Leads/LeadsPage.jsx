@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useState } from 'react'
 import {
   RiPhoneLine,
   RiWhatsappLine,
@@ -7,6 +6,7 @@ import {
   RiDeleteBinLine,
   RiHome4Line,
   RiLandscapeLine,
+  RiExternalLinkLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -14,6 +14,7 @@ import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import ConfirmModal from '@/components/ConfirmModal'
 import StatusPill from '@/components/ui/StatusPill'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { getLeads, updateLeadStatus, deleteLead } from '@/lib/services/leads'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -42,151 +43,114 @@ function StatusBadge({ status }) {
   )
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.batimoo.com'
+
 function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess, canDelete }) {
   const colors = useColors()
   if (!lead) return null
 
-  const telHref = lead.phone ? `tel:${lead.phone.replace(/\s+/g, '')}` : null
-  const waHref = lead.phone
-    ? `https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`
-    : null
+  const isLand = lead.listingType === 'lands'
+  const listingUrl = lead.listingId ? `${SITE_URL}/${isLand ? 'lands' : 'properties'}/${lead.listingId}` : null
+  const whatsapp = whatsappUrl(lead.phone)
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      eyebrow="Demande de visite"
+      title={lead.name || 'Visiteur'}
+      meta={
+        <>
+          <StatusBadge status={lead.status} />
+          <span>Reçue le {firebaseDateFormat(lead.createdAt)}</span>
+        </>
+      }
+      footer={
+        <>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(lead)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-500 hover:text-red-600 sm:mr-auto"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="border-b border-gray-100 px-6 py-5">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {lead.listingTitle}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {lead.name} · {firebaseDateFormat(lead.createdAt)}
-                  </p>
-                </div>
-
-                <div className="max-h-96 overflow-y-auto p-5">
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={lead.status} />
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
-                    >
-                      {lead.listingType === 'lands' ? (
-                        <RiLandscapeLine className="h-3.5 w-3.5" />
-                      ) : (
-                        <RiHome4Line className="h-3.5 w-3.5" />
-                      )}
-                      {lead.listingType === 'lands' ? 'Terrain' : 'Bien immobilier'}
-                    </span>
-                  </div>
-
-                  <p className="mt-4 flex items-center gap-1.5 text-sm text-gray-600">
-                    <RiPhoneLine className="h-3.5 w-3.5 text-gray-400" /> {lead.phone}
-                  </p>
-
-                  {lead.message && (
-                    <p className="mt-4 whitespace-pre-wrap text-sm text-gray-800">
-                      {lead.message}
-                    </p>
-                  )}
-
-                  <div className="mt-5 flex flex-col gap-2">
-                    {telHref && (
-                      <a
-                        href={telHref}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
-                        style={{ backgroundColor: colors.primary }}
-                      >
-                        <RiPhoneLine className="h-4 w-4" />
-                        Appeler {lead.name}
-                      </a>
-                    )}
-                    {waHref && (
-                      <a
-                        href={waHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
-                        style={{ backgroundColor: '#25D366' }}
-                      >
-                        <RiWhatsappLine className="h-4 w-4" />
-                        WhatsApp
-                      </a>
-                    )}
-
-                    {canProcess && (
-                      <div className="mt-1 grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          disabled={lead.status === 'contacted'}
-                          onClick={() => onStatusChange(lead, 'contacted')}
-                          className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ borderColor: colors.primary, color: colors.primary }}
-                        >
-                          Marquer contacté
-                        </button>
-                        <button
-                          type="button"
-                          disabled={lead.status === 'closed'}
-                          onClick={() => onStatusChange(lead, 'closed')}
-                          className="rounded-lg border px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-                          style={{ borderColor: colors.success, color: colors.success }}
-                        >
-                          Clôturer
-                        </button>
-                      </div>
-                    )}
-
-                    {canDelete && (
-                      <button
-                        onClick={() => onDelete(lead)}
-                        className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold"
-                        style={{ color: colors.gray500 }}
-                      >
-                        <RiDeleteBinLine className="h-4 w-4" />
-                        Supprimer cette demande
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 bg-gray-50/80 p-2">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              <RiDeleteBinLine className="h-4 w-4" />
+              Supprimer
+            </button>
+          )}
+          {whatsapp && (
+            <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+              WhatsApp
+            </ModalButton>
+          )}
+          {lead.phone && (
+            <ModalButton variant="primary" href={`tel:${lead.phone.replace(/\s+/g, '')}`} icon={RiPhoneLine}>
+              Appeler
+            </ModalButton>
+          )}
+        </>
+      }
+    >
+      <ModalSection title="Bien concerné">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 p-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
+            >
+              {isLand ? <RiLandscapeLine className="h-4 w-4" /> : <RiHome4Line className="h-4 w-4" />}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-gray-900">{lead.listingTitle || 'Annonce'}</p>
+              <p className="text-xs text-gray-500">{isLand ? 'Terrain' : 'Bien immobilier'}</p>
+            </div>
           </div>
+          {listingUrl && (
+            <a
+              href={listingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold"
+              style={{ color: colors.primary }}
+            >
+              Voir l&apos;annonce
+              <RiExternalLinkLine className="h-3.5 w-3.5" />
+            </a>
+          )}
         </div>
-      </Dialog>
-    </Transition.Root>
+      </ModalSection>
+
+      <ModalSection title="Visiteur">
+        <ModalFields fields={[{ label: 'Téléphone', value: lead.phone }, { label: 'Nom', value: lead.name }]} />
+      </ModalSection>
+
+      <ModalNote label="Message">{lead.message}</ModalNote>
+
+      {canProcess && (
+        <ModalSection title="Statut de la demande">
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(STATUS_META).map(([value, meta]) => {
+              const active = (lead.status || 'new') === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  disabled={active}
+                  onClick={() => onStatusChange(lead, value)}
+                  className="rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-default"
+                  style={
+                    active
+                      ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
+                      : { borderColor: colors.gray200, color: colors.gray700 }
+                  }
+                >
+                  {meta.label}
+                </button>
+              )
+            })}
+          </div>
+        </ModalSection>
+      )}
+    </AdminModal>
   )
 }
 

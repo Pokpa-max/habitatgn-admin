@@ -1,187 +1,36 @@
-// export default DesableConfirmModal
-import { Fragment, useRef } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { RiFolderWarningLine, RiCheckLine, RiCloseLine } from 'react-icons/ri'
-import { useColors } from '../contexts/ColorContext'
+import { RiCheckLine, RiForbidLine } from 'react-icons/ri'
+import AdminModal, { ModalButton } from '@/components/ui/AdminModal'
 
-function DesableConfirmModal({
-  title,
-  open,
-  setOpen,
-  confirmFunction,
-  desable,
-  message,
-}) {
-  const cancelButtonRef = useRef(null)
-  const colors = useColors()
-
+/**
+ * Confirmation de blocage / déblocage d'un compte.
+ * desable = true : on bloque (bouton rouge) ; false : on réactive.
+ */
+function DesableConfirmModal({ title, open, setOpen, confirmFunction, desable, message }) {
   return (
-    <>
-      <style>{`
-        .modal-content {
-          background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-        }
-
-        .modal-header {
-          background-color: ${colors.gray50};
-          border-bottom: 1px solid ${colors.gray200};
-        }
-
-        .modal-icon-wrapper {
-          background-color: ${desable ? colors.gray100 : `${colors.primary}1A`};
-          border: 2px solid ${desable ? colors.gray200 : `${colors.primary}33`};
-        }
-
-        .modal-icon {
-          color: ${desable ? colors.gray700 : colors.primary};
-        }
-
-        .modal-title {
-          color: ${colors.gray900 || '#111827'};
-          font-weight: 700;
-          font-size: 1.125rem;
-        }
-
-        .modal-description {
-          color: ${colors.gray600 || '#4b5563'};
-          font-size: 0.95rem;
-          line-height: 1.5;
-        }
-
-        .modal-footer {
-          background-color: #f9fafb;
-          border-top: 1px solid #e5e7eb;
-          padding: 1.25rem 1.5rem;
-        }
-
-        .btn-confirm {
-          background-color: ${desable ? '#dc2626' : colors.primary || '#0A4D9C'};
-          transition: all 0.3s ease;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .btn-confirm:hover {
-          background-color: ${desable ? '#b91c1c' : colors.primaryHover || colors.primary || '#083B78'};
-          box-shadow: 0 4px 12px ${desable ? 'rgba(220, 38, 38, 0.2)' : 'rgba(10, 77, 156, 0.2)'};
-          transform: translateY(-1px);
-        }
-
-        .btn-cancel {
-          background-color: #f3f4f6;
-          border: 1px solid #d1d5db;
-          color: ${colors.gray700 || '#374151'};
-          transition: all 0.3s ease;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .btn-cancel:hover {
-          background-color: #e5e7eb;
-          border-color: ${colors.gray400 || '#9ca3af'};
-        }
-      `}</style>
-
-      <Transition.Root show={open} as={Fragment}>
-        <Dialog
-          as="div"
-          className="relative z-10"
-          initialFocus={cancelButtonRef}
-          onClose={setOpen}
-        >
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      size="sm"
+      icon={desable ? RiForbidLine : RiCheckLine}
+      tone={desable ? 'error' : 'primary'}
+      title={title}
+      footer={
+        <>
+          <ModalButton onClick={() => setOpen(false)}>Annuler</ModalButton>
+          <ModalButton
+            variant={desable ? 'danger' : 'primary'}
+            icon={desable ? RiForbidLine : RiCheckLine}
+            onClick={() => confirmFunction()}
           >
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <Dialog.Panel className="modal-content relative transform overflow-hidden rounded-2xl border border-gray-100 shadow-2xl transition-all sm:w-full sm:max-w-md">
-                  {/* Header */}
-                  <div className="modal-header px-6 py-5">
-                    <div className="flex items-start gap-4">
-                      <div className="modal-icon-wrapper flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg">
-                        <RiFolderWarningLine
-                          className="modal-icon h-6 w-6"
-                          aria-hidden="true"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <Dialog.Title className="modal-title">
-                          {title}
-                        </Dialog.Title>
-                        <p className="modal-description mt-2">
-                          {message || `Voulez-vous ${
-                            desable ? 'Désactiver' : 'Activer'
-                          } ce compte ?`}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="modal-footer flex gap-3 sm:flex-row-reverse">
-                    <button
-                      type="button"
-                      className="btn-confirm justify-center rounded-lg border border-transparent px-5 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{
-                        backgroundColor: desable ? '#dc2626' : colors.primary ,
-                        focusRingColor: desable ? '#dc2626' : colors.primary ,
-                      }}
-                      onClick={() => confirmFunction()}
-                    >
-                      {desable ? (
-                        <>
-                          <RiFolderWarningLine className="h-4 w-4" />
-                          Désactiver
-                        </>
-                      ) : (
-                        <>
-                          <RiCheckLine className="h-4 w-4" />
-                          Activer
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-cancel justify-center rounded-lg px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{
-                        focusRingColor: colors.primary ,
-                      }}
-                      onClick={() => setOpen(false)}
-                      ref={cancelButtonRef}
-                    >
-                      <RiCloseLine className="h-4 w-4" />
-                      Annuler
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition.Root>
-    </>
+            {desable ? 'Bloquer' : 'Débloquer'}
+          </ModalButton>
+        </>
+      }
+    >
+      <p className="text-sm leading-relaxed text-gray-600">
+        {message || `Voulez-vous ${desable ? 'bloquer' : 'débloquer'} ce compte ?`}
+      </p>
+    </AdminModal>
   )
 }
 

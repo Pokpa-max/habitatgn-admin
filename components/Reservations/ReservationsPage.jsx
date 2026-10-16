@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   RiCalendarCheckLine,
   RiSearchLine,
@@ -7,11 +6,13 @@ import {
   RiUserLine,
   RiPhoneLine,
   RiMailLine,
+  RiWhatsappLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
@@ -51,162 +52,100 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating,
 
   const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending
   const nights = nightsBetween(booking.checkInDate, booking.checkOutDate)
+  const place = [booking.property?.location?.neighborhood, booking.property?.location?.municipality]
+    .filter(Boolean)
+    .join(', ')
+  const whatsapp = whatsappUrl(booking.guestPhone)
+  const pending = booking.status === 'pending' && canProcess
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      eyebrow="Réservation · location à la nuitée"
+      title={booking.property?.title || 'Location journalière'}
+      meta={
+        <>
+          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
+          {place && (
+            <span className="inline-flex items-center gap-1">
+              <RiMapPinLine className="h-3.5 w-3.5" />
+              {place}
+            </span>
+          )}
+        </>
+      }
+      footer={
+        pending ? (
+          <>
+            {booking.guestPhone && (
+              <ModalButton href={`tel:${booking.guestPhone}`} icon={RiPhoneLine}>
+                Appeler
+              </ModalButton>
+            )}
+            <ModalButton variant="danger" disabled={updating} onClick={() => onStatusChange(booking, 'cancelled')}>
+              Refuser
+            </ModalButton>
+            <ModalButton variant="primary" disabled={updating} onClick={() => onStatusChange(booking, 'confirmed')}>
+              {updating ? <Loader /> : 'Confirmer la réservation'}
+            </ModalButton>
+          </>
+        ) : (
+          <>
+            {whatsapp && (
+              <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+                WhatsApp
+              </ModalButton>
+            )}
+            {booking.guestPhone && (
+              <ModalButton variant="primary" href={`tel:${booking.guestPhone}`} icon={RiPhoneLine}>
+                Appeler le client
+              </ModalButton>
+            )}
+          </>
+        )
+      }
+    >
+      <ModalSection title="Séjour">
+        <ModalFields
+          fields={[
+            { label: 'Arrivée', value: firebaseDateFormat(booking.checkInDate) },
+            { label: 'Départ', value: firebaseDateFormat(booking.checkOutDate) },
+            { label: 'Durée', value: nights ? `${nights} nuit${nights > 1 ? 's' : ''}` : null },
+            { label: 'Voyageurs', value: booking.numberOfGuests },
+          ]}
+        />
+        <div
+          className="mt-4 flex items-center justify-between rounded-xl px-4 py-3"
+          style={{ backgroundColor: colors.primaryVeryLight }}
         >
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="border-b border-gray-100 px-6 py-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <Dialog.Title className="text-sm font-bold text-gray-900">
-                        {booking.property?.title || 'Location journalière'}
-                      </Dialog.Title>
-                      {booking.property?.location && (
-                        <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-500">
-                          <RiMapPinLine className="h-3.5 w-3.5" />
-                          {[
-                            booking.property.location.neighborhood,
-                            booking.property.location.municipality,
-                          ]
-                            .filter(Boolean)
-                            .join(', ')}
-                        </p>
-                      )}
-                    </div>
-                    <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
-                  </div>
-                </div>
-
-                <div className="max-h-[65vh] overflow-y-auto px-6 py-5">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Client
-                  </p>
-                  <div className="space-y-1.5 text-sm">
-                    <p className="flex items-center gap-1.5 text-gray-800">
-                      <RiUserLine className="h-3.5 w-3.5 text-gray-400" />
-                      {booking.guestName}
-                    </p>
-                    <p className="flex items-center gap-1.5 font-mono text-gray-600">
-                      <RiPhoneLine className="h-3.5 w-3.5 text-gray-400" />
-                      {booking.guestPhone}
-                    </p>
-                    {booking.guestEmail && (
-                      <p className="flex items-center gap-1.5 text-gray-600">
-                        <RiMailLine className="h-3.5 w-3.5 text-gray-400" />
-                        {booking.guestEmail}
-                      </p>
-                    )}
-                  </div>
-
-                  {booking.agent?.fullName && (
-                    <>
-                      <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Agent / Propriétaire
-                      </p>
-                      <p className="text-sm text-gray-800">{booking.agent.fullName}</p>
-                    </>
-                  )}
-
-                  <div className="mt-5 grid grid-cols-2 gap-4 border-t border-gray-100 pt-4 text-sm">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Arrivée</p>
-                      <p className="font-mono text-gray-900">{firebaseDateFormat(booking.checkInDate)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Départ</p>
-                      <p className="font-mono text-gray-900">{firebaseDateFormat(booking.checkOutDate)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voyageurs</p>
-                      <p className="text-gray-900">{booking.numberOfGuests}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Durée</p>
-                      <p className="text-gray-900">{nights ? `${nights} nuit${nights > 1 ? 's' : ''}` : '—'}</p>
-                    </div>
-                  </div>
-
-                  {booking.notes && (
-                    <div className="mt-4 border-t border-gray-100 pt-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Note du client</p>
-                      <p className="mt-1 text-sm italic text-gray-700">{booking.notes}</p>
-                    </div>
-                  )}
-
-                  <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Montant total</p>
-                    <p className="font-mono text-lg font-bold" style={{ color: colors.primary }}>
-                      {formatGNF(booking.totalPrice)}
-                    </p>
-                  </div>
-
-                  <p className="mt-3 font-mono text-xs text-gray-400">
-                    Réservée le {firebaseDateFormat(booking.createdAt)}
-                  </p>
-                </div>
-
-                <div className="flex gap-3 border-t border-gray-100 bg-gray-50/80 px-6 py-4">
-                  {booking.status === 'pending' && canProcess ? (
-                    <>
-                      <button
-                        type="button"
-                        disabled={updating}
-                        onClick={() => onStatusChange(booking, 'cancelled')}
-                        className="flex-1 rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold transition-all hover:bg-red-50 disabled:opacity-60"
-                        style={{ borderColor: colors.error, color: colors.error }}
-                      >
-                        Refuser
-                      </button>
-                      <button
-                        type="button"
-                        disabled={updating}
-                        onClick={() => onStatusChange(booking, 'confirmed')}
-                        className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md disabled:opacity-60"
-                        style={{ backgroundColor: colors.primary }}
-                      >
-                        {updating ? <Loader /> : 'Confirmer'}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      Fermer
-                    </button>
-                  )}
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
+          <span className="text-sm font-semibold text-gray-700">Montant total</span>
+          <span className="text-lg font-bold" style={{ color: colors.primary }}>
+            {formatGNF(booking.totalPrice)}
+          </span>
         </div>
-      </Dialog>
-    </Transition.Root>
+      </ModalSection>
+
+      <ModalSection title="Client">
+        <ModalFields
+          fields={[
+            { label: 'Nom', value: booking.guestName },
+            { label: 'Téléphone', value: booking.guestPhone },
+            { label: 'Email', value: booking.guestEmail, wide: true },
+          ]}
+        />
+      </ModalSection>
+
+      <ModalNote label="Note du client">{booking.notes}</ModalNote>
+
+      {booking.agent?.fullName && (
+        <ModalSection title="Propriétaire / agent">
+          <p className="text-sm font-medium text-gray-900">{booking.agent.fullName}</p>
+        </ModalSection>
+      )}
+
+      <p className="text-xs text-gray-400">Réservée le {firebaseDateFormat(booking.createdAt)}</p>
+    </AdminModal>
   )
 }
 

@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   RiBriefcaseLine,
   RiSearchLine,
@@ -12,6 +11,7 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection } from '@/components/ui/AdminModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
 import {
@@ -25,17 +25,17 @@ const PAGE_SIZE = 10
 const STATUS_FILTERS = [
   { value: 'all', label: 'Toutes' },
   { value: 'pending', label: 'Nouvelle' },
-  { value: 'reviewed', label: 'Étudiée' },
+  { value: 'reviewed', label: 'Lue' },
   { value: 'interview', label: 'Entretien' },
-  { value: 'hired', label: 'Retenue' },
+  { value: 'hired', label: 'Embauchée' },
   { value: 'rejected', label: 'Refusée' },
 ]
 
 const STATUS_CONFIG = {
   pending: { label: 'Nouvelle', tone: 'primary' },
-  reviewed: { label: 'Étudiée', tone: 'gray' },
+  reviewed: { label: 'Lue', tone: 'gray' },
   interview: { label: 'Entretien', tone: 'warning' },
-  hired: { label: 'Retenue', tone: 'success' },
+  hired: { label: 'Embauchée', tone: 'success' },
   rejected: { label: 'Refusée', tone: 'error' },
 }
 
@@ -46,152 +46,85 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
   const statusCfg = STATUS_CONFIG[application.status] || STATUS_CONFIG.pending
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
-        </Transition.Child>
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      eyebrow={application.position ? `Candidature · ${application.position}` : 'Candidature'}
+      title={application.name || 'Candidat'}
+      meta={
+        <>
+          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
+          <span>Reçue le {firebaseDateFormat(application.createdAt)}</span>
+        </>
+      }
+      footer={
+        <>
+          {application.email && (
+            <ModalButton href={`mailto:${application.email}`} icon={RiMailLine}>
+              Email
+            </ModalButton>
+          )}
+          {application.phone && (
+            <ModalButton variant="primary" href={`tel:${application.phone}`} icon={RiPhoneLine}>
+              Appeler
+            </ModalButton>
+          )}
+        </>
+      }
+    >
+      <ModalSection title="Candidat">
+        <ModalFields
+          fields={[
+            { label: 'Téléphone', value: application.phone },
+            { label: 'Email', value: application.email },
+            {
+              label: 'Portfolio / CV en ligne',
+              wide: true,
+              value: application.portfolioUrl && (
+                <a
+                  href={application.portfolioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex max-w-full items-center gap-1 underline"
+                  style={{ color: colors.primary }}
+                >
+                  <RiLinksLine className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{application.portfolioUrl}</span>
+                </a>
+              ),
+            },
+          ]}
+        />
+      </ModalSection>
 
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="border-b border-gray-100 px-6 py-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <Dialog.Title className="text-sm font-bold text-gray-900">
-                        {application.name}
-                      </Dialog.Title>
-                      <p className="mt-0.5 text-xs text-gray-500">{application.position}</p>
-                    </div>
-                    <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
-                  </div>
-                </div>
+      <ModalNote label="Message de présentation">{application.message}</ModalNote>
 
-                <div className="max-h-[65vh] overflow-y-auto px-6 py-5">
-                  <div className="space-y-1.5 text-sm">
-                    <p className="flex items-center gap-1.5 text-gray-800">
-                      <RiUserLine className="h-3.5 w-3.5 text-gray-400" />
-                      {application.name}
-                    </p>
-                    <p className="flex items-center gap-1.5 font-mono text-gray-600">
-                      <RiPhoneLine className="h-3.5 w-3.5 text-gray-400" />
-                      {application.phone}
-                    </p>
-                    <p className="flex items-center gap-1.5 text-gray-600">
-                      <RiMailLine className="h-3.5 w-3.5 text-gray-400" />
-                      {application.email}
-                    </p>
-                    {application.portfolioUrl && (
-                      <p className="flex items-center gap-1.5 text-gray-600">
-                        <RiLinksLine className="h-3.5 w-3.5 text-gray-400" />
-                        <a
-                          href={application.portfolioUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="truncate underline"
-                          style={{ color: colors.primary }}
-                        >
-                          {application.portfolioUrl}
-                        </a>
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <a
-                      href={`tel:${application.phone}`}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: colors.primary }}
-                    >
-                      <RiPhoneLine className="h-4 w-4" />
-                      Appeler
-                    </a>
-                    <a
-                      href={`mailto:${application.email}`}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-semibold transition-colors hover:bg-gray-50"
-                      style={{ borderColor: colors.primary, color: colors.primary }}
-                    >
-                      <RiMailLine className="h-4 w-4" />
-                      Email
-                    </a>
-                  </div>
-
-                  {application.message && (
-                    <div className="mt-5 border-t border-gray-100 pt-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Message de présentation
-                      </p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
-                        {application.message}
-                      </p>
-                    </div>
-                  )}
-
-                  <p className="mt-4 font-mono text-xs text-gray-400">
-                    Candidature reçue le {firebaseDateFormat(application.createdAt)}
-                  </p>
-
-                  {canProcess && (
-                    <div className="mt-5 border-t border-gray-100 pt-4">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Changer le statut
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => {
-                          const active = application.status === f.value
-                          return (
-                            <button
-                              key={f.value}
-                              disabled={active || updating}
-                              onClick={() => onStatusChange(application, f.value)}
-                              className="rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed"
-                              style={
-                                active
-                                  ? { borderColor: colors.primary, backgroundColor: colors.primaryVeryLight, color: colors.primary }
-                                  : { borderColor: colors.gray200, color: colors.gray600 }
-                              }
-                            >
-                              {f.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3 border-t border-gray-100 bg-gray-50/80 px-6 py-4">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+      {canProcess && (
+        <ModalSection title="Statut de la candidature">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => {
+              const active = application.status === f.value
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  disabled={active || updating}
+                  onClick={() => onStatusChange(application, f.value)}
+                  className="rounded-lg border px-2 py-2 text-xs font-semibold transition-colors disabled:cursor-default"
+                  style={
+                    active
+                      ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
+                      : { borderColor: colors.gray200, color: colors.gray700, opacity: updating ? 0.6 : 1 }
+                  }
+                >
+                  {f.label}
+                </button>
+              )
+            })}
           </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+        </ModalSection>
+      )}
+    </AdminModal>
   )
 }
 

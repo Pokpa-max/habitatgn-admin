@@ -1,103 +1,45 @@
-import { Fragment, useRef } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { GiConfirmed } from 'react-icons/gi'
-import { useColors } from '@/contexts/ColorContext'
+import { RiErrorWarningLine } from 'react-icons/ri'
+import AdminModal, { ModalButton } from '@/components/ui/AdminModal'
 
+/**
+ * Confirmation avant une action (le plus souvent une suppression).
+ * « Confirmer » appelle confirmFunction (l'appelant ferme la fenêtre) ;
+ * « Annuler », la croix ou un clic à côté la ferment.
+ */
 function ConfirmModal({
-  title = 'Voulez vous continuer',
-  description = 'appuyer sur confirmer pour continuer',
+  title = 'Voulez-vous continuer ?',
+  description = 'Appuyez sur « Confirmer » pour continuer.',
   open,
   setOpen,
   confirmFunction = () => {},
   cancelFuction = () => {},
+  confirmLabel = 'Confirmer',
+  tone = 'error',
 }) {
-  const colors = useColors()
-  const cancelButtonRef = useRef(null)
+  const close = () => {
+    cancelFuction()
+    setOpen(false)
+  }
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog
-        as="div"
-        className="relative z-50"
-        initialFocus={cancelButtonRef}
-        onClose={setOpen}
-      >
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-2xl border border-gray-100 bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-                <div className="bg-white px-6 pt-6 pb-5">
-                  <div className="sm:flex sm:items-start">
-                    <div
-                      className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl sm:mx-0 sm:h-11 sm:w-11"
-                      style={{ backgroundColor: '#FEF2F2' }}
-                    >
-                      <GiConfirmed
-                        className="h-6 w-6"
-                        style={{ color: colors.error }}
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                      <Dialog.Title
-                        as="h3"
-                        className="text-lg font-bold text-gray-900 tracking-tight"
-                      >
-                        {title}
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-500">{description}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50/80 border-t border-gray-100 px-6 py-4 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="button"
-                    className="inline-flex w-full justify-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90 active:translate-y-px transition-all sm:ml-3 sm:w-auto"
-                    style={{ backgroundColor: colors.error }}
-                    onClick={() => confirmFunction()}
-                  >
-                    Confirmer
-                  </button>
-                  <button
-                    type="button"
-                    className="mt-3 inline-flex w-full justify-center rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition-all sm:mt-0 sm:w-auto"
-                    onClick={() => {
-                      cancelFuction()
-                      setOpen(false)
-                    }}
-                    ref={cancelButtonRef}
-                  >
-                    Annuler
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+    <AdminModal
+      open={open}
+      onClose={close}
+      size="sm"
+      icon={RiErrorWarningLine}
+      tone={tone}
+      title={title}
+      footer={
+        <>
+          <ModalButton onClick={close}>Annuler</ModalButton>
+          <ModalButton variant={tone === 'error' ? 'danger' : 'primary'} onClick={() => confirmFunction()}>
+            {confirmLabel}
+          </ModalButton>
+        </>
+      }
+    >
+      {description && <p className="text-sm leading-relaxed text-gray-600">{description}</p>}
+    </AdminModal>
   )
 }
 

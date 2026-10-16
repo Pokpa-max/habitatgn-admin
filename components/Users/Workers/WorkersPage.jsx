@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
@@ -50,6 +49,7 @@ import RecordPaymentModal from './RecordPaymentModal'
 import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
+import AdminModal from '@/components/ui/AdminModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -87,6 +87,9 @@ function ActionRow({ as = 'a', icon: Icon, iconColor, iconBg, label, tone, ...pr
   )
 }
 
+const STATUS_LABEL = { pending: 'En attente', approved: 'Approuvé', rejected: 'Refusé' }
+const STATUS_TONE = { pending: 'warning', approved: 'success', rejected: 'error' }
+
 function ActionsModal({
   worker,
   open,
@@ -106,147 +109,98 @@ function ActionsModal({
   const status = worker.status || 'pending'
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
-        </Transition.Child>
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      size="sm"
+      eyebrow="Artisan · que voulez-vous faire ?"
+      title={worker.name || 'Artisan'}
+      meta={<StatusPill tone={STATUS_TONE[status] || 'gray'}>{STATUS_LABEL[status] || status}</StatusPill>}
+    >
+      <div className="-mx-3 -my-2 space-y-0.5">
+        <Link href={`/workers/${worker.id}`} passHref legacyBehavior>
+          <ActionRow
+            icon={RiProfileLine}
+            iconColor={colors.gray600}
+            iconBg={colors.gray100}
+            label="Voir détail (réalisations, avis)"
+          />
+        </Link>
 
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="flex items-center gap-3 border-b border-gray-100 px-6 py-5">
-                  <div
-                    className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                    style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
-                  >
-                    {(worker.name?.[0] || 'O').toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <Dialog.Title className="truncate text-sm font-bold text-gray-900">
-                      {worker.name}
-                    </Dialog.Title>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      Choisir une action
-                    </p>
-                  </div>
-                </div>
+        {canProcess && status === 'pending' && (
+          <>
+            <ActionRow
+              as="button"
+              onClick={onApprove}
+              icon={RiCheckLine}
+              iconColor={colors.primary}
+              iconBg={colors.primaryVeryLight}
+              label="Approuver le profil"
+            />
+            <ActionRow
+              as="button"
+              onClick={onReject}
+              icon={RiCloseLine}
+              iconColor={colors.gray500}
+              iconBg={colors.gray100}
+              label="Rejeter le profil"
+              tone="danger"
+            />
+          </>
+        )}
 
-                <div className="space-y-0.5 p-2">
-                  <Link href={`/workers/${worker.id}`} passHref legacyBehavior>
-                    <ActionRow
-                      icon={RiProfileLine}
-                      iconColor={colors.gray600}
-                      iconBg={colors.gray100}
-                      label="Voir détail (réalisations, avis)"
-                    />
-                  </Link>
+        {canProcess && status === 'approved' && (
+          <ActionRow
+            as="button"
+            onClick={onToggleCertification}
+            icon={RiShieldCheckFill}
+            iconColor={worker.isCertified ? colors.gray500 : '#2563EB'}
+            iconBg={worker.isCertified ? colors.gray100 : '#EFF6FF'}
+            label={worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
+          />
+        )}
 
-                  {canProcess && status === 'pending' && (
-                    <>
-                      <ActionRow
-                        as="button"
-                        onClick={onApprove}
-                        icon={RiCheckLine}
-                        iconColor={colors.primary}
-                        iconBg={colors.primaryVeryLight}
-                        label="Approuver le profil"
-                      />
-                      <ActionRow
-                        as="button"
-                        onClick={onReject}
-                        icon={RiCloseLine}
-                        iconColor={colors.gray500}
-                        iconBg={colors.gray100}
-                        label="Rejeter le profil"
-                        tone="danger"
-                      />
-                    </>
-                  )}
+        {canPayments && status === 'approved' && (
+          <ActionRow
+            as="button"
+            onClick={onRecordPayment}
+            icon={RiMoneyDollarCircleLine}
+            iconColor={colors.primary}
+            iconBg={colors.primaryVeryLight}
+            label="Enregistrer un paiement"
+          />
+        )}
 
-                  {canProcess && status === 'approved' && (
-                    <ActionRow
-                      as="button"
-                      onClick={onToggleCertification}
-                      icon={RiShieldCheckFill}
-                      iconColor={worker.isCertified ? colors.gray500 : '#2563EB'}
-                      iconBg={worker.isCertified ? colors.gray100 : '#EFF6FF'}
-                      label={worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
-                    />
-                  )}
+        {canProcess && (status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onToggleBlock}
+            icon={worker.isAvailable ? RiForbidLine : RiLockUnlockLine}
+            iconColor={worker.isAvailable ? '#D97706' : colors.primary}
+            iconBg={worker.isAvailable ? '#FEF3C7' : colors.primaryVeryLight}
+            label={worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+            tone={worker.isAvailable ? 'danger' : undefined}
+          />
+        )}
 
-                  {canPayments && status === 'approved' && (
-                    <ActionRow
-                      as="button"
-                      onClick={onRecordPayment}
-                      icon={RiMoneyDollarCircleLine}
-                      iconColor={colors.primary}
-                      iconBg={colors.primaryVeryLight}
-                      label="Enregistrer un paiement"
-                    />
-                  )}
+        {isAdmin && status === 'approved' && worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onResetPassword}
+            icon={RiLockPasswordLine}
+            iconColor={colors.primary}
+            iconBg={colors.primaryVeryLight}
+            label="Modifier le mot de passe"
+          />
+        )}
 
-                  {canProcess && (status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
-                    <ActionRow
-                      as="button"
-                      onClick={onToggleBlock}
-                      icon={worker.isAvailable ? RiForbidLine : RiLockUnlockLine}
-                      iconColor={worker.isAvailable ? '#D97706' : colors.primary}
-                      iconBg={worker.isAvailable ? '#FEF3C7' : colors.primaryVeryLight}
-                      label={worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
-                      tone={worker.isAvailable ? 'danger' : undefined}
-                    />
-                  )}
-
-                  {isAdmin && status === 'approved' && worker.userId && (
-                    <ActionRow
-                      as="button"
-                      onClick={onResetPassword}
-                      icon={RiLockPasswordLine}
-                      iconColor={colors.primary}
-                      iconBg={colors.primaryVeryLight}
-                      label="Modifier le mot de passe"
-                    />
-                  )}
-
-                  {status === 'rejected' && !worker.suspendedByAdmin && (
-                    <p className="px-3 py-2.5 text-sm text-gray-400">
-                      Aucune action disponible
-                    </p>
-                  )}
-                </div>
-
-                <div className="border-t border-gray-100 bg-gray-50/80 p-2">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+        {status === 'rejected' && !worker.suspendedByAdmin && (
+          <p className="px-3 py-2.5 text-sm text-gray-400">
+            Aucune action disponible
+          </p>
+        )}
+      </div>
+    </AdminModal>
   )
 }
 

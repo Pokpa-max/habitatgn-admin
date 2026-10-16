@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useState } from 'react'
 import {
   RiMailLine,
   RiPhoneLine,
@@ -14,6 +13,8 @@ import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import ConfirmModal from '@/components/ConfirmModal'
+import StatusPill from '@/components/ui/StatusPill'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
 import {
   getContactMessages,
@@ -32,129 +33,85 @@ const FILTERS = [
 ]
 
 function DetailModal({ message, open, setOpen, onToggleRead, onDelete, senderEmail, canProcess, canDelete }) {
-  const colors = useColors()
   if (!message) return null
 
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${
+    senderEmail ? `&authuser=${encodeURIComponent(senderEmail)}` : ''
+  }&to=${encodeURIComponent(message.email)}&su=${encodeURIComponent('RE: ' + (message.subject || ''))}`
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(message.email)
+      notify('Adresse email copiée', 'success')
+    } catch (e) {
+      notify("Impossible de copier l'adresse", 'error')
+    }
+  }
+
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      eyebrow="Message de contact"
+      title={message.subject || 'Sans objet'}
+      meta={
+        <>
+          <StatusPill tone={message.read ? 'gray' : 'warning'}>{message.read ? 'Lu' : 'Non lu'}</StatusPill>
+          <span>Reçu le {firebaseDateFormat(message.createdAt)}</span>
+        </>
+      }
+      footer={
+        <>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(message)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-500 hover:text-red-600 sm:mr-auto"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="border-b border-gray-100 px-6 py-5">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {message.subject}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {message.name} · {firebaseDateFormat(message.createdAt)}
-                  </p>
-                </div>
-
-                <div className="max-h-96 overflow-y-auto p-5">
-                  <div className="space-y-1 text-sm">
-                    <p className="flex items-center gap-1.5 text-gray-600">
-                      <RiMailLine className="h-3.5 w-3.5 text-gray-400" /> {message.email}
-                    </p>
-                    {message.phone && (
-                      <p className="flex items-center gap-1.5 text-gray-600">
-                        <RiPhoneLine className="h-3.5 w-3.5 text-gray-400" /> {message.phone}
-                      </p>
-                    )}
-                  </div>
-
-                  <p className="mt-4 whitespace-pre-wrap text-sm text-gray-800">{message.message}</p>
-
-                  <div className="mt-5 flex flex-col gap-2">
-                    {canProcess && (
-                      <button
-                        onClick={() => onToggleRead(message)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiMailOpenLine className="h-4 w-4 text-gray-400" />
-                        {message.read ? 'Marquer comme non lu' : 'Marquer comme lu'}
-                      </button>
-                    )}
-                    <a
-                      href={`https://mail.google.com/mail/?view=cm&fs=1${
-                        senderEmail ? `&authuser=${encodeURIComponent(senderEmail)}` : ''
-                      }&to=${encodeURIComponent(message.email)}&su=${encodeURIComponent(
-                        'RE: ' + message.subject
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: colors.primary }}
-                    >
-                      <RiMailLine className="h-4 w-4" />
-                      Répondre par email (Gmail)
-                    </a>
-                    {senderEmail && (
-                      <p className="text-center text-xs text-gray-400">
-                        Depuis {senderEmail}
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(message.email)
-                          notify('Adresse email copiée', 'success')
-                        } catch (e) {
-                          notify("Impossible de copier l'adresse", 'error')
-                        }
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      <RiFileCopyLine className="h-4 w-4 text-gray-400" />
-                      Copier l'adresse email
-                    </button>
-                    {canDelete && (
-                      <button
-                        onClick={() => onDelete(message)}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-500 hover:bg-gray-50 hover:text-red-500"
-                      >
-                        <RiDeleteBinLine className="h-4 w-4" />
-                        Supprimer le message
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="border-t border-gray-100 bg-gray-50/80 p-2">
+              <RiDeleteBinLine className="h-4 w-4" />
+              Supprimer
+            </button>
+          )}
+          {canProcess && (
+            <ModalButton icon={RiMailOpenLine} onClick={() => onToggleRead(message)}>
+              {message.read ? 'Marquer non lu' : 'Marquer lu'}
+            </ModalButton>
+          )}
+          <ModalButton variant="primary" href={gmailUrl} external icon={RiMailLine}>
+            Répondre
+          </ModalButton>
+        </>
+      }
+    >
+      <ModalSection title="Expéditeur">
+        <ModalFields
+          fields={[
+            { label: 'Nom', value: message.name },
+            { label: 'Téléphone', value: message.phone },
+            {
+              label: 'Email',
+              wide: true,
+              value: message.email && (
+                <span className="flex items-center gap-2">
+                  <span className="truncate">{message.email}</span>
                   <button
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
+                    type="button"
+                    onClick={copyEmail}
+                    className="shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    title="Copier l'adresse"
                   >
-                    Fermer
+                    <RiFileCopyLine className="h-4 w-4" />
                   </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+                </span>
+              ),
+            },
+          ]}
+        />
+      </ModalSection>
+
+      <ModalNote label="Message">{message.message}</ModalNote>
+
+      {senderEmail && <p className="text-xs text-gray-400">La réponse partira depuis {senderEmail} (Gmail).</p>}
+    </AdminModal>
   )
 }
 
