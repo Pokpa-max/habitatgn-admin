@@ -25,3 +25,23 @@
 .bread-container li:last-child a {
   @apply cursor-default font-extrabold text-primary-accent after:content-[''];
 }
+
+/* Tableaux de l'admin : un style simple et lisible, commun à toutes les
+   pages (en-têtes en casse normale, pas de police « machine à écrire »). */
+.admin-content table thead th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.admin-content table td .font-mono,
+.admin-content table td.font-mono {
+  font-family: inherit;
+}
+
+.admin-content table td .uppercase {
+  text-transform: none;
+  letter-spacing: 0;
+}

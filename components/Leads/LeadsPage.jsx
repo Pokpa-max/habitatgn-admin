@@ -3,7 +3,6 @@ import { Dialog, Transition } from '@headlessui/react'
 import {
   RiPhoneLine,
   RiWhatsappLine,
-  RiMore2Fill,
   RiSearchLine,
   RiDeleteBinLine,
   RiHome4Line,
@@ -540,16 +539,26 @@ export default function LeadsPage() {
                       <StatusBadge status={lead.status} />
                     </td>
                     <td className="px-6 py-3">
-                      <button
-                        onClick={() => {
-                          setDetailTarget(lead)
-                          setDetailOpen(true)
-                        }}
-                        className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                        title="Voir la demande"
-                      >
-                        <RiMore2Fill className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => {
+                            setDetailTarget(lead)
+                            setDetailOpen(true)
+                          }}
+                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          Voir
+                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => setDeleteTarget(lead)}
+                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                            title="Supprimer la demande"
+                          >
+                            <RiDeleteBinLine className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

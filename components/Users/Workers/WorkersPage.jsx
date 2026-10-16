@@ -837,7 +837,6 @@ export default function WorkersPage() {
                     {[
                       { label: 'Ouvrier' },
                       { label: 'Spécialités', secondary: true },
-                      { label: 'Zones', secondary: true },
                       { label: 'Contact' },
                       { label: 'Statut' },
                       { label: 'Abonnement' },
@@ -919,11 +918,6 @@ export default function WorkersPage() {
                             </span>
                           ))}
                         </div>
-                      </td>
-                      <td className="hidden px-6 py-3 lg:table-cell">
-                        <p className="text-xs text-gray-500">
-                          {(worker.communes || []).join(', ') || '—'}
-                        </p>
                       </td>
                       <td className="px-6 py-3">
                         {worker.phone && (

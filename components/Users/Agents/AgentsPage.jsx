@@ -13,8 +13,8 @@ import {
   RiSearchLine,
   RiAddLine,
   RiMoneyDollarCircleLine,
-  RiRocketLine,
   RiLockPasswordLine,
+  RiDeleteBinLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -48,6 +48,8 @@ import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
 import RecordPaymentModal from './RecordPaymentModal'
 import AgentRevenueChart from './AgentRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
+import ConfirmModal from '@/components/ConfirmModal'
+import { fetchWithPost } from '@/utils/fetch'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
@@ -70,13 +72,6 @@ const isBoosted = (property) => {
   return untilDate.getTime() > Date.now()
 }
 
-const PROPERTY_TYPE_LABELS = {
-  location: 'Location',
-  journaliere: 'Location journalière',
-  vente: 'Vente',
-  terrain: 'Terrain',
-}
-
 export default function AgentsPage() {
   const colors = useColors()
   const isAdmin = useIsAdmin()
@@ -90,6 +85,7 @@ export default function AgentsPage() {
   const [blockTarget, setBlockTarget] = useState(null)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
@@ -175,6 +171,27 @@ export default function AgentsPage() {
     }
     setActioningId(null)
     setMenuOpenId(null)
+  }
+
+  // Suppression définitive du compte (admin) : candidature, compte, annonces
+  // et demandes de visite associées — voir pages/api/deleteAgent.ts
+  const handleDeleteAgent = async () => {
+    const target = deleteTarget
+    if (!isAdmin || !target) return
+    setDeleteTarget(null)
+    setActioningId(target.id)
+    try {
+      const result = await fetchWithPost('/api/deleteAgent', { agentRequestId: target.id })
+      if (!result?.ok) throw new Error(result?.message || '')
+      setRequests((prev) => prev.filter((r) => r.id !== target.id && (!target.userId || r.userId !== target.userId)))
+      notify(
+        `Compte supprimé${result.listings ? ` · ${result.listings} annonce${result.listings > 1 ? 's' : ''} retirée${result.listings > 1 ? 's' : ''}` : ''}`,
+        'success'
+      )
+    } catch (e) {
+      notify(e?.message || 'La suppression a échoué', 'error')
+    }
+    setActioningId(null)
   }
 
   const handleReject = async (request) => {
@@ -362,6 +379,15 @@ export default function AgentsPage() {
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
+      <ConfirmModal
+        open={!!deleteTarget}
+        setOpen={() => setDeleteTarget(null)}
+        title="Supprimer ce compte agent ?"
+        description={`${deleteTarget?.fullName || 'Cet agent'} : son compte, ses annonces et les demandes de visite reçues seront supprimés définitivement. Ses paiements restent dans l'historique.`}
+        confirmFunction={handleDeleteAgent}
+        cancelFuction={() => {}}
+      />
+
       <DesableConfirmModal
         title="Bloquer l'agent"
         desable={blockTarget?.isAvailable}
@@ -578,10 +604,8 @@ export default function AgentsPage() {
                       { label: 'Agent' },
                       { label: 'Contact' },
                       { label: 'Commune', secondary: true },
-                      { label: 'Types de biens', secondary: true },
                       { label: 'Statut' },
                       { label: 'Abonnement' },
-                      { label: 'Mise en avant', secondary: true },
                       // Plus large en attente : boutons Approuver / Refuser visibles
                       { label: 'Actions', width: canProcess && statusFilter === 'pending' ? 'w-52' : 'w-14' },
                     ].map((col) => (
@@ -646,18 +670,6 @@ export default function AgentsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="hidden w-28 px-2 py-2 lg:table-cell">
-                        <p
-                          className="truncate text-[13px] text-gray-600"
-                          title={(request.propertyTypes || [])
-                            .map((t) => PROPERTY_TYPE_LABELS[t] || t)
-                            .join(', ')}
-                        >
-                          {(request.propertyTypes || [])
-                            .map((t) => PROPERTY_TYPE_LABELS[t] || t)
-                            .join(' · ') || '—'}
-                        </p>
-                      </td>
                       <td className="w-20 px-2 py-2">
                         <StatusPill tone={request.isAvailable ? 'success' : 'error'}>
                           {request.isAvailable ? 'Actif' : 'Bloqué'}
@@ -677,23 +689,6 @@ export default function AgentsPage() {
                                 : ''}
                             </p>
                           </>
-                        )}
-                      </td>
-                      <td className="hidden w-28 px-2 py-2 lg:table-cell">
-                        {request.status === 'approved' ? (
-                          request.boostedCount > 0 ? (
-                            <span
-                              className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                              style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
-                            >
-                              <RiRocketLine className="h-3 w-3 shrink-0" />
-                              {request.boostedCount}/{request.listingsCount}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-300">—</span>
-                          )
-                        ) : (
-                          <span className="text-xs text-gray-300">—</span>
                         )}
                       </td>
                       <td className="px-2 py-2">
@@ -816,10 +811,25 @@ export default function AgentsPage() {
                                     </>
                                   )}
 
-                                {request.status === 'rejected' && (
+                                {request.status === 'rejected' && !isAdmin && (
                                   <p className="px-3 py-2.5 text-sm text-gray-400">
                                     Aucune action disponible
                                   </p>
+                                )}
+
+                                {isAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMenuOpenId(null)
+                                      setDeleteTarget(request)
+                                    }}
+                                    className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-gray-100 px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+                                    style={{ color: colors.error }}
+                                  >
+                                    <RiDeleteBinLine className="h-4 w-4" />
+                                    Supprimer le compte
+                                  </button>
                                 )}
                               </div>
                             )}
