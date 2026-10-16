@@ -49,6 +49,7 @@ import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
 import RecordPaymentModal from './RecordPaymentModal'
 import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
+import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -971,16 +972,24 @@ export default function WorkersPage() {
                         {actioningId === worker.id ? (
                           <Loader color="#111827" />
                         ) : (
-                          <button
-                            onClick={() => {
-                              setActionsTarget(worker)
-                              setActionsModalOpen(true)
-                            }}
-                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                            title="Actions"
-                          >
-                            <RiMore2Fill className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {canProcess && worker.status === 'pending' && (
+                              <PendingDecisionButtons
+                                onApprove={() => handleApprove(worker)}
+                                onReject={() => handleReject(worker)}
+                              />
+                            )}
+                            <button
+                              onClick={() => {
+                                setActionsTarget(worker)
+                                setActionsModalOpen(true)
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                              title="Autres actions"
+                            >
+                              <RiMore2Fill className="h-4 w-4" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

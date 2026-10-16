@@ -48,6 +48,7 @@ import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
 import RecordPaymentModal from './RecordPaymentModal'
 import AgentRevenueChart from './AgentRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
+import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -581,14 +582,15 @@ export default function AgentsPage() {
                       { label: 'Statut' },
                       { label: 'Abonnement' },
                       { label: 'Mise en avant', secondary: true },
-                      { label: 'Actions' },
+                      // Plus large en attente : boutons Approuver / Refuser visibles
+                      { label: 'Actions', width: canProcess && statusFilter === 'pending' ? 'w-52' : 'w-14' },
                     ].map((col) => (
                       <th
                         key={col.label}
                         scope="col"
                         className={`px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-tight text-gray-700 ${
                           col.secondary ? 'hidden lg:table-cell' : ''
-                        }`}
+                        } ${col.width || ''}`}
                       >
                         {col.label}
                       </th>
@@ -694,11 +696,17 @@ export default function AgentsPage() {
                           <span className="text-xs text-gray-300">—</span>
                         )}
                       </td>
-                      <td className="w-12 px-2 py-2">
+                      <td className="px-2 py-2">
                         {actioningId === request.id ? (
                           <Loader color="#111827" />
                         ) : (
-                          <div className="relative flex justify-end">
+                          <div className="relative flex items-center justify-end gap-1.5">
+                            {canProcess && request.status === 'pending' && (
+                              <PendingDecisionButtons
+                                onApprove={() => handleApprove(request)}
+                                onReject={() => handleReject(request)}
+                              />
+                            )}
                             <button
                               onClick={() =>
                                 setMenuOpenId((prev) =>
