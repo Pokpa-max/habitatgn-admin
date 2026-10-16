@@ -25,7 +25,8 @@ import {
   togglePartnerAgencyActive,
   slugify,
 } from '@/lib/services/partnerAgencies'
-import { getAgentRequests } from '@/lib/services/agentRequests'
+import { getAgentRequestByUserId, getAgentRequests } from '@/lib/services/agentRequests'
+import { syncAgentPro } from '@/lib/services/proPlan'
 import { useCanManage } from '@/hooks/useCanManage'
 
 const getInitials = (name) =>
@@ -189,6 +190,14 @@ export default function PartnerAgenciesTab() {
         const created = await addPartnerAgency({ ...payload, active: true })
         setAgencies((prev) => [...prev, created])
         notify('Agence ajoutée avec succès', 'success')
+      }
+      // Agence rattachée à un agent : son Pro suit les paiements de l'agent
+      if (payload.ownerId) {
+        const agentRequest = await getAgentRequestByUserId(payload.ownerId)
+        if (agentRequest && (await syncAgentPro(agentRequest.id)) > 0) {
+          setAgencies(await getPartnerAgencies())
+          notify("Formule Pro appliquée d'après les paiements de l'agent", 'success')
+        }
       }
       setDrawerOpen(false)
     } catch (e) {

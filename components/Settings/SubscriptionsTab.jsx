@@ -6,6 +6,8 @@ import {
   RiHammerLine,
   RiEditLine,
   RiAdvertisementLine,
+  RiVipCrownLine,
+  RiRefreshLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -25,6 +27,7 @@ import {
   TRIAL_MONTHS as WORKER_TRIAL_MONTHS,
 } from '@/lib/services/workerPayments'
 import { getLaunchOfferSettings, saveLaunchOfferSettings } from '@/lib/services/siteSettings'
+import { syncAllPro } from '@/lib/services/proPlan'
 
 const formatGNF = (value) =>
   value ? `${Number(value).toLocaleString('fr-FR')} GNF / mois` : 'Non défini'
@@ -298,6 +301,67 @@ function LaunchOfferCard({ enabled, text, onSave, saving }) {
   )
 }
 
+/** Rattrapage : aligne les badges Pro du site sur les paiements déjà enregistrés. */
+const ProSyncCard = () => {
+  const colors = useColors()
+  const [syncing, setSyncing] = useState(false)
+
+  const handleSync = async () => {
+    setSyncing(true)
+    try {
+      const updated = await syncAllPro()
+      notify(
+        updated
+          ? `${updated} profil${updated > 1 ? 's' : ''} passé${updated > 1 ? 's' : ''} en Pro`
+          : 'Tous les badges Pro sont déjà à jour',
+        'success'
+      )
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setSyncing(false)
+  }
+
+  return (
+    <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+          >
+            <RiVipCrownLine className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Badges Pro</h2>
+            <p className="mt-0.5 text-sm text-gray-500">
+              Le badge « Pro » du site suit automatiquement la période offerte et les paiements
+              enregistrés. Ce bouton rattrape les profils validés avant cette règle.
+            </p>
+          </div>
+        </div>
+        {syncing ? (
+          <div
+            className="inline-flex shrink-0 justify-center rounded-lg px-6 py-2 text-sm font-semibold text-white"
+            style={{ backgroundColor: colors.primary }}
+          >
+            <Loader />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSync}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            <RiRefreshLine className="h-4 w-4" />
+            Mettre à jour les badges Pro
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function SubscriptionsTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [agentAmount, setAgentAmount] = useState('')
@@ -429,6 +493,7 @@ export default function SubscriptionsTab() {
         onSave={saveLaunchOffer}
         saving={savingLaunchOffer}
       />
+      <ProSyncCard />
     </div>
   )
 }
