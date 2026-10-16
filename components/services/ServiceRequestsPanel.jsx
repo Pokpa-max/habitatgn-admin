@@ -3,9 +3,10 @@ import { Dialog, Transition } from '@headlessui/react'
 import {
   RiPhoneLine,
   RiMailLine,
-  RiMore2Fill,
   RiSearchLine,
   RiInboxLine,
+  RiCloseLine,
+  RiWhatsappLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -18,16 +19,40 @@ import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess }) {
+/** Lien WhatsApp : numéro guinéen à 9 chiffres complété de l'indicatif 224. */
+/** Date saisie « 2026-10-25 » -> « 25 oct. 2026 » ; autre valeur inchangée. */
+const readableValue = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const date = new Date(`${value}T12:00:00`)
+  return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const whatsappUrl = (phone) => {
+  const digits = String(phone || '').replace(/[^0-9]/g, '')
+  if (!digits) return null
+  return `https://wa.me/${digits.length === 9 ? `224${digits}` : digits}`
+}
+
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle }) {
   const colors = useColors()
   const [updating, setUpdating] = useState(false)
   if (!request) return null
 
+  const currentStatus = request.status || 'pending'
+  const statusMeta = REQUEST_STATUSES.find((s) => s.value === currentStatus) || REQUEST_STATUSES[0]
   const change = async (status) => {
     setUpdating(true)
     await onStatusChange(request, status)
     setUpdating(false)
   }
+
+  // Champs renseignés uniquement ; la description occupe toute la largeur
+  const fields = detailFields
+    .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.accessor === 'description' }))
+    .filter((f) => f.value)
+  const shortFields = fields.filter((f) => !f.long)
+  const longFields = fields.filter((f) => f.long)
+  const whatsapp = whatsappUrl(request.phone)
 
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -45,88 +70,147 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-4">
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
               leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all">
-                <div className="border-b border-gray-100 px-6 py-5">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {request.name}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">Détail de la demande</p>
-                </div>
-
-                <div className="max-h-96 overflow-y-auto p-5">
-                  <div className="space-y-2.5">
-                    {detailFields.map((f) => {
-                      const value = f.render ? f.render(request) : request[f.accessor]
-                      if (!value) return null
-                      return (
-                        <div key={f.label} className="text-sm">
-                          <span className="font-semibold text-gray-500">{f.label} </span>
-                          <span className="text-gray-800">{value}</span>
-                        </div>
-                      )
-                    })}
-                    <div className="text-sm">
-                      <span className="font-semibold text-gray-500">Demande reçue </span>
-                      <span className="text-gray-800">{firebaseDateFormat(request.createdAt)}</span>
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-t-2xl bg-white text-left shadow-2xl transition-all sm:rounded-2xl">
+                {/* En-tête : service, client, statut */}
+                <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                  <div className="min-w-0">
+                    {serviceTitle && (
+                      <p className="text-xs font-semibold" style={{ color: colors.primary }}>
+                        {serviceTitle}
+                      </p>
+                    )}
+                    <Dialog.Title className="mt-0.5 truncate text-lg font-bold text-gray-900">
+                      {request.name || 'Client'}
+                    </Dialog.Title>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <StatusPill tone={statusMeta.tone}>{statusMeta.label}</StatusPill>
+                      <span className="text-xs text-gray-500">
+                        Reçue le {firebaseDateFormat(request.createdAt)}
+                      </span>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    aria-label="Fermer"
+                  >
+                    <RiCloseLine className="h-5 w-5" />
+                  </button>
+                </div>
 
+                <div className="max-h-[65vh] space-y-6 overflow-y-auto px-6 py-5">
+                  {/* Client */}
+                  <section>
+                    <h3 className="mb-2.5 text-xs font-semibold text-gray-500">Client</h3>
+                    <div className="space-y-1.5 text-sm text-gray-800">
+                      {request.phone && (
+                        <a href={`tel:${request.phone}`} className="flex items-center gap-2 hover:underline">
+                          <RiPhoneLine className="h-4 w-4 text-gray-400" />
+                          {request.phone}
+                        </a>
+                      )}
+                      {request.email && (
+                        <a href={`mailto:${request.email}`} className="flex items-center gap-2 hover:underline">
+                          <RiMailLine className="h-4 w-4 text-gray-400" />
+                          <span className="truncate">{request.email}</span>
+                        </a>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Détails de la demande */}
+                  {fields.length > 0 && (
+                    <section>
+                      <h3 className="mb-2.5 text-xs font-semibold text-gray-500">Détails de la demande</h3>
+                      {shortFields.length > 0 && (
+                        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                          {shortFields.map((f) => (
+                            <div key={f.label}>
+                              <dt className="text-xs text-gray-500">{f.label}</dt>
+                              <dd className="mt-0.5 text-sm font-medium text-gray-900">{f.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
+                      {longFields.map((f) => (
+                        <div key={f.label} className="mt-4 rounded-xl bg-gray-50 p-4">
+                          <p className="text-xs text-gray-500">{f.label}</p>
+                          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-800">{f.value}</p>
+                        </div>
+                      ))}
+                    </section>
+                  )}
+
+                  {/* Statut */}
                   {canProcess && (
-                    <>
-                      <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        Changer le statut
-                      </p>
-                      <div className="space-y-1">
+                    <section>
+                      <h3 className="mb-2.5 text-xs font-semibold text-gray-500">Statut de la demande</h3>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {REQUEST_STATUSES.map((s) => {
-                          const active = (request.status || 'pending') === s.value
+                          const active = currentStatus === s.value
                           return (
                             <button
                               key={s.value}
+                              type="button"
                               disabled={active || updating}
                               onClick={() => change(s.value)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-default"
+                              style={
+                                active
+                                  ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
+                                  : { borderColor: colors.gray200, color: colors.gray700, opacity: updating ? 0.6 : 1 }
+                              }
                             >
-                              <span
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: active ? colors.primary : colors.gray300 }}
-                              />
                               {s.label}
                             </button>
                           )
                         })}
                       </div>
-                    </>
-                  )}
-
-                  {request.phone && (
-                    <a
-                      href={`tel:${request.phone}`}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: colors.primary }}
-                    >
-                      <RiPhoneLine className="h-4 w-4" />
-                      Appeler {request.name?.split(' ')[0]}
-                    </a>
+                    </section>
                   )}
                 </div>
 
-                <div className="border-t border-gray-100 bg-gray-50/80 p-2">
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-2 border-t border-gray-100 bg-gray-50/80 px-6 py-4 sm:flex sm:justify-end">
                   <button
+                    type="button"
                     onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
+                    className="hidden rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:inline-flex"
                   >
                     Fermer
                   </button>
+                  {whatsapp && (
+                    <a
+                      href={whatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      <RiWhatsappLine className="h-4 w-4" style={{ color: '#25D366' }} />
+                      WhatsApp
+                    </a>
+                  )}
+                  {request.phone && (
+                    <a
+                      href={`tel:${request.phone}`}
+                      className="order-first inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 sm:order-none"
+                      style={{ backgroundColor: colors.primary }}
+                    >
+                      <RiPhoneLine className="h-4 w-4" />
+                      Appeler
+                    </a>
+                  )}
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -138,6 +222,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
 }
 
 export default function ServiceRequestsPanel({
+  title,
   description,
   fetchRequests,
   updateStatus,
@@ -206,6 +291,7 @@ export default function ServiceRequestsPanel({
         detailFields={detailFields}
         onStatusChange={handleStatusChange}
         canProcess={canProcess}
+        serviceTitle={title}
       />
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -333,10 +419,9 @@ export default function ServiceRequestsPanel({
                             setDetailTarget(request)
                             setDetailOpen(true)
                           }}
-                          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                          title="Détail"
+                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                         >
-                          <RiMore2Fill className="h-4 w-4" />
+                          Voir
                         </button>
                       </td>
                     </tr>

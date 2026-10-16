@@ -25,6 +25,7 @@ export default function LegalSecurityTab() {
 
   return (
     <ServiceRequestsPanel
+      title="Sécurisation foncière"
       description="Demandes envoyées depuis le formulaire de sécurisation foncière du site public"
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}

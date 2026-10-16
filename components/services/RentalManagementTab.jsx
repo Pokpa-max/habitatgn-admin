@@ -27,6 +27,7 @@ export default function RentalManagementTab() {
 
   return (
     <ServiceRequestsPanel
+      title="Gestion locative"
       description="Demandes envoyées depuis le formulaire de gestion locative du site public"
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}

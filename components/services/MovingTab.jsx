@@ -30,6 +30,7 @@ export default function MovingTab() {
 
   return (
     <ServiceRequestsPanel
+      title="Déménagement"
       description="Demandes envoyées depuis le formulaire de déménagement du site public"
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}

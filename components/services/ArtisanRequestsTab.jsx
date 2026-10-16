@@ -28,6 +28,7 @@ export default function ArtisanRequestsTab() {
 
   return (
     <ServiceRequestsPanel
+      title="Artisan / intervention"
       description="Demandes d'artisan (plomberie, électricité...) ou d'intervention ponctuelle envoyées depuis le site public"
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}
