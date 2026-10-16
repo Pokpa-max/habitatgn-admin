@@ -11,7 +11,7 @@ import {
   RiImageFill,
   RiMoneyDollarCircleLine,
   RiVipCrownLine,
-  RiVerifiedBadgeFill,
+  RiShieldCheckFill,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -274,7 +274,7 @@ function WorkerDetail() {
                       style={{ backgroundColor: '#EFF6FF' }}
                       title="Ouvrier certifié BâtiMoo"
                     >
-                      <RiVerifiedBadgeFill className="h-4 w-4 text-blue-600" />
+                      <RiShieldCheckFill className="h-4 w-4 text-blue-600" />
                       Certifié
                     </span>
                   )}
@@ -420,7 +420,7 @@ function WorkerDetail() {
                   : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <RiVerifiedBadgeFill className={`h-4 w-4 ${worker.isCertified ? 'text-blue-600' : 'text-gray-400'}`} />
+              <RiShieldCheckFill className={`h-4 w-4 ${worker.isCertified ? 'text-blue-600' : 'text-gray-400'}`} />
               {worker.isCertified ? 'Certifié (Cliquer pour retirer)' : 'Accorder le badge Certifié'}
             </button>
           </div>

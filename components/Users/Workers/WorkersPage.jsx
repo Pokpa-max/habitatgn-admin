@@ -17,7 +17,7 @@ import {
   RiForbidLine,
   RiLockUnlockLine,
   RiLockPasswordLine,
-  RiVerifiedBadgeFill,
+  RiShieldCheckFill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -184,7 +184,7 @@ function ActionsModal({
                     <ActionRow
                       as="button"
                       onClick={onToggleCertification}
-                      icon={RiVerifiedBadgeFill}
+                      icon={RiShieldCheckFill}
                       iconColor={worker.isCertified ? colors.gray500 : '#2563EB'}
                       iconBg={worker.isCertified ? colors.gray100 : '#EFF6FF'}
                       label={worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
@@ -758,7 +758,7 @@ export default function WorkersPage() {
                     onClick={() => handleBulkCertify(true)}
                     className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60"
                   >
-                    <RiVerifiedBadgeFill className="h-3.5 w-3.5 text-blue-600" />
+                    <RiShieldCheckFill className="h-3.5 w-3.5 text-blue-600" />
                     Certifier
                   </button>
                   <button
@@ -894,7 +894,7 @@ export default function WorkersPage() {
                                   style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}
                                   title="Ouvrier certifié BâtiMoo"
                                 >
-                                  <RiVerifiedBadgeFill className="h-3 w-3 text-blue-600" />
+                                  <RiShieldCheckFill className="h-3 w-3 text-blue-600" />
                                   Certifié
                                 </span>
                               )}
