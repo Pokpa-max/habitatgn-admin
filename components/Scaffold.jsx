@@ -30,111 +30,70 @@ import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
 import ChangePasswordModal from './ChangePasswordModal'
 import Loader from './Loader'
 import PushAlertsBanner from './PushAlertsBanner'
+import { useNotifications } from '../contexts/NotificationsContext'
 
+// Menu regroupé par usage. `badgeKey` : compteur « à traiter » affiché
+// à côté de l'entrée (voir contexts/NotificationsContext).
 const navigation = [
-  {
-    name: 'Dashboard',
-    href: '/',
-    icon: RiDashboardLine,
-    claims: ['admin', 'manager'],
-  },
-  {
-    name: 'Marketplace',
-    href: '/marketplace',
-    icon: RiShoppingBag3Line,
-    claims: ['admin', 'manager'],
-    module: 'marketplace',
-  },
-  {
-    name: 'Publicité',
-    href: '/advertising',
-    icon: RiBookOpenLine,
-    claims: ['admin', 'manager'],
-    module: 'advertising',
-  },
-  {
-    name: 'Utilisateurs',
-    href: '/users',
-    icon: RiGroupLine,
-    claims: ['admin'],
-  },
-  {
-    name: 'Agents',
-    href: '/agents',
-    icon: RiBriefcaseLine,
-    claims: ['admin', 'manager'],
-    module: 'agents',
-    badgeKey: 'pendingAgents',
-  },
-  {
-    name: 'Gestion locative',
-    href: '/gestion-locative',
-    icon: RiBuildingLine,
-    claims: ['admin', 'manager'],
-    module: 'properties',
-  },
-  {
-    name: 'Réservations',
-    href: '/reservations',
-    icon: RiCalendarCheckLine,
-    claims: ['admin', 'manager'],
-    module: 'reservations',
-    badgeKey: 'pendingBookings',
-  },
-  {
-    name: 'Ouvriers',
-    href: '/workers',
-    icon: RiHammerLine,
-    claims: ['admin', 'manager'],
-    module: 'workers',
-    badgeKey: 'pendingWorkers',
-  },
-  {
-    name: 'Partenaires',
-    href: '/partners',
-    icon: RiTeamLine,
-    claims: ['admin', 'manager'],
-    module: 'partners',
-  },
-  {
-    name: 'Services',
-    href: '/services',
-    icon: RiTruckLine,
-    claims: ['admin', 'manager'],
-    module: 'services',
-    badgeKey: 'pendingServiceRequests',
-  },
-  {
-    name: 'Messages',
-    href: '/messages',
-    icon: RiMailLine,
-    claims: ['admin', 'manager'],
-    module: 'messages',
-    badgeKey: 'unreadMessages',
-  },
-  {
-    name: 'Demandes de visite',
-    href: '/leads',
-    icon: RiCalendarTodoLine,
-    claims: ['admin', 'manager'],
-    module: 'leads',
-    badgeKey: 'pendingLeads',
-  },
-  {
-    name: 'Carrières',
-    href: '/carrieres',
-    icon: RiFileUserLine,
-    claims: ['admin', 'manager'],
-    module: 'careers',
-    badgeKey: 'pendingCareerApplications',
-  },
-  {
-    name: 'Paramètres',
-    href: '/settings',
-    icon: RiSettings3Line,
-    claims: ['admin'],
-  },
+  { name: 'Accueil', href: '/', icon: RiDashboardLine, claims: ['admin', 'manager'] },
+
+  { section: 'À traiter', name: 'Demandes de visite', href: '/leads', icon: RiCalendarTodoLine, claims: ['admin', 'manager'], module: 'leads', badgeKey: 'pendingLeads' },
+  { section: 'À traiter', name: 'Réservations', href: '/reservations', icon: RiCalendarCheckLine, claims: ['admin', 'manager'], module: 'reservations', badgeKey: 'pendingBookings' },
+  { section: 'À traiter', name: 'Demandes de service', href: '/services', icon: RiTruckLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingServiceRequests' },
+  { section: 'À traiter', name: 'Messages', href: '/messages', icon: RiMailLine, claims: ['admin', 'manager'], module: 'messages', badgeKey: 'unreadMessages' },
+  { section: 'À traiter', name: 'Candidatures', href: '/carrieres', icon: RiFileUserLine, claims: ['admin', 'manager'], module: 'careers', badgeKey: 'pendingCareerApplications' },
+
+  { section: 'Professionnels', name: 'Agents', href: '/agents', icon: RiBriefcaseLine, claims: ['admin', 'manager'], module: 'agents', badgeKey: 'pendingAgents' },
+  { section: 'Professionnels', name: 'Artisans', href: '/workers', icon: RiHammerLine, claims: ['admin', 'manager'], module: 'workers', badgeKey: 'pendingWorkers' },
+
+  { section: 'Biens & produits', name: 'Gestion locative', href: '/gestion-locative', icon: RiBuildingLine, claims: ['admin', 'manager'], module: 'properties' },
+  { section: 'Biens & produits', name: 'Marketplace', href: '/marketplace', icon: RiShoppingBag3Line, claims: ['admin', 'manager'], module: 'marketplace' },
+
+  { section: 'Site', name: 'Publicité', href: '/advertising', icon: RiBookOpenLine, claims: ['admin', 'manager'], module: 'advertising' },
+  { section: 'Site', name: 'Partenaires', href: '/partners', icon: RiTeamLine, claims: ['admin', 'manager'], module: 'partners' },
+
+  { section: 'Administration', name: 'Utilisateurs', href: '/users', icon: RiGroupLine, claims: ['admin'] },
+  { section: 'Administration', name: 'Paramètres', href: '/settings', icon: RiSettings3Line, claims: ['admin'] },
 ]
+
+/** Entrée active aussi sur ses pages de détail (/agents/123 → « Agents »). */
+const isActivePath = (currentPath, href) =>
+  href === '/' ? currentPath === '/' : currentPath === href || currentPath.startsWith(`${href}/`)
+
+/** Menu par sections, avec le nombre d'éléments en attente. */
+function NavSections({ items, currentPath, onNavigate }) {
+  const counts = useNotifications()
+  let lastSection
+  return items.map((item) => {
+    const heading = item.section && item.section !== lastSection ? item.section : null
+    lastSection = item.section
+    const isActive = isActivePath(currentPath, item.href)
+    const count = item.badgeKey ? counts?.[item.badgeKey] || 0 : 0
+    return (
+      <Fragment key={item.href}>
+        {heading && (
+          <p className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: SIDEBAR_HEADING }}>
+            {heading}
+          </p>
+        )}
+        <Link href={item.href}>
+          <a
+            className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${isActive ? 'nav-item-active' : ''}`}
+            onClick={onNavigate}
+          >
+            <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+            <span className="flex-1 truncate text-[13px]">{item.name}</span>
+            {count > 0 && (
+              <span className="nav-badge min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold leading-none">
+                {count > 99 ? '99+' : count}
+              </span>
+            )}
+          </a>
+        </Link>
+      </Fragment>
+    )
+  })
+}
 
 // Nuances dérivées du navy de la charte (colors.navyDark), utilisées
 // uniquement pour le fond de la barre latérale — cf. proposition de palette
@@ -143,6 +102,7 @@ const SIDEBAR_HOVER_BG = '#15263F'
 const SIDEBAR_ACTIVE_BG = '#1E3252'
 const SIDEBAR_TEXT = '#93A6C4'
 const SIDEBAR_BORDER = '#1E3252'
+const SIDEBAR_HEADING = '#5F7598'
 
 export default function Scaffold({ children, title, subNav }) {
   const colors = useColors()
@@ -218,6 +178,11 @@ export default function Scaffold({ children, title, subNav }) {
 
         .nav-item-active svg {
           color: ${colors.orangeAccent};
+        }
+
+        .nav-badge {
+          color: #FFFFFF;
+          background-color: ${colors.orangeAccent};
         }
 
         .nav-item-inactive {
@@ -334,25 +299,11 @@ export default function Scaffold({ children, title, subNav }) {
                 {/* Navigation Mobile */}
                 <div className="h-0 flex-1 overflow-y-auto py-4 scrollbar-hide">
                   <nav className="space-y-0.5 px-2">
-                    {navigation.map((item) => {
-                      if (canSeeNavItem(item)) {
-                        const isActive = currentPath === item.href
-                        return (
-                          <Link key={item.name} href={item.href}>
-                            <a
-                              className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${
-                                isActive ? 'nav-item-active' : ''
-                              }`}
-                              onClick={() => setSidebarOpen(false)}
-                            >
-                              <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                              <span className="text-[13px]">{item.name}</span>
-                            </a>
-                          </Link>
-                        )
-                      }
-                      return null
-                    })}
+                    <NavSections
+                      items={navigation.filter(canSeeNavItem)}
+                      currentPath={currentPath}
+                      onNavigate={() => setSidebarOpen(false)}
+                    />
                   </nav>
                 </div>
 
@@ -415,24 +366,7 @@ export default function Scaffold({ children, title, subNav }) {
             {/* Navigation Desktop */}
             <div className="h-0 flex-1 overflow-y-auto py-4 scrollbar-hide">
               <nav className="space-y-0.5 px-3">
-                {navigation.map((item) => {
-                  if (canSeeNavItem(item)) {
-                    const isActive = currentPath === item.href
-                    return (
-                      <Link key={item.name} href={item.href}>
-                        <a
-                          className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${
-                            isActive ? 'nav-item-active' : ''
-                          }`}
-                        >
-                          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-                          <span className="text-[13px]">{item.name}</span>
-                        </a>
-                      </Link>
-                    )
-                  }
-                  return null
-                })}
+                <NavSections items={navigation.filter(canSeeNavItem)} currentPath={currentPath} />
               </nav>
             </div>
 

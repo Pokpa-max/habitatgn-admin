@@ -367,7 +367,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                   pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
                 })}
                 className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="meloger@gmail.com"
+                placeholder="exemple@gmail.com"
               />
               {errors?.email && (
                 <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
@@ -442,28 +442,17 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             <div className="border-t border-gray-100 pt-5">
               <p className="form-section-title mb-3">Informations {role === 'admin' ? 'administrateur' : 'manager'}</p>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-900">
-                  Nom de l'agence
-                </label>
-                <input
-                  type="text"
-                  {...register('agence')}
-                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="Nom de l'agence"
-                />
-              </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-gray-900">
-                    Nom
+                    Prénom
                   </label>
                   <input
                     type="text"
                     {...register('firstname', { required: role !== 'agent' && role !== 'worker' ? 'Champs requis' : false })}
                     className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Votre nom"
+                    placeholder="Ex : Mamadou"
                   />
                   {errors?.firstname && (
                     <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.firstname.message}</p>
@@ -472,13 +461,13 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-gray-900">
-                    Prénom
+                    Nom
                   </label>
                   <input
                     type="text"
                     {...register('lastname', { required: role !== 'agent' && role !== 'worker' ? 'Champs requis' : false })}
                     className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Votre prénom"
+                    placeholder="Ex : Diallo"
                   />
                   {errors?.lastname && (
                     <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.lastname.message}</p>

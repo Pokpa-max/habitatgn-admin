@@ -31,7 +31,7 @@ function Services() {
 
   const TABS = [
     { value: 'moving', label: 'Déménagement', icon: RiTruckLine, badgeCount: notifications.pendingMovingRequests },
-    { value: 'rental', label: 'Gestion locative', icon: RiHomeGearLine, badgeCount: notifications.pendingRentalRequests },
+    { value: 'rental', label: 'Demandes de gestion locative', icon: RiHomeGearLine, badgeCount: notifications.pendingRentalRequests },
     { value: 'legal', label: 'Sécurisation foncière', icon: RiFileShieldLine, badgeCount: notifications.pendingLegalRequests },
     { value: 'artisan', label: 'Artisans / Autres demandes', icon: RiToolsLine, badgeCount: notifications.pendingArtisanRequests },
     { value: 'revenues', label: 'Revenus des services', icon: RiMoneyDollarCircleLine },
@@ -39,7 +39,7 @@ function Services() {
 
   return (
     <Scaffold>
-      <Header title="Services" />
+      <Header title="Demandes de service" />
 
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
         {TABS.map((tab) => {

@@ -332,8 +332,7 @@ export default function ContactMessagesPage() {
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Messages de contact</h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="text-sm text-gray-500">
             Messages envoyés depuis le formulaire "Nous contacter" du site public
             {unreadCount > 0 ? ` · ${unreadCount} non lu${unreadCount > 1 ? 's' : ''}` : ''}
           </p>

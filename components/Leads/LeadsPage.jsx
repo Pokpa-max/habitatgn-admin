@@ -355,10 +355,9 @@ export default function LeadsPage() {
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Demandes de visite</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Demandes de contact envoyées depuis les fiches de biens et terrains vers les
-            agents propriétaires
+          <p className="text-sm text-gray-500">
+            Demandes envoyées par les visiteurs aux agents depuis les fiches des biens.
+            Suivez-les et relancez l'agent si besoin
             {newCount > 0 ? ` · ${newCount} nouvelle${newCount > 1 ? 's' : ''}` : ''}
           </p>
         </div>

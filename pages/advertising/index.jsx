@@ -20,8 +20,8 @@ import LaunchOfferTab from '@/components/advertising/LaunchOfferTab'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const TABS = [
-  { value: 'hero', label: 'Section héro', icon: RiImageLine },
-  { value: 'featured-ad', label: 'Bannière vedette', icon: RiAdvertisementLine },
+  { value: 'hero', label: "Bannière d'accueil", icon: RiImageLine },
+  { value: 'featured-ad', label: 'Publicité en vedette', icon: RiAdvertisementLine },
   { value: 'launch-offer', label: 'Offre de lancement', icon: RiBroadcastLine },
 ]
 

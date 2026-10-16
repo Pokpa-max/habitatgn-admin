@@ -140,9 +140,9 @@ export default function FeaturedAdTab() {
       <div className="rounded-xl bg-white p-6 shadow-sm lg:col-span-2">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Publicité vedette</h2>
+            <h2 className="text-lg font-bold text-gray-900">Publicité en vedette</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Gestion de la bannière vedette en temps réel (document Firestore <code>site_settings/featured_ad</code>).
+              Bannière publicitaire affichée sur le site. Les changements sont visibles immédiatement.
             </p>
             <p className="mt-2 text-xs font-medium text-amber-700">
               Format d'image recommandé : environ 1200 × 280&nbsp;px (ratio ~4:1).

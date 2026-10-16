@@ -13,7 +13,7 @@ import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 function Marketplace() {
   return (
     <Scaffold>
-      <Header title="Marketplace & Produits" />
+      <Header title="Marketplace" />
       <MarketplaceProductsPage />
     </Scaffold>
   )

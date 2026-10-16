@@ -61,7 +61,7 @@ export default function HeroTab() {
       await updateHeroSettings(files, slides)
       reset()
       await loadSettings()
-      notify('Slides de la section héros mises à jour', 'success')
+      notify("Images de la bannière d'accueil mises à jour", 'success')
     } catch (e) {
       notify('Une erreur est survenue', 'error')
     }
@@ -76,7 +76,7 @@ export default function HeroTab() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <form onSubmit={handleSubmit(onSubmit)} className="rounded-xl bg-white p-6 shadow-sm lg:col-span-2">
         <div className="mb-6">
-          <h2 className="text-lg font-bold text-gray-900">Section héros (page d'accueil)</h2>
+          <h2 className="text-lg font-bold text-gray-900">Bannière d'accueil</h2>
           <p className="mt-1 text-sm text-gray-500">
             Chaque slide contient une image et son titre. Utilisez Entrée dans le titre pour créer une nouvelle ligne.
           </p>

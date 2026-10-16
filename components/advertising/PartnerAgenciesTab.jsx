@@ -281,7 +281,6 @@ export default function PartnerAgenciesTab() {
                     <div>
                       <p className="font-semibold text-gray-900">{agency.name}</p>
                       <p className="text-sm text-gray-500">{agency.specialty}</p>
-                      <p className="mt-0.5 text-xs text-gray-400">/properties?agence={agency.slug}</p>
                     </div>
                   </div>
 

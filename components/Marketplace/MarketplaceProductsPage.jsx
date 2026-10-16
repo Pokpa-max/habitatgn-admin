@@ -656,10 +656,7 @@ export default function MarketplaceProductsPage() {
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Produits Marketplace
-            </h2>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="text-sm text-gray-500">
               Gérez les produits en vente sur la plateforme
             </p>
           </div>

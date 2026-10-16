@@ -66,7 +66,7 @@ export default function LaunchOfferTab() {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Offre de lancement</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Bandeau d'annonce modifiable en temps réel (document Firestore <code>site_settings/launch_offer</code>).
+              Bandeau affiché en haut du site et de la page Tarifs. Les changements sont visibles immédiatement.
             </p>
           </div>
 
