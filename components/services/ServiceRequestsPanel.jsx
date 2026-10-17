@@ -18,6 +18,13 @@ import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
+/** Date saisie « 2026-10-25 » -> « 25 oct. 2026 » ; autre valeur inchangée. */
+const readableValue = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const date = new Date(`${value}T12:00:00`)
+  return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle }) {
   const colors = useColors()
   const [updating, setUpdating] = useState(false)
