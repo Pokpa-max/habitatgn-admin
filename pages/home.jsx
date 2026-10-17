@@ -31,6 +31,23 @@ const TODO_ITEMS = [
 
 const RENEWAL_WINDOW_DAYS = 7
 
+/** Produits de la boutique signalés par des visiteurs et encore en ligne. */
+function useReportedProducts() {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    getDocs(query(collection(db, 'products'), where('reportCount', '>', 0)))
+      .then((snap) => {
+        if (!cancelled) setCount(snap.docs.filter((d) => d.data().active !== false).length)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return count
+}
+
 /**
  * Formules Pro (période offerte ou payée) qui se terminent dans les 7 jours :
  * à relancer, le paiement étant manuel. Réservé à l'admin (paiements).
@@ -79,11 +96,13 @@ function TodoPanel() {
   const AuthUser = useUser()
   const notifications = useNotifications()
   const renewals = useProRenewals(AuthUser.claims?.userType === 'admin')
+  const reportedProducts = useReportedProducts()
 
   const items = [
     ...TODO_ITEMS.map((item) => ({ ...item, count: notifications[item.key] || 0 })),
     { key: 'renewWorkers', one: 'formule Pro artisan à renouveler (7 jours)', many: 'formules Pro artisans à renouveler (7 jours)', href: '/workers', count: renewals.workers },
     { key: 'renewAgents', one: 'formule Pro agent à renouveler (7 jours)', many: 'formules Pro agents à renouveler (7 jours)', href: '/agents', count: renewals.agents },
+    { key: 'reportedProducts', one: 'produit de la boutique signalé', many: 'produits de la boutique signalés', href: '/marketplace?filtre=signales', count: reportedProducts },
   ].filter((item) => item.count > 0)
 
   const firstName = (AuthUser?.displayName || '').split(' ')[0]

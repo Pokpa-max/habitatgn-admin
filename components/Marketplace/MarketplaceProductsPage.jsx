@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 import { useForm } from 'react-hook-form'
 import { useUser } from 'next-firebase-auth'
 import { Timestamp } from 'firebase/firestore'
-import {
+import { RiFlag2Line,
   RiAddLine,
   RiSearchLine,
   RiEditLine,
@@ -38,15 +39,36 @@ import { useCanManage } from '@/hooks/useCanManage'
 const PAGE_SIZE = 10
 const MAX_IMAGES = 4
 
+// Mêmes catégories que le site (src/lib/marketplaceRules.ts) : boutique
+// réservée à la maison et à la construction
 const PRODUCT_CATEGORIES = [
-  { value: 'furniture', label: 'Meubles' },
-  { value: 'electronics', label: 'Électronique' },
-  { value: 'appliances', label: 'Électroménager' },
-  { value: 'decoration', label: 'Décoration' },
   { value: 'materials', label: 'Matériaux de construction' },
-  { value: 'tools', label: 'Outillage' },
-  { value: 'autre', label: 'Autre' },
+  { value: 'hardware', label: 'Quincaillerie & outillage' },
+  { value: 'tiling', label: 'Carrelage & revêtements' },
+  { value: 'paint', label: 'Peinture' },
+  { value: 'plumbing', label: 'Plomberie & sanitaire' },
+  { value: 'electrical', label: 'Électricité & luminaire' },
+  { value: 'energy', label: 'Énergie (solaire, groupes électrogènes)' },
+  { value: 'climate', label: 'Climatisation & ventilation' },
+  { value: 'carpentry', label: 'Menuiserie (portes, fenêtres)' },
+  { value: 'security', label: 'Sécurité (serrures, caméras)' },
+  { value: 'appliances', label: 'Électroménager' },
+  { value: 'furniture', label: 'Meubles' },
+  { value: 'decor', label: 'Décoration' },
 ]
+
+// Anciennes catégories : seulement pour afficher d'anciens produits
+const LEGACY_CATEGORY_LABELS = {
+  computing: 'Informatique (ancienne)',
+  phones: 'Téléphones (ancienne)',
+  vehicles: 'Véhicules (ancienne)',
+  fashion: 'Mode (ancienne)',
+  other: 'Divers (ancienne)',
+  electronics: 'Électronique (ancienne)',
+  decoration: 'Décoration',
+  tools: 'Outillage',
+  autre: 'Autre (ancienne)',
+}
 
 export default function MarketplaceProductsPage() {
   const colors = useColors()
@@ -57,7 +79,11 @@ export default function MarketplaceProductsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const router = useRouter()
   const [statusFilter, setStatusFilter] = useState('all')
+  useEffect(() => {
+    if (router.query.filtre === 'signales') setStatusFilter('reported')
+  }, [router.query.filtre])
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   // Drawer / Form state
@@ -284,7 +310,8 @@ export default function MarketplaceProductsPage() {
     const matchStatus =
       statusFilter === 'all' ||
       (statusFilter === 'active' && p.active) ||
-      (statusFilter === 'inactive' && !p.active)
+      (statusFilter === 'inactive' && !p.active) ||
+      (statusFilter === 'reported' && p.reportCount > 0)
 
     if (!matchCategory || !matchStatus) return false
     if (!searchTerm) return true
@@ -708,6 +735,9 @@ export default function MarketplaceProductsPage() {
               <option value="all">Tous les statuts</option>
               <option value="active">Actif</option>
               <option value="inactive">Inactif</option>
+              <option value="reported">
+                Signalés ({products.filter((p) => p.reportCount > 0).length})
+              </option>
             </select>
           </div>
         </div>
@@ -814,7 +844,7 @@ export default function MarketplaceProductsPage() {
                   {visible.map((prod) => {
                     const catLabel =
                       PRODUCT_CATEGORIES.find((c) => c.value === prod.category)
-                        ?.label || prod.category
+                        ?.label || LEGACY_CATEGORY_LABELS[prod.category] || prod.category
 
                     return (
                       <tr key={prod.id} className="hover:bg-gray-50">
@@ -848,6 +878,12 @@ export default function MarketplaceProductsPage() {
                               <p className="text-sm font-semibold text-gray-900">
                                 {prod.title}
                               </p>
+                              {prod.reportCount > 0 && (
+                                <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                                  <RiFlag2Line className="h-3 w-3" />
+                                  Signalé {prod.reportCount} fois
+                                </span>
+                              )}
                               {prod.description && (
                                 <p className="text-xs text-gray-400 line-clamp-1">
                                   {prod.description}
