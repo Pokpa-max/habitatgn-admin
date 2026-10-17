@@ -1,7 +1,7 @@
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { Dialog, Transition } from '@headlessui/react'
-import { RiCloseLine } from 'react-icons/ri'
+import { RiCloseLine, RiLockLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 
 /**
@@ -146,11 +146,22 @@ export function ModalNote({ label, children }) {
   )
 }
 
+/** Petit indicateur de chargement, de la couleur du texte du bouton. */
+export function Spinner({ className = 'h-4 w-4' }) {
+  return (
+    <span
+      className={`${className} inline-block shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent`}
+      aria-hidden="true"
+    />
+  )
+}
+
 /**
  * Bouton du pied de fenêtre. variant : 'primary' | 'secondary' | 'danger'.
  * Avec `href`, rend un lien (externe si `external`).
+ * `loading` : indicateur de chargement et bouton bloqué pendant l'action.
  */
-export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, type = 'button', icon: Icon, children, form }) {
+export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, loading, type = 'button', icon: Icon, children, form }) {
   const colors = useColors()
   const base =
     'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50'
@@ -162,7 +173,7 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
       : { backgroundColor: '#FFFFFF', color: colors.gray700, border: `1px solid ${colors.gray200}` }
   const content = (
     <>
-      {Icon && <Icon className="h-4 w-4" />}
+      {loading ? <Spinner /> : Icon && <Icon className="h-4 w-4" />}
       {children}
     </>
   )
@@ -190,7 +201,15 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
     )
   }
   return (
-    <button type={type} form={form} onClick={onClick} disabled={disabled} className={`${base} hover:opacity-90`} style={style}>
+    <button
+      type={type}
+      form={form}
+      onClick={onClick}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      className={`${base} hover:opacity-90`}
+      style={style}
+    >
       {content}
     </button>
   )
@@ -201,4 +220,64 @@ export function whatsappUrl(phone) {
   const digits = String(phone || '').replace(/[^0-9]/g, '')
   if (!digits) return null
   return `https://wa.me/${digits.length === 9 ? `224${digits}` : digits}`
+}
+
+/**
+ * Choix du statut d'une demande, en un clic.
+ * - Pendant l'enregistrement : chargement sur le bouton cliqué, les autres bloqués.
+ * - `locked` (statut final, ex. « Terminée ») : plus aucun changement possible,
+ *   avec `lockedMessage` pour l'expliquer.
+ */
+export function StatusChoice({ options, value, onChange, locked = false, lockedMessage, columns = 'grid-cols-2 sm:grid-cols-4' }) {
+  const colors = useColors()
+  const [pending, setPending] = useState(null)
+
+  const choose = async (next) => {
+    if (locked || pending || next === value) return
+    setPending(next)
+    try {
+      await onChange(next)
+    } finally {
+      setPending(null)
+    }
+  }
+
+  return (
+    <div>
+      <div className={`grid gap-2 ${columns}`}>
+        {options.map((option) => {
+          const active = value === option.value
+          const busy = pending === option.value
+          return (
+            <button
+              key={option.value}
+              type="button"
+              disabled={locked || active || !!pending}
+              onClick={() => choose(option.value)}
+              aria-busy={busy || undefined}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed"
+              style={
+                active
+                  ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
+                  : {
+                      borderColor: colors.gray200,
+                      color: colors.gray700,
+                      opacity: locked || (pending && !busy) ? 0.45 : 1,
+                    }
+              }
+            >
+              {busy && <Spinner className="h-3.5 w-3.5" />}
+              {option.label}
+            </button>
+          )
+        })}
+      </div>
+      {locked && lockedMessage && (
+        <p className="mt-2.5 flex items-center gap-1.5 text-xs text-gray-500">
+          <RiLockLine className="h-3.5 w-3.5 shrink-0" />
+          {lockedMessage}
+        </p>
+      )}
+    </div>
+  )
 }

@@ -14,7 +14,7 @@ import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import ConfirmModal from '@/components/ConfirmModal'
 import StatusPill from '@/components/ui/StatusPill'
-import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice, whatsappUrl } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { getLeads, updateLeadStatus, deleteLead } from '@/lib/services/leads'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -127,27 +127,14 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
 
       {canProcess && (
         <ModalSection title="Statut de la demande">
-          <div className="grid grid-cols-3 gap-2">
-            {Object.entries(STATUS_META).map(([value, meta]) => {
-              const active = (lead.status || 'new') === value
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  disabled={active}
-                  onClick={() => onStatusChange(lead, value)}
-                  className="rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-default"
-                  style={
-                    active
-                      ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
-                      : { borderColor: colors.gray200, color: colors.gray700 }
-                  }
-                >
-                  {meta.label}
-                </button>
-              )
-            })}
-          </div>
+          <StatusChoice
+            options={Object.entries(STATUS_META).map(([value, meta]) => ({ value, label: meta.label }))}
+            value={lead.status || 'new'}
+            onChange={(status) => onStatusChange(lead, status)}
+            locked={lead.status === 'closed'}
+            lockedMessage="Demande clôturée : son statut ne peut plus être modifié."
+            columns="grid-cols-3"
+          />
         </ModalSection>
       )}
     </AdminModal>

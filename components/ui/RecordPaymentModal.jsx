@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { RiMoneyDollarCircleLine } from 'react-icons/ri'
-import Loader from '@/components/Loader'
 import AdminModal, { ModalButton } from '@/components/ui/AdminModal'
 
 const todayInputValue = () => new Date().toISOString().slice(0, 10)
@@ -53,8 +52,8 @@ export default function RecordPaymentModal({ open, setOpen, defaultAmount, onCon
       footer={
         <>
           <ModalButton onClick={() => setOpen(false)}>Annuler</ModalButton>
-          <ModalButton variant="primary" type="submit" form="record-payment-form" disabled={saving}>
-            {saving ? <Loader /> : 'Enregistrer le paiement'}
+          <ModalButton variant="primary" type="submit" form="record-payment-form" loading={saving}>
+            Enregistrer le paiement
           </ModalButton>
         </>
       }
