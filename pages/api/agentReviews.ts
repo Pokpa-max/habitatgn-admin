@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { FieldValue } from 'firebase-admin/firestore'
 import { dbAdmin } from '@/lib/firebase-admin/admin_config'
 import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
+import { hasManagerAction } from '@/lib/constants/managerModules'
 
 /**
  * Modération des avis vérifiés sur les agents (laissés sur le site public,
@@ -14,6 +15,15 @@ import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const caller = await verifyAdminRequest(req)
   if (!caller) return res.status(403).json({ message: 'Accès refusé.' })
+
+  // Manager : il faut le module Agents (et le droit de traiter pour supprimer)
+  if (caller.userType === 'manager') {
+    const callerSnap = await dbAdmin.collection('users').doc(caller.uid).get()
+    const permissions = callerSnap.data()?.permissions
+    const action = req.method === 'DELETE' ? 'process' : null
+    const allowed = action ? hasManagerAction(permissions, 'agents', action) : !permissions || permissions.includes('agents')
+    if (!allowed) return res.status(403).json({ message: 'Accès refusé.' })
+  }
 
   try {
     if (req.method === 'GET') {

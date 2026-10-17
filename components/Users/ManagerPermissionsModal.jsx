@@ -6,29 +6,8 @@ import {
   MANAGER_MODULES,
   MANAGER_ACTIONS,
   ALL_MANAGER_MODULE_KEYS,
-  hasManagerAction,
+  permissionsToSelection as buildInitialSelection,
 } from '../../lib/constants/managerModules'
-
-// Construit l'état initial des cases à cocher (modules + actions) à partir
-// du tableau `permissions` brut d'un manager. Une action est pré-cochée
-// dès que hasManagerAction() la considère accordée — donc automatiquement
-// tout coché pour un module dont aucune action fine n'a encore été
-// enregistrée (comportement actuel inchangé tant que l'admin ne touche à
-// rien).
-function buildInitialSelection(permissions) {
-  const perms = permissions || ALL_MANAGER_MODULE_KEYS
-  const next = new Set()
-  MANAGER_MODULES.forEach((module) => {
-    if (!perms.includes(module.key)) return
-    next.add(module.key)
-    module.actions.forEach((action) => {
-      if (hasManagerAction(perms, module.key, action)) {
-        next.add(`${module.key}:${action}`)
-      }
-    })
-  })
-  return next
-}
 
 // Champ `permissions` absent sur le compte = accès total (même défaut que
 // firestore.rules -> managerPermissions()), pour rester cohérent avec les

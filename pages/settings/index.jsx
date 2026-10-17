@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RiContactsLine, RiPriceTag3Line, RiVipCrownLine } from 'react-icons/ri'
+import { RiContactsLine, RiPriceTag3Line, RiVipCrownLine, RiShieldKeyholeLine } from 'react-icons/ri'
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
@@ -12,11 +12,13 @@ import { useColors } from '@/contexts/ColorContext'
 import ContactTab from '../../components/siteSettings/ContactTab'
 import ServicePricingTab from '@/components/Settings/ServicePricingTab'
 import SubscriptionsTab from '@/components/Settings/SubscriptionsTab'
+import TeamPermissionsTab from '@/components/Settings/TeamPermissionsTab'
 
 const TABS = [
   { value: 'contact', label: 'Contact', icon: RiContactsLine },
   { value: 'pricing', label: 'Tarifs des services', icon: RiPriceTag3Line },
   { value: 'subscriptions', label: 'Abonnements', icon: RiVipCrownLine },
+  { value: 'team', label: 'Équipe & permissions', icon: RiShieldKeyholeLine },
 ]
 
 function Settings() {
@@ -27,7 +29,7 @@ function Settings() {
     <Scaffold>
       <Header title="Paramètres" />
 
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
         {TABS.map((tab) => {
           const active = activeTab === tab.value
           return (
@@ -51,6 +53,7 @@ function Settings() {
       {activeTab === 'contact' && <ContactTab />}
       {activeTab === 'pricing' && <ServicePricingTab />}
       {activeTab === 'subscriptions' && <SubscriptionsTab />}
+      {activeTab === 'team' && <TeamPermissionsTab />}
     </Scaffold>
   )
 }
