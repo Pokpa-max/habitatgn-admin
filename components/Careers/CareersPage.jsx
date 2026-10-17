@@ -108,8 +108,8 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
             locked={application.status === 'hired' || application.status === 'rejected'}
             lockedMessage={
               application.status === 'hired'
-                ? 'Candidat embauché : le statut ne peut plus être modifié.'
-                : 'Candidature refusée : le statut ne peut plus être modifié.'
+                ? 'Candidat embauché : plus aucune action à faire.'
+                : 'Candidature refusée : plus aucune action à faire.'
             }
             columns="grid-cols-2 sm:grid-cols-5"
           />

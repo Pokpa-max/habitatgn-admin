@@ -223,21 +223,38 @@ export function whatsappUrl(phone) {
 /**
  * Choix du statut d'une demande, en un clic.
  * - Pendant l'enregistrement : chargement sur le bouton cliqué, les autres bloqués.
- * - `locked` (statut final, ex. « Terminée ») : plus aucun changement possible,
- *   avec `lockedMessage` pour l'expliquer.
+ * - `locked` (statut final, ex. « Terminée ») : les boutons disparaissent, seul
+ *   le statut reste affiché, avec `lockedMessage` pour l'expliquer.
  */
 export function StatusChoice({ options, value, onChange, locked = false, lockedMessage, columns = 'grid-cols-2 sm:grid-cols-4' }) {
   const colors = useColors()
   const [pending, setPending] = useState(null)
 
   const choose = async (next) => {
-    if (locked || pending || next === value) return
+    if (pending || next === value) return
     setPending(next)
     try {
       await onChange(next)
     } finally {
       setPending(null)
     }
+  }
+
+  // Statut final : plus de boutons, seulement le statut et une explication
+  if (locked) {
+    const current = options.find((option) => option.value === value)
+    return (
+      <div
+        className="flex items-center gap-3 rounded-xl border px-4 py-3"
+        style={{ borderColor: colors.gray200, backgroundColor: colors.gray50 }}
+      >
+        <RiLockLine className="h-5 w-5 shrink-0" style={{ color: colors.gray400 }} />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900">{current?.label || value}</p>
+          {lockedMessage && <p className="mt-0.5 text-xs text-gray-500">{lockedMessage}</p>}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -250,7 +267,7 @@ export function StatusChoice({ options, value, onChange, locked = false, lockedM
             <button
               key={option.value}
               type="button"
-              disabled={locked || active || !!pending}
+              disabled={active || !!pending}
               onClick={() => choose(option.value)}
               aria-busy={busy || undefined}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed"
@@ -260,7 +277,7 @@ export function StatusChoice({ options, value, onChange, locked = false, lockedM
                   : {
                       borderColor: colors.gray200,
                       color: colors.gray700,
-                      opacity: locked || (pending && !busy) ? 0.45 : 1,
+                      opacity: pending && !busy ? 0.45 : 1,
                     }
               }
             >
@@ -270,12 +287,6 @@ export function StatusChoice({ options, value, onChange, locked = false, lockedM
           )
         })}
       </div>
-      {locked && lockedMessage && (
-        <p className="mt-2.5 flex items-center gap-1.5 text-xs text-gray-500">
-          <RiLockLine className="h-3.5 w-3.5 shrink-0" />
-          {lockedMessage}
-        </p>
-      )}
     </div>
   )
 }

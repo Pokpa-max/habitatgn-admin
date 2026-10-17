@@ -132,7 +132,7 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
             value={lead.status || 'new'}
             onChange={(status) => onStatusChange(lead, status)}
             locked={lead.status === 'closed'}
-            lockedMessage="Demande clôturée : son statut ne peut plus être modifié."
+            lockedMessage="Demande clôturée : plus aucune action à faire."
             columns="grid-cols-3"
           />
         </ModalSection>

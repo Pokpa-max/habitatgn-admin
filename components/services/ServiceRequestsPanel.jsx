@@ -98,8 +98,8 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
             locked={FINAL_STATUSES.includes(currentStatus)}
             lockedMessage={
               currentStatus === 'completed'
-                ? 'Demande terminée : son statut ne peut plus être modifié.'
-                : 'Demande annulée : son statut ne peut plus être modifié.'
+                ? 'Demande terminée : plus aucune action à faire.'
+                : 'Demande annulée : plus aucune action à faire.'
             }
           />
         </ModalSection>
