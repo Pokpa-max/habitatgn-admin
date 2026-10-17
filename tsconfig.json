@@ -2,7 +2,11 @@
   "compilerOptions": {
     "noImplicitAny": false,
     "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -17,13 +21,28 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["components/*"],
-      "@/contexts/*": ["contexts/*"],
-      "@/lib/*": ["lib/*"],
-      "@/theme/*": ["theme/*"],
-      "@/utils/*": ["utils/*"],
-      "@/hooks/*": ["hooks/*"]
-    }
+      "@/components/*": [
+        "components/*"
+      ],
+      "@/contexts/*": [
+        "contexts/*"
+      ],
+      "@/lib/*": [
+        "lib/*"
+      ],
+      "@/theme/*": [
+        "theme/*"
+      ],
+      "@/utils/*": [
+        "utils/*"
+      ],
+      "@/hooks/*": [
+        "hooks/*"
+      ]
+    },
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -37,6 +56,7 @@
     "lib/services/order.js",
     "pages/auth/signin.jsx"
   ],
-  "exclude": ["node_modules"],
-  "typeRoots": ["./typings", "./node_modules/@types"]
+  "exclude": [
+    "node_modules"
+  ]
 }
