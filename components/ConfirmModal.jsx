@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { RiErrorWarningLine } from 'react-icons/ri'
 import AdminModal, { ModalButton } from '@/components/ui/AdminModal'
 
@@ -16,9 +17,19 @@ function ConfirmModal({
   confirmLabel = 'Confirmer',
   tone = 'error',
 }) {
+  const [busy, setBusy] = useState(false)
   const close = () => {
+    if (busy) return
     cancelFuction()
     setOpen(false)
+  }
+  const confirm = async () => {
+    setBusy(true)
+    try {
+      await confirmFunction()
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -31,8 +42,8 @@ function ConfirmModal({
       title={title}
       footer={
         <>
-          <ModalButton onClick={close}>Annuler</ModalButton>
-          <ModalButton variant={tone === 'error' ? 'danger' : 'primary'} onClick={() => confirmFunction()}>
+          <ModalButton onClick={close} disabled={busy}>Annuler</ModalButton>
+          <ModalButton variant={tone === 'error' ? 'danger' : 'primary'} loading={busy} onClick={confirm}>
             {confirmLabel}
           </ModalButton>
         </>

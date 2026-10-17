@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   RiCalendarCheckLine,
   RiSearchLine,
@@ -48,10 +48,17 @@ function nightsBetween(checkIn, checkOut) {
 
 function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating, canProcess }) {
   const colors = useColors()
+  const lastAction = useRef(null)
   if (!booking) return null
 
   const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending
   const nights = nightsBetween(booking.checkInDate, booking.checkOutDate)
+  // Bouton cliqué (chargement affiché sur celui-ci uniquement)
+  const clicked = updating ? lastAction.current : null
+  const act = (status) => {
+    lastAction.current = status
+    onStatusChange(booking, status)
+  }
   const place = [booking.property?.location?.neighborhood, booking.property?.location?.municipality]
     .filter(Boolean)
     .join(', ')
@@ -83,11 +90,11 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating,
                 Appeler
               </ModalButton>
             )}
-            <ModalButton variant="danger" disabled={updating} onClick={() => onStatusChange(booking, 'cancelled')}>
+            <ModalButton variant="danger" disabled={updating} loading={clicked === 'cancelled'} onClick={() => act('cancelled')}>
               Refuser
             </ModalButton>
-            <ModalButton variant="primary" disabled={updating} onClick={() => onStatusChange(booking, 'confirmed')}>
-              {updating ? <Loader /> : 'Confirmer la réservation'}
+            <ModalButton variant="primary" disabled={updating} loading={clicked === 'confirmed'} onClick={() => act('confirmed')}>
+              Confirmer la réservation
             </ModalButton>
           </>
         ) : (

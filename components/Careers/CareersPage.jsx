@@ -11,7 +11,7 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
-import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection } from '@/components/ui/AdminModal'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice } from '@/components/ui/AdminModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import { firebaseDateFormat } from '@/utils/date'
 import {
@@ -101,27 +101,18 @@ function ApplicationDetailDrawer({ application, open, setOpen, onStatusChange, u
 
       {canProcess && (
         <ModalSection title="Statut de la candidature">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {STATUS_FILTERS.filter((f) => f.value !== 'all').map((f) => {
-              const active = application.status === f.value
-              return (
-                <button
-                  key={f.value}
-                  type="button"
-                  disabled={active || updating}
-                  onClick={() => onStatusChange(application, f.value)}
-                  className="rounded-lg border px-2 py-2 text-xs font-semibold transition-colors disabled:cursor-default"
-                  style={
-                    active
-                      ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
-                      : { borderColor: colors.gray200, color: colors.gray700, opacity: updating ? 0.6 : 1 }
-                  }
-                >
-                  {f.label}
-                </button>
-              )
-            })}
-          </div>
+          <StatusChoice
+            options={STATUS_FILTERS.filter((f) => f.value !== 'all')}
+            value={application.status || 'pending'}
+            onChange={(status) => onStatusChange(application, status)}
+            locked={application.status === 'hired' || application.status === 'rejected'}
+            lockedMessage={
+              application.status === 'hired'
+                ? 'Candidat embauché : le statut ne peut plus être modifié.'
+                : 'Candidature refusée : le statut ne peut plus être modifié.'
+            }
+            columns="grid-cols-2 sm:grid-cols-5"
+          />
         </ModalSection>
       )}
     </AdminModal>

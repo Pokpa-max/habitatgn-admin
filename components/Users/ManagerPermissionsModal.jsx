@@ -101,7 +101,7 @@ function ManagerPermissionsModal({ manager, open, setOpen, onSave }) {
             Tout cocher
           </button>
           <ModalButton onClick={() => setOpen(false)}>Annuler</ModalButton>
-          <ModalButton variant="primary" icon={RiCheckLine} disabled={saving} onClick={handleSave}>
+          <ModalButton variant="primary" icon={RiCheckLine} loading={saving} onClick={handleSave}>
             Enregistrer
           </ModalButton>
         </>

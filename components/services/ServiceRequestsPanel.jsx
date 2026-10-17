@@ -11,12 +11,15 @@ import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
 import StatusPill from '@/components/ui/StatusPill'
-import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice, whatsappUrl } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { REQUEST_STATUSES } from './statusConfig'
 import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
+
+// Statuts finaux : la demande ne peut plus changer d'état
+const FINAL_STATUSES = ['completed', 'cancelled']
 
 /** Date saisie « 2026-10-25 » -> « 25 oct. 2026 » ; autre valeur inchangée. */
 const readableValue = (value) => {
@@ -26,17 +29,10 @@ const readableValue = (value) => {
 }
 
 function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle }) {
-  const colors = useColors()
-  const [updating, setUpdating] = useState(false)
   if (!request) return null
 
   const currentStatus = request.status || 'pending'
   const statusMeta = REQUEST_STATUSES.find((s) => s.value === currentStatus) || REQUEST_STATUSES[0]
-  const change = async (status) => {
-    setUpdating(true)
-    await onStatusChange(request, status)
-    setUpdating(false)
-  }
 
   // Champs renseignés uniquement ; la description occupe toute la largeur
   const fields = detailFields
@@ -95,27 +91,17 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
 
       {canProcess && (
         <ModalSection title="Statut de la demande">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {REQUEST_STATUSES.map((s) => {
-              const active = currentStatus === s.value
-              return (
-                <button
-                  key={s.value}
-                  type="button"
-                  disabled={active || updating}
-                  onClick={() => change(s.value)}
-                  className="rounded-lg border px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-default"
-                  style={
-                    active
-                      ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#FFFFFF' }
-                      : { borderColor: colors.gray200, color: colors.gray700, opacity: updating ? 0.6 : 1 }
-                  }
-                >
-                  {s.label}
-                </button>
-              )
-            })}
-          </div>
+          <StatusChoice
+            options={REQUEST_STATUSES}
+            value={currentStatus}
+            onChange={(status) => onStatusChange(request, status)}
+            locked={FINAL_STATUSES.includes(currentStatus)}
+            lockedMessage={
+              currentStatus === 'completed'
+                ? 'Demande terminée : son statut ne peut plus être modifié.'
+                : 'Demande annulée : son statut ne peut plus être modifié.'
+            }
+          />
         </ModalSection>
       )}
     </AdminModal>
