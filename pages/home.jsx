@@ -13,9 +13,9 @@ import { RiArrowRightSLine, RiCheckboxCircleLine } from 'react-icons/ri'
 
 import {
   AuthAction,
-  useAuthUser,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  useUser,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 
 // Chaque compteur « à traiter » de NotificationsContext -> phrase + page.
@@ -76,7 +76,7 @@ function useProRenewals(enabled) {
 /** Accueil : ce qui attend une action, avant les statistiques. */
 function TodoPanel() {
   const colors = useColors()
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
   const notifications = useNotifications()
   const renewals = useProRenewals(AuthUser.claims?.userType === 'admin')
 
@@ -106,19 +106,19 @@ function TodoPanel() {
           <ul>
             {items.map((item) => (
               <li key={item.key} className="border-b last:border-b-0" style={{ borderColor: colors.gray100 }}>
-                <Link href={item.href}>
-                  <a className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
-                    <span
-                      className="flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-xs font-bold text-white"
-                      style={{ backgroundColor: colors.orangeAccent }}
-                    >
-                      {item.count > 99 ? '99+' : item.count}
-                    </span>
-                    <span className="flex-1 text-sm font-medium" style={{ color: colors.gray800 }}>
-                      {item.count > 1 ? item.many : item.one}
-                    </span>
-                    <RiArrowRightSLine className="h-5 w-5" style={{ color: colors.gray400 }} />
-                  </a>
+                <Link
+                  href={item.href}
+                  className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-gray-50">
+                  <span
+                    className="flex h-7 min-w-[28px] items-center justify-center rounded-full px-2 text-xs font-bold text-white"
+                    style={{ backgroundColor: colors.orangeAccent }}
+                  >
+                    {item.count > 99 ? '99+' : item.count}
+                  </span>
+                  <span className="flex-1 text-sm font-medium" style={{ color: colors.gray800 }}>
+                    {item.count > 1 ? item.many : item.one}
+                  </span>
+                  <RiArrowRightSLine className="h-5 w-5" style={{ color: colors.gray400 }} />
                 </Link>
               </li>
             ))}
@@ -126,7 +126,7 @@ function TodoPanel() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 function Home() {
@@ -144,13 +144,13 @@ const HomePage = () => (
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
 })(async () => {
   return {
     props: {},
   }
 })
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(HomePage)

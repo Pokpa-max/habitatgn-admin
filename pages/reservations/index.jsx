@@ -2,8 +2,8 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 import ReservationsPage from '@/components/Reservations/ReservationsPage'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
@@ -22,15 +22,15 @@ const ReservationsIndexPage = () => (
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
+})(async ({ user: AuthUser }) => {
   if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'reservations'))) {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(ReservationsIndexPage)

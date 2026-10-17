@@ -1,4 +1,4 @@
-import { useAuthUser } from 'next-firebase-auth'
+import { useUser } from 'next-firebase-auth'
 import React from 'react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -789,5 +789,5 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
         )}
       </DrawerForm>
     </>
-  )
+  );
 }

@@ -182,12 +182,10 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
       )
     }
     return (
-      <Link href={href}>
-        <a className={`${base} hover:opacity-90`} style={style}>
-          {content}
-        </a>
+      <Link href={href} className={`${base} hover:opacity-90`} style={style}>
+        {content}
       </Link>
-    )
+    );
   }
   return (
     <button type={type} form={form} onClick={onClick} disabled={disabled} className={`${base} hover:opacity-90`} style={style}>

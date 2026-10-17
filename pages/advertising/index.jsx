@@ -6,8 +6,8 @@ import {
 } from 'react-icons/ri'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 
 import Page from '@/components/Page'
@@ -67,15 +67,15 @@ const AdvertisingPage = () => (
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
+})(async ({ user: AuthUser }) => {
   if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'advertising'))) {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(AdvertisingPage)

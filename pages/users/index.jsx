@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { RiGroupLine, RiProfileLine, RiShieldStarLine } from 'react-icons/ri'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 
@@ -91,15 +91,15 @@ const UsersPage = () => (
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
+})(async ({ user: AuthUser }) => {
   if (AuthUser.claims.userType !== 'admin') {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(UsersPage)

@@ -1,8 +1,8 @@
 import Page from '@/components/Page'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -573,7 +573,7 @@ function SignIn() {
         </div>
       </div>
     </>
-  )
+  );
 }
 
 const SignInPage = () => (
@@ -583,11 +583,11 @@ const SignInPage = () => (
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenAuthed: AuthAction.REDIRECT_TO_APP,
 })()
 
-export default withAuthUser({
+export default withUser({
   whenAuthed: AuthAction.REDIRECT_TO_APP,
   whenAuthedBeforeRedirect: AuthAction.RENDER,
 })(SignInPage)

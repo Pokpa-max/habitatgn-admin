@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { doc, getDoc } from 'firebase/firestore'
-import { useAuthUser } from 'next-firebase-auth'
+import { useUser } from 'next-firebase-auth'
 import { db } from '@/lib/firebase/client_config'
 import { hasManagerAction } from '@/lib/constants/managerModules'
 
@@ -10,7 +10,7 @@ import { hasManagerAction } from '@/lib/constants/managerModules'
 // masquer les boutons, pas à sécuriser l'accès aux données (déjà fait par
 // les règles Firestore + la garde SSR au niveau du module entier).
 export function useCanManage(moduleKey, action) {
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
   const userType = AuthUser.claims?.userType
   const [permissions, setPermissions] = useState(undefined) // undefined = pas encore chargé
 

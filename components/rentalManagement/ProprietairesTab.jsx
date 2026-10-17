@@ -112,20 +112,21 @@ export default function ProprietairesTab() {
               const ownerProperties = propertiesOf(owner.id)
               const totalRent = ownerProperties.reduce((sum, p) => sum + (p.rentAmount || 0), 0)
               return (
-                <Link key={owner.id} href={`/gestion-locative/proprietaires/${owner.id}`}>
-                  <a className="flex items-center justify-between gap-4 py-4 hover:bg-gray-50">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-900">{owner.name}</p>
-                      <p className="text-sm text-gray-500">{owner.phone}</p>
-                      <p className="mt-1 text-xs text-gray-400">
-                        {ownerProperties.length} bien{ownerProperties.length !== 1 ? 's' : ''}
-                        {ownerProperties.length > 0 ? ` · ${formatGNF(totalRent)}/mois` : ''}
-                      </p>
-                    </div>
-                    <RiArrowRightSLine className="h-4 w-4 shrink-0" style={{ color: colors.gray400 }} />
-                  </a>
+                <Link
+                  key={owner.id}
+                  href={`/gestion-locative/proprietaires/${owner.id}`}
+                  className="flex items-center justify-between gap-4 py-4 hover:bg-gray-50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-900">{owner.name}</p>
+                    <p className="text-sm text-gray-500">{owner.phone}</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {ownerProperties.length} bien{ownerProperties.length !== 1 ? 's' : ''}
+                      {ownerProperties.length > 0 ? ` · ${formatGNF(totalRent)}/mois` : ''}
+                    </p>
+                  </div>
+                  <RiArrowRightSLine className="h-4 w-4 shrink-0" style={{ color: colors.gray400 }} />
                 </Link>
-              )
+              );
             })}
           </div>
         )}
@@ -214,5 +215,5 @@ export default function ProprietairesTab() {
         </div>
       </DrawerForm>
     </>
-  )
+  );
 }

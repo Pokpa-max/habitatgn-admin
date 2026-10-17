@@ -151,7 +151,7 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
         </ModalSection>
       )}
     </AdminModal>
-  )
+  );
 }
 
 export default function LeadsPage() {

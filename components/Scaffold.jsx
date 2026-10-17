@@ -22,7 +22,7 @@ import {
   RiLockPasswordLine,
 } from 'react-icons/ri'
 import Link from 'next/link'
-import { useAuthUser } from 'next-firebase-auth'
+import { useUser } from 'next-firebase-auth'
 import { useColors } from '../contexts/ColorContext'
 import { useRouter } from 'next/router'
 import { db } from '../lib/firebase/client_config'
@@ -76,23 +76,21 @@ function NavSections({ items, currentPath, onNavigate }) {
             {heading}
           </p>
         )}
-        <Link href={item.href}>
-          <a
-            className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${isActive ? 'nav-item-active' : ''}`}
-            onClick={onNavigate}
-          >
-            <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
-            <span className="flex-1 truncate text-[13px]">{item.name}</span>
-            {count > 0 && (
-              <span className="nav-badge min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold leading-none">
-                {count > 99 ? '99+' : count}
-              </span>
-            )}
-          </a>
+        <Link
+          href={item.href}
+          className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${isActive ? 'nav-item-active' : ''}`}
+          onClick={onNavigate}>
+          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+          <span className="flex-1 truncate text-[13px]">{item.name}</span>
+          {count > 0 && (
+            <span className="nav-badge min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold leading-none">
+              {count > 99 ? '99+' : count}
+            </span>
+          )}
         </Link>
       </Fragment>
-    )
-  })
+    );
+  });
 }
 
 // Nuances dérivées du navy de la charte (colors.navyDark), utilisées
@@ -113,7 +111,7 @@ export default function Scaffold({ children, title, subNav }) {
   // flag, canSeeNavItem masque tout le menu pendant ce court instant,
   // donnant l'impression que le menu "disparaît" avant la déconnexion.
   const [signingOut, setSigningOut] = useState(false)
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
   const router = useRouter()
   // Purement cosmétique (masque les items non autorisés) — la vraie barrière
   // est le check SSR par page (voir utils/firebase/checkManagerAccess.js).

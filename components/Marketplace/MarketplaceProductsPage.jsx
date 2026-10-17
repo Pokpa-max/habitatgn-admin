@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useAuthUser } from 'next-firebase-auth'
+import { useUser } from 'next-firebase-auth'
 import { Timestamp } from 'firebase/firestore'
 import {
   RiAddLine,
@@ -50,7 +50,7 @@ const PRODUCT_CATEGORIES = [
 
 export default function MarketplaceProductsPage() {
   const colors = useColors()
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
   const canProcess = useCanManage('marketplace', 'process')
   const canDelete = useCanManage('marketplace', 'delete')
   const [products, setProducts] = useState([])

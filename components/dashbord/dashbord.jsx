@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase/client_config'
-import { useAuthUser } from 'next-firebase-auth'
+import { useUser } from 'next-firebase-auth'
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
@@ -62,7 +62,7 @@ const MANAGER_TILES = [
 function ManagerDashboard() {
   const colors = useColors()
   const notifications = useNotifications()
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
   const [permissions, setPermissions] = useState(undefined)
 
   useEffect(() => {
@@ -103,33 +103,32 @@ function ManagerDashboard() {
           {tiles.map((tile) => {
             const count = tile.badgeKey ? notifications[tile.badgeKey] : undefined
             return (
-              <Link key={tile.module} href={tile.href}>
-                <a
-                  className="flex h-full flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-                  style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+              <Link
+                key={tile.module}
+                href={tile.href}
+                className="flex h-full flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}>
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: colors.primaryVeryLight }}
                 >
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: colors.primaryVeryLight }}
-                  >
-                    <tile.icon className="h-4 w-4" style={{ color: colors.primary }} />
-                  </div>
-                  <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
-                    {tile.label}
+                  <tile.icon className="h-4 w-4" style={{ color: colors.primary }} />
+                </div>
+                <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                  {tile.label}
+                </p>
+                {count !== undefined && (
+                  <p className="-mt-1.5 font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
+                    {count > 0 ? `${count} nouvelle${count > 1 ? 's' : ''}` : 'Aucune nouvelle'}
                   </p>
-                  {count !== undefined && (
-                    <p className="-mt-1.5 font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
-                      {count > 0 ? `${count} nouvelle${count > 1 ? 's' : ''}` : 'Aucune nouvelle'}
-                    </p>
-                  )}
-                </a>
+                )}
               </Link>
-            )
+            );
           })}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // Répartition du parc géré (occupé/vacant/inactif) — même donnée que
@@ -408,7 +407,7 @@ function RevenueChart({ onCurrentMonthRevenue }) {
 function DashboardCard() {
   const colors = useColors()
   const notifications = useNotifications()
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
 
   const [stats, setStats] = useState({
     agents: { approved: 0, pending: 0 },
@@ -590,14 +589,12 @@ function DashboardCard() {
       <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-900">Demandes de visite récentes</h2>
-          <Link href="/leads">
-            <a
-              className="flex items-center gap-1 text-xs font-semibold"
-              style={{ color: colors.primary }}
-            >
-              Voir tout
-              <RiArrowRightLine className="h-3.5 w-3.5" />
-            </a>
+          <Link
+            href="/leads"
+            className="flex items-center gap-1 text-xs font-semibold"
+            style={{ color: colors.primary }}>
+            Voir tout
+                          <RiArrowRightLine className="h-3.5 w-3.5" />
           </Link>
         </div>
 
@@ -660,14 +657,15 @@ function DashboardCard() {
                           <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
                         </td>
                         <td className="px-6 py-3">
-                          <Link href="/leads">
-                            <a className="text-xs font-bold" style={{ color: colors.primary }}>
+                          <Link
+                            href="/leads"
+                            className="text-xs font-bold"
+                            style={{ color: colors.primary }}>
                               Voir
-                            </a>
                           </Link>
                         </td>
                       </tr>
-                    )
+                    );
                   })}
                 </tbody>
               </table>
@@ -706,7 +704,7 @@ function DashboardCard() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default DashboardCard

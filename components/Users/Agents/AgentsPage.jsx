@@ -759,14 +759,12 @@ export default function AgentsPage() {
                                 {request.status === 'approved' &&
                                   request.userId && (
                                     <>
-                                      <Link href={`/agents/${request.userId}`}>
-                                        <a
-                                          onClick={() => setMenuOpenId(null)}
-                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                        >
-                                          <RiProfileLine className="h-4 w-4 text-gray-400" />
-                                          Voir détail et ses biens
-                                        </a>
+                                      <Link
+                                        href={`/agents/${request.userId}`}
+                                        onClick={() => setMenuOpenId(null)}
+                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50">
+
+                                        <RiProfileLine className="h-4 w-4 text-gray-400" />Voir détail et ses biens
                                       </Link>
                                       {canProcess && (
                                         <button
@@ -850,5 +848,5 @@ export default function AgentsPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

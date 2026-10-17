@@ -3,8 +3,8 @@ import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 import PartnersTab from '@/components/advertising/PartnersTab'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
@@ -24,15 +24,15 @@ const PartnersIndexPage = () => (
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
+})(async ({ user: AuthUser }) => {
   if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'partners'))) {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(PartnersIndexPage)
