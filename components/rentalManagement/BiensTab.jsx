@@ -44,6 +44,101 @@ const STATUS_CONFIG = {
 
 const PAGE_SIZE = 10
 
+const DETAIL_LABELS = {
+  bedrooms: 'Chambres',
+  bathrooms: 'Salles de bain',
+  floor: 'Étage',
+  condition: 'État du bien',
+  furnished: 'Meublé',
+  livingRooms: 'Salons',
+  selfContainedRooms: 'Chambres autonomes',
+  externalBathrooms: 'Douches extérieures',
+  kitchens: 'Cuisines',
+  maxGuests: 'Voyageurs maximum',
+  maxGuestsCount: 'Voyageurs maximum',
+  totalParcels: 'Nombre de parcelles',
+  parcelCount: 'Nombre de parcelles',
+  availableParcels: 'Parcelles disponibles',
+  areaPerParcel: 'Surface par parcelle',
+  parcelArea: 'Surface par parcelle',
+  pricePerParcel: 'Prix par parcelle',
+  hasLandTitle: 'Titre foncier',
+  landTitle: 'Titre foncier',
+  negotiable: 'Prix négociable',
+  deposit: 'Caution',
+  depositMonths: 'Mois de caution',
+  advanceMonths: "Mois d'avance",
+  agencyFeeMonths: "Mois de frais d'agence",
+  agencyFeePercent: "Frais d'agence",
+  notaryFeePercent: 'Frais de notaire',
+  minStay: 'Séjour minimum (nuits)',
+  maxStay: 'Séjour maximum (nuits)',
+  checkInHour: "Heure d'arrivée",
+  checkOutHour: 'Heure de départ',
+  rating: 'Note moyenne',
+  reviews: "Nombre d'avis",
+  weekly: 'Tarif semaine',
+  monthly: 'Tarif mois',
+  agencyName: "Nom de l'agence",
+  whatsapp: 'WhatsApp',
+  phone: 'Téléphone',
+  name: 'Nom du contact',
+  municipality: 'Commune',
+  neighborhood: 'Quartier',
+  landmark: 'Repère',
+  region: 'Région',
+}
+
+const formatDetailLabel = (key) =>
+  DETAIL_LABELS[key] ||
+  key
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, (letter) => letter.toUpperCase())
+
+const formatDetailValue = (value) => {
+  if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
+  if (Array.isArray(value)) {
+    return value.map((item) => formatDetailValue(item)).filter(Boolean).join(', ')
+  }
+  if (value && typeof value === 'object') {
+    if (value.label || value.name || value.value) {
+      return value.label || value.name || formatDetailValue(value.value)
+    }
+    return Object.entries(value)
+      .filter(([, item]) => item !== undefined && item !== null && item !== '')
+      .map(([key, item]) => `${formatDetailLabel(key)} : ${formatDetailValue(item)}`)
+      .join(' · ')
+  }
+  return value === undefined || value === null || value === '' ? '' : String(value)
+}
+
+function DetailFields({ fields }) {
+  const visibleFields = fields.filter((field) => field.value !== undefined && field.value !== null && field.value !== '')
+  if (!visibleFields.length) return null
+
+  return (
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+      {visibleFields.map(({ label, value }) => (
+        <div key={label} className="min-w-0">
+          <dt className="text-xs text-gray-500">{label}</dt>
+          <dd className="mt-0.5 break-words text-sm font-medium text-gray-900">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function DetailSection({ title, children }) {
+  if (!children) return null
+  return (
+    <section className="border-t border-gray-100 pt-4">
+      <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-gray-500">{title}</h3>
+      {children}
+    </section>
+  )
+}
+
 // Si ownerId est fourni, la liste est restreinte aux biens de ce propriétaire
 // et le formulaire d'ajout/édition lui verrouille automatiquement le propriétaire.
 export default function BiensTab({ ownerId, onPropertiesChange }) {
@@ -59,7 +154,6 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [search, setSearch] = useState('')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [detailProperty, setDetailProperty] = useState(null)
-  const [showDeleteLink, setShowDeleteLink] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [menuAnchor, setMenuAnchor] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -125,7 +219,6 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }
 
   const openDetail = (property) => {
-    setShowDeleteLink(false)
     setDeleteConfirm(null)
     setDetailProperty(property)
   }
@@ -480,8 +573,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
 
   return (
     <>
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-white pb-3">
+      <div className="rounded-xl bg-white p-3 shadow-sm sm:p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 bg-white pb-3 sm:mb-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Biens gérés</h2>
             <p className="mt-1 text-sm text-gray-500">
@@ -490,18 +583,18 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
               {properties.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un bien..."
-              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary sm:w-56"
             />
             {canProcess && (
               <button
                 onClick={openAdd}
-                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+                className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md sm:w-auto"
                 style={{ backgroundColor: colors.primary }}
               >
                 <RiAddLine className="h-4 w-4" />
@@ -649,8 +742,70 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+            <div className="divide-y divide-gray-200 lg:hidden">
+              {visible.map((property) => {
+                const statusCfg = STATUS_CONFIG[property.status] || STATUS_CONFIG.vacant
+                const typeLabel = typeof property.type === 'string'
+                  ? property.type
+                  : property.type?.property || property.type?.transaction || 'Bien'
+                return (
+                  <article key={property.id} className="p-3 sm:p-4">
+                    <div className="flex items-start gap-3">
+                      {(canProcess || canDelete) && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(property.id)}
+                          onChange={() => toggleSelect(property.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          aria-label={`Sélectionner le bien ${property.reference || ''}`}
+                          className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openDetail(property)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <span className="block break-words text-sm font-semibold text-gray-900">
+                          {property.reference || 'Bien sans référence'}
+                        </span>
+                        <span className="mt-1 block break-words text-xs text-gray-600">
+                          {property.address}{property.city ? `, ${property.city}` : ''}
+                          {property.unitLabel ? ` · ${property.unitLabel}` : ''}
+                        </span>
+                        <span className="mt-1 block text-xs text-gray-400">
+                          {typeLabel}{property.surface ? ` · ${property.surface} m²` : ''}{property.nbRooms ? ` · ${property.nbRooms} pièces` : ''}
+                        </span>
+                      </button>
+                      {property.imageUrl ? (
+                        <img src={property.imageUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                      ) : null}
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 pl-7">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
+                        <span className="font-mono text-xs font-semibold" style={{ color: colors.primary }}>
+                          {formatGNF(property.rentAmount)}
+                        </span>
+                      </div>
+                      <div data-menu-root>
+                        <button
+                          type="button"
+                          onClick={(event) => openMenu(event, property.id)}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500"
+                          aria-label={`Actions pour ${property.reference || 'ce bien'}`}
+                        >
+                          <RiMore2Fill className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full min-w-[680px] text-left text-sm">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     <th className="w-8 py-3 pl-4 pr-2">
@@ -699,26 +854,35 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                             />
                           )}
                         </td>
-                        <td className="hidden px-6 py-3 lg:table-cell">
+                        <td className="hidden px-4 py-2 lg:table-cell">
                           {mainImage ? (
-                            <img
-                              src={mainImage}
-                              alt={property.reference || 'Bien'}
-                              className="shadow-xs h-12 w-16 rounded-lg border border-gray-200 object-cover"
-                            />
+                            <div
+                              className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-gray-200 shadow-sm"
+                              style={{ width: 56, height: 56 }}
+                            >
+                              <img
+                                src={mainImage}
+                                alt={property.reference || 'Bien'}
+                                className="h-full w-full object-cover"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
                           ) : (
-                            <div className="flex h-12 w-16 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                            <div
+                              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400"
+                              style={{ width: 56, height: 56 }}
+                            >
                               <RiHome4Line className="h-6 w-6" />
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-3 font-semibold text-gray-900">
+                        <td className="px-4 py-2 font-semibold text-gray-900">
                           {property.reference}
                         </td>
-                        <td className="px-6 py-3 text-gray-700">
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-semibold text-gray-900">
+                        <td className="max-w-[360px] px-4 py-2 text-gray-700">
+                          <div className="max-w-[360px] min-w-0 space-y-0.5">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="truncate font-semibold text-gray-900">
                                 {property.address}
                                 {property.city ? `, ${property.city}` : ''}
                               </span>
@@ -734,33 +898,38 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500">
-                              {typeof property.type === 'string'
-                                ? property.type
-                                : String(
-                                    property.type?.property ||
-                                      property.type?.transaction ||
-                                      'Bien'
-                                  )}
-                            </p>
-                            <div className="flex flex-wrap gap-3 text-[11px] text-gray-400">
+                            <div className="flex min-w-0 items-center gap-2 truncate text-[11px] text-gray-500">
+                              <span className="shrink-0">
+                                {typeof property.type === 'string'
+                                  ? property.type
+                                  : String(
+                                      property.type?.property ||
+                                        property.type?.transaction ||
+                                        'Bien'
+                                    )}
+                              </span>
                               {property.surface ? (
-                                <span>{property.surface} m²</span>
+                                <span className="shrink-0">{property.surface} m²</span>
                               ) : null}
                               {property.nbRooms ? (
-                                <span>
+                                <span className="shrink-0">
                                   {property.nbRooms} pièce
                                   {property.nbRooms > 1 ? 's' : ''}
                                 </span>
                               ) : null}
-                              {property.reference ? (
-                                <span>Réf: {property.reference}</span>
-                              ) : null}
                             </div>
+                            {property.description && (
+                              <p
+                                className="truncate text-xs text-gray-400"
+                                title={property.description}
+                              >
+                                {property.description}
+                              </p>
+                            )}
                           </div>
                         </td>
                         {!ownerId && (
-                          <td className="px-6 py-3 text-gray-700">
+                          <td className="px-4 py-2 text-gray-700">
                             {owner?.name || '—'}
                             <p className="font-mono text-xs text-gray-400">
                               {owner?.phone}
@@ -768,15 +937,15 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           </td>
                         )}
                         <td
-                          className="whitespace-nowrap px-6 py-4 font-mono font-semibold"
+                          className="whitespace-nowrap px-4 py-2 font-mono font-semibold"
                           style={{ color: colors.primary }}
                         >
                           {formatGNF(property.rentAmount)}
                         </td>
-                        <td className="px-6 py-3">
+                        <td className="px-4 py-2">
                           <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                         </td>
-                        <td className="hidden px-6 py-3 lg:table-cell">
+                        <td className="hidden px-4 py-2 lg:table-cell">
                           {isCurrentlyBoosted(property) ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
@@ -790,7 +959,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           )}
                         </td>
                         <td
-                          className="px-6 py-4 text-right"
+                          className="px-4 py-2 text-right"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex justify-end" data-menu-root>
@@ -810,10 +979,13 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filtered.length && (
-              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-            )}
           </div>
+        )}
+        {!isLoading && filtered.length > 0 && visibleCount < filtered.length && (
+          <PaginationButton
+            className="!mt-3"
+            getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
+          />
         )}
       </div>
 
@@ -836,7 +1008,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             <RiEyeLine className="h-4 w-4 text-gray-400" />
-            Voir détails et photos
+            Voir les détails
           </button>
           {canProcess && (
             <button
@@ -971,7 +1143,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       <SimpleDrawer
         open={!!detailProperty}
         setOpen={(open) => !open && setDetailProperty(null)}
-        title={detailProperty?.reference}
+        title={detailProperty?.title || detailProperty?.reference}
         description={
           detailProperty
             ? `${detailProperty.address}${
@@ -1033,10 +1205,175 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                 STATUS_CONFIG[detailProperty.status] || STATUS_CONFIG.vacant
               const owner = ownerById(detailProperty.ownerId)
               const mainImage = detailProperty.imageUrl
+              const isLand = detailProperty._collection === 'lands'
+              const isDailyRental = detailProperty._collection === 'daily_rentals'
+              const location = detailProperty.location || {}
+              const features = detailProperty.features || {}
+              const priceInfo =
+                detailProperty.price && typeof detailProperty.price === 'object'
+                  ? detailProperty.price
+                  : {}
+              const rawPrice =
+                priceInfo.amount ??
+                (typeof detailProperty.price === 'number' || typeof detailProperty.price === 'string'
+                  ? detailProperty.price
+                  : detailProperty.rentAmount)
+              const priceAmount = Number(rawPrice) || 0
+              const currency = priceInfo.currency || detailProperty.currency || 'GNF'
+              const pricePeriod = priceInfo.period || detailProperty.period
+              const transaction = detailProperty.type?.transaction || detailProperty.transactionType
+              const isSale = transaction === 'sale'
+              const propertyType =
+                detailProperty.type?.property || detailProperty.propertyType ||
+                (typeof detailProperty.type === 'string' ? detailProperty.type : '')
+              const transactionLabels = {
+                rent: 'Location',
+                sale: 'Vente',
+                daily_rent: 'Location journalière',
+                bail: 'Bail',
+              }
+              const periodLabels = {
+                monthly: 'par mois',
+                mensuel: 'par mois',
+                yearly: 'par an',
+                annuel: 'par an',
+                nightly: 'par nuit',
+                daily: 'par jour',
+                weekly: 'par semaine',
+                total: 'prix total',
+              }
+              const formattedAmount = priceAmount
+                ? `${Number(priceAmount).toLocaleString('fr-FR')} ${currency}`
+                : 'Prix sur demande'
               const gallery = Array.isArray(detailProperty.images)
                 ? detailProperty.images
                 : detailProperty.images?.gallery ||
                   (Array.isArray(detailProperty.imageUrls) ? detailProperty.imageUrls : [])
+              const uniqueGallery = Array.from(new Set([mainImage, ...gallery].filter(Boolean)))
+              const addField = (fields, label, value, suffix = '') => {
+                if (value === undefined || value === null || value === '') return
+                fields.push({ label, value: `${formatDetailValue(value)}${suffix}` })
+              }
+
+              const featureFields = []
+              addField(featureFields, 'Surface', features.area ?? detailProperty.surface, ' m²')
+              addField(
+                featureFields,
+                'Chambres',
+                features.bedrooms ?? detailProperty.bedrooms
+              )
+              addField(featureFields, 'Salles de bain', features.bathrooms ?? detailProperty.bathrooms)
+              if (features.bedrooms === undefined && detailProperty.bedrooms === undefined && detailProperty.nbRooms) {
+                addField(featureFields, 'Pièces', detailProperty.nbRooms)
+              }
+              addField(featureFields, 'Étage', features.floor ?? detailProperty.floor)
+              addField(featureFields, 'État du bien', features.condition ?? detailProperty.condition)
+              const furnished = features.furnished ?? detailProperty.furnished
+              if (furnished !== undefined) addField(featureFields, 'Meublé', furnished)
+              addField(
+                featureFields,
+                'Voyageurs maximum',
+                detailProperty.maxGuests ?? detailProperty.maxGuestsCount ?? detailProperty.capacity
+              )
+              addField(featureFields, 'Note moyenne', detailProperty.rating, ' / 5')
+              addField(featureFields, "Nombre d'avis", detailProperty.reviews)
+              const standardFeatureKeys = new Set([
+                'area', 'bedrooms', 'bathrooms', 'floor', 'condition', 'furnished', 'amenities',
+              ])
+              Object.entries(features)
+                .filter(([key, value]) => !standardFeatureKeys.has(key) && value !== undefined && value !== null && value !== '' && value !== 0 && value !== false)
+                .forEach(([key, value]) => addField(featureFields, formatDetailLabel(key), value))
+
+              const priceFields = []
+              addField(priceFields, isDailyRental ? 'Tarif par nuit' : isSale ? 'Prix de vente' : isLand ? 'Prix du terrain' : 'Loyer', formattedAmount)
+              addField(priceFields, 'Devise', currency)
+              addField(priceFields, 'Période', periodLabels[pricePeriod] || pricePeriod)
+              const negotiable = priceInfo.negotiable ?? priceInfo.isNegotiable ?? detailProperty.negociable
+              if (isDailyRental) {
+                addField(priceFields, 'Caution de séjour', priceInfo.deposit ?? detailProperty.deposit, ` ${currency}`)
+                addField(priceFields, 'Tarif semaine', detailProperty.additionalRates?.weekly, ` ${currency}`)
+                addField(priceFields, 'Tarif mois', detailProperty.additionalRates?.monthly, ` ${currency}`)
+              } else if (isSale) {
+                addField(priceFields, 'Négociation', negotiable ? 'Prix négociable' : 'Prix fixe')
+                addField(priceFields, "Frais d'agence (%)", priceInfo.agencyFeePercent ?? 5, '%')
+                addField(priceFields, 'Notaire et enregistrement (%)', priceInfo.notaryFeePercent ?? 5, '%')
+              } else {
+                const deposit = Number(priceInfo.deposit ?? detailProperty.deposit) || 0
+                addField(priceFields, "Loyer d'avance", priceInfo.advanceMonths ?? 3, ' mois')
+                addField(
+                  priceFields,
+                  'Caution',
+                  deposit > 12
+                    ? `${deposit.toLocaleString('fr-FR')} ${currency}`
+                    : `${deposit || priceInfo.depositMonths || 2} mois`
+                )
+                addField(priceFields, "Frais d'agence", priceInfo.agencyFeeMonths ?? 1, ' mois')
+                addField(priceFields, 'Négociation', negotiable ? 'Oui' : 'Non')
+              }
+              if (isLand && isSale && priceAmount > 0 && Number(features.area || detailProperty.surface) > 0) {
+                const area = Number(features.area || detailProperty.surface)
+                addField(priceFields, 'Prix par m²', `${Math.round(priceAmount / area).toLocaleString('fr-FR')} ${currency}/m²`)
+              }
+
+              const locationFields = []
+              addField(locationFields, 'Adresse', detailProperty.address)
+              addField(locationFields, 'Quartier', location.neighborhood)
+              addField(locationFields, 'Commune', location.municipality)
+              addField(locationFields, 'Région', location.region || detailProperty.city || detailProperty.commune)
+              addField(locationFields, 'Repère', location.landmark)
+
+              const contact = detailProperty.contact || {}
+              const contactFields = []
+              addField(contactFields, "Agence", contact.agencyName || detailProperty.agencyName)
+              addField(contactFields, 'Contact', contact.name || detailProperty.contactName)
+              addField(contactFields, 'Téléphone', contact.phone || detailProperty.contactPhone)
+              addField(contactFields, 'WhatsApp', contact.whatsapp || detailProperty.contactWhatsapp)
+              addField(contactFields, 'Email', contact.email || detailProperty.contactEmail)
+              if (!ownerId && owner) {
+                addField(contactFields, 'Propriétaire', owner.name)
+                addField(contactFields, 'Téléphone du propriétaire', owner.phone)
+              }
+
+              const stayFields = []
+              if (isDailyRental) {
+                addField(stayFields, 'Séjour minimum (nuits)', detailProperty.minStay)
+                addField(stayFields, 'Séjour maximum (nuits)', detailProperty.maxStay)
+                const formatHour = (hour) =>
+                  hour === undefined || hour === null || hour === ''
+                    ? undefined
+                    : typeof hour === 'string' && hour.includes(':')
+                      ? hour
+                      : `${String(hour).padStart(2, '0')}:00`
+                addField(stayFields, "Heure d'arrivée", formatHour(detailProperty.checkInHour))
+                addField(stayFields, 'Heure de départ', formatHour(detailProperty.checkOutHour))
+              }
+
+              const landFields = []
+              if (isLand) {
+                addField(landFields, 'Titre foncier', detailProperty.hasLandTitle ?? detailProperty.documents?.hasLandTitle ?? detailProperty.documents?.landTitle)
+                addField(landFields, 'Préfinancement', detailProperty.prefinancing?.enabled ?? detailProperty.prefinancing)
+                Object.entries(detailProperty.parcelInfo || {})
+                  .filter(([key, value]) => key !== 'isParcelled' && value !== undefined && value !== null && value !== '')
+                  .forEach(([key, value]) => addField(landFields, formatDetailLabel(key), value))
+                Object.entries(detailProperty.documents || {})
+                  .filter(([key, value]) => !['hasLandTitle', 'landTitle'].includes(key) && value !== undefined && value !== null && value !== '')
+                  .forEach(([key, value]) => addField(landFields, formatDetailLabel(key), value))
+                Object.entries(typeof detailProperty.prefinancing === 'object' ? detailProperty.prefinancing : {})
+                  .filter(([key, value]) => key !== 'enabled' && value !== undefined && value !== null && value !== '')
+                  .forEach(([key, value]) => addField(landFields, formatDetailLabel(key), value))
+              }
+
+              const rawAmenities =
+                detailProperty.amenities ?? features.amenities ?? detailProperty.commodites ?? detailProperty.equipements ?? []
+              const amenities = Array.isArray(rawAmenities)
+                ? rawAmenities
+                : rawAmenities && typeof rawAmenities === 'object'
+                  ? Object.entries(rawAmenities).filter(([, enabled]) => Boolean(enabled)).map(([key]) => key)
+                  : []
+              const amenityLabels = Array.from(new Set(amenities.map((item) => {
+                if (typeof item === 'object') return item.label || item.name || item.value || item.key || item.id
+                return item
+              }).filter(Boolean)))
 
               return (
                 <>
@@ -1047,9 +1384,9 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         alt={detailProperty.reference || 'Bien'}
                         className="h-52 w-full object-cover"
                       />
-                      {Array.isArray(gallery) && gallery.length > 1 && (
+                      {uniqueGallery.length > 1 && (
                         <div className="flex gap-2 overflow-x-auto border-t border-gray-100 bg-gray-50 p-2">
-                          {gallery.map((img, idx) => (
+                          {uniqueGallery.map((img, idx) => (
                             <img
                               key={idx}
                               src={img}
@@ -1062,17 +1399,11 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
-                    <span className="text-xs text-gray-500">
-                      {typeof detailProperty.type === 'string'
-                        ? detailProperty.type
-                        : String(
-                            detailProperty.type?.property ||
-                              detailProperty.type?.transaction ||
-                              'Bien'
-                          )}
-                    </span>
+                    {propertyType && <span className="text-xs text-gray-500">{formatDetailValue(propertyType)}</span>}
+                    {transaction && <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{transactionLabels[transaction] || transaction}</span>}
+                    {detailProperty.verified && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">Vérifié</span>}
                     {detailProperty.unitLabel && (
                       <span
                         className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
@@ -1086,104 +1417,71 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Surface
-                      </p>
-                      <p className="text-gray-900">
-                        {detailProperty.surface
-                          ? `${detailProperty.surface} m²`
-                          : '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Pièces
-                      </p>
-                      <p className="text-gray-900">
-                        {detailProperty.nbRooms || '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Loyer mensuel
-                      </p>
-                      <p
-                        className="font-mono font-semibold"
-                        style={{ color: colors.primary }}
-                      >
-                        {formatGNF(detailProperty.rentAmount)}
-                      </p>
-                    </div>
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {isDailyRental ? 'Prix par nuit' : transaction === 'sale' ? 'Prix de vente' : isLand ? 'Prix du terrain' : 'Prix affiché'}
+                    </p>
+                    <p className="mt-1 text-xl font-bold tracking-tight" style={{ color: colors.primary }}>
+                      {formattedAmount}{pricePeriod ? ` · ${periodLabels[pricePeriod] || pricePeriod}` : ''}
+                    </p>
+                    {negotiable && <p className="mt-1 text-xs font-semibold text-gray-600">Prix négociable</p>}
                   </div>
+
+                  {featureFields.length > 0 && <DetailSection title="Caractéristiques">
+                    <DetailFields fields={featureFields} />
+                  </DetailSection>}
+
+                  {locationFields.length > 0 && <DetailSection title="Localisation">
+                    <DetailFields fields={locationFields} />
+                  </DetailSection>}
+
+                  {amenityLabels.length > 0 && (
+                    <DetailSection title="Équipements et commodités">
+                      <div className="flex flex-wrap gap-2">
+                        {amenityLabels.map((label) => (
+                          <span key={label} className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">{label}</span>
+                        ))}
+                      </div>
+                    </DetailSection>
+                  )}
 
                   {detailProperty.description && (
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Description
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        {detailProperty.description}
-                      </p>
-                    </div>
+                    <DetailSection title="Description">
+                      <p className="whitespace-pre-line text-sm leading-relaxed text-gray-700">{detailProperty.description}</p>
+                    </DetailSection>
                   )}
 
-                  {!ownerId && owner && (
-                    <div className="border-t border-gray-100 pt-4">
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Propriétaire
-                      </p>
-                      <p className="text-sm text-gray-900">{owner.name}</p>
-                      <p className="text-sm text-gray-500">{owner.phone}</p>
-                    </div>
+                  {priceFields.length > 0 && <DetailSection title="Conditions financières">
+                    <DetailFields fields={priceFields} />
+                  </DetailSection>}
+
+                  {stayFields.length > 0 && (
+                    <DetailSection title="Conditions du séjour">
+                      <DetailFields fields={stayFields} />
+                    </DetailSection>
                   )}
 
-                  {detailProperty.createdAt && (
-                    <p className="text-xs text-gray-400">
-                      Ajouté le {firebaseDateFormat(detailProperty.createdAt)}
-                    </p>
+                  {landFields.length > 0 && (
+                    <DetailSection title="Informations sur le terrain">
+                      <DetailFields fields={landFields} />
+                    </DetailSection>
                   )}
 
-                  {canDelete && (
-                  <div className="border-t border-gray-100 pt-4">
-                    {deleteConfirm === detailProperty.id ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          Confirmer la suppression ?
-                        </span>
-                        <button
-                          onClick={() => handleDelete(detailProperty)}
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-                          style={{ backgroundColor: colors.error }}
-                        >
-                          Oui, supprimer
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                        >
-                          Non
-                        </button>
-                      </div>
-                    ) : showDeleteLink ? (
-                      <button
-                        onClick={() => setDeleteConfirm(detailProperty.id)}
-                        className="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-red-500"
-                      >
-                        <RiDeleteBinLine className="h-3.5 w-3.5" />
-                        Supprimer ce bien
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setShowDeleteLink(true)}
-                        className="text-xs font-medium text-gray-300 hover:text-gray-500"
-                      >
-                        Options avancées
-                      </button>
-                    )}
-                  </div>
+                  {contactFields.length > 0 && (
+                    <DetailSection title="Contact de l'annonce">
+                      <DetailFields fields={contactFields} />
+                    </DetailSection>
                   )}
+
+                  {(detailProperty.createdAt || detailProperty.updatedAt) && (
+                    <DetailSection title="Publication">
+                      <DetailFields fields={[
+                        detailProperty.createdAt && { label: 'Publié le', value: firebaseDateFormat(detailProperty.createdAt) },
+                        detailProperty.updatedAt && { label: 'Mis à jour le', value: firebaseDateFormat(detailProperty.updatedAt) },
+                      ].filter(Boolean)} />
+                    </DetailSection>
+                  )}
+
                 </>
               )
             })()}

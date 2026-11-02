@@ -19,6 +19,7 @@ import {
   updateCareerApplicationStatus,
 } from '@/lib/services/careerApplications'
 import { useCanManage } from '@/hooks/useCanManage'
+import CareerPostingsPanel from '@/components/Careers/CareerPostingsPanel'
 
 const PAGE_SIZE = 10
 
@@ -134,6 +135,7 @@ export default function CareersPage() {
   // Sélection multiple / actions groupées
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkActing, setBulkActing] = useState(false)
+  const [activeSection, setActiveSection] = useState('applications')
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
@@ -231,6 +233,31 @@ export default function CareersPage() {
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1.5" role="tablist" aria-label="Gestion des carrières">
+        {[
+          { id: 'applications', label: 'Candidatures' },
+          { id: 'postings', label: 'Offres d’emploi' },
+        ].map((section) => {
+          const active = activeSection === section.id
+          return (
+            <button
+              key={section.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setActiveSection(section.id)}
+              className={`shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+            >
+              {section.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {activeSection === 'postings' ? (
+        <CareerPostingsPanel canManage={canProcess} />
+      ) : (
+        <>
       <ApplicationDetailDrawer
         application={detailApplication}
         open={detailOpen}
@@ -338,7 +365,7 @@ export default function CareersPage() {
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[680px]">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     <th scope="col" className="w-8 px-4 py-2.5">
@@ -426,6 +453,8 @@ export default function CareersPage() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   )
 }

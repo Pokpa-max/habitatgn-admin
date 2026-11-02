@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import {
   RiArrowLeftLine,
@@ -8,6 +8,7 @@ import {
   RiMoneyDollarCircleLine,
   RiHome4Line,
   RiCheckboxCircleLine,
+  RiStarFill,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -56,9 +57,9 @@ const PROPERTY_TYPE_LABELS = {
 function AgentDetail() {
   const colors = useColors()
 
-  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
+  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor, className = '' }) => (
     <div
-      className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      className={`flex min-w-0 flex-col gap-2 rounded-xl p-3 shadow-sm sm:gap-2.5 sm:p-4 ${className}`}
       style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
     >
       <div
@@ -70,7 +71,7 @@ function AgentDetail() {
       <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
         {label}
       </p>
-      <p className="font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
+      <p className="break-words font-mono text-lg font-semibold tracking-tight sm:text-xl" style={{ color: colors.gray900 }}>
         {value}
       </p>
     </div>
@@ -86,11 +87,17 @@ function AgentDetail() {
   const [payments, setPayments] = useState([])
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [reviewSummary, setReviewSummary] = useState(null)
+
+  const handleReviewSummaryChange = useCallback((summary) => {
+    setReviewSummary(summary)
+  }, [])
 
   useEffect(() => {
     if (!agentId) return
     const load = async () => {
       setIsLoading(true)
+      setReviewSummary(null)
       try {
         const [profile, available] = await Promise.all([
           getAgentRequestByUserId(agentId),
@@ -173,7 +180,7 @@ function AgentDetail() {
 
   return (
     <Scaffold>
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto min-w-0 max-w-6xl py-4 sm:py-6">
         <button
           onClick={() => router.back()}
           className="mb-4 flex items-center text-sm text-gray-600 hover:text-gray-900"
@@ -209,10 +216,10 @@ function AgentDetail() {
         ) : (
           <>
             {/* Profil de l'agent */}
-            <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
+            <div className="mb-4 rounded-xl bg-white p-4 shadow-sm sm:mb-6 sm:p-6">
+              <div className="flex min-w-0 flex-col items-start justify-between gap-4 sm:flex-row">
+                <div className="min-w-0 w-full">
+                  <h1 className="break-words text-xl font-bold text-gray-900 sm:text-2xl">
                     {agent?.fullName || 'Agent'}
                   </h1>
                   <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
@@ -220,23 +227,44 @@ function AgentDetail() {
                       ? `Agence — ${agent?.agencyName || ''}`
                       : 'Particulier'}
                   </p>
-                  <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                  <div className="mt-3 grid min-w-0 gap-2 text-sm text-gray-600 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
                     {agent?.email && (
-                      <span className="flex items-center gap-1.5">
-                        <RiMailLine className="h-4 w-4 text-gray-400" /> {agent.email}
-                      </span>
+                      <a href={`mailto:${agent.email}`} className="flex min-w-0 items-start gap-1.5 break-all">
+                        <RiMailLine className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" /> <span>{agent.email}</span>
+                      </a>
                     )}
                     {agent?.phone && (
-                      <span className="flex items-center gap-1.5">
-                        <RiPhoneLine className="h-4 w-4 text-gray-400" /> {agent.phone}
-                      </span>
+                      <a href={`tel:${agent.phone}`} className="flex min-w-0 items-center gap-1.5 break-all">
+                        <RiPhoneLine className="h-4 w-4 shrink-0 text-gray-400" /> <span>{agent.phone}</span>
+                      </a>
                     )}
                     {agent?.commune && (
-                      <span className="flex items-center gap-1.5 capitalize">
-                        <RiMapPinLine className="h-4 w-4 text-gray-400" /> {agent.commune}
+                      <span className="flex min-w-0 items-center gap-1.5 capitalize">
+                        <RiMapPinLine className="h-4 w-4 shrink-0 text-gray-400" /> <span className="break-words">{agent.commune}</span>
                       </span>
                     )}
                   </div>
+                  {reviewSummary && !reviewSummary.loading && (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                      <RiStarFill className="h-4 w-4" style={{ color: colors.orangeAccent }} />
+                      {reviewSummary.count > 0 ? (
+                        <>
+                          <span className="font-semibold text-gray-900">
+                            {reviewSummary.average.toLocaleString('fr-FR', {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                            })}{' '}
+                            / 5
+                          </span>
+                          <span className="text-gray-500">
+                            · {reviewSummary.count} avis client{reviewSummary.count > 1 ? 's' : ''}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-gray-500">Aucun avis client</span>
+                      )}
+                    </div>
+                  )}
                   {agent?.propertyTypes?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {agent.propertyTypes.map((t) => (
@@ -250,7 +278,7 @@ function AgentDetail() {
 
                 <button
                   onClick={() => setBlockModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700"
+                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700"
                 >
                   <span
                     className="h-1.5 w-1.5 rounded-full"
@@ -260,7 +288,7 @@ function AgentDetail() {
                 </button>
               </div>
 
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3 sm:gap-4">
                 <StatCard
                   icon={RiHome4Line}
                   label="Biens gérés"
@@ -281,19 +309,20 @@ function AgentDetail() {
                   value={formatGNF(totalRent)}
                   iconBg={colors.gray50}
                   iconColor={colors.gray600}
+                  className="col-span-2 sm:col-span-1"
                 />
               </div>
             </div>
 
             {/* Abonnement */}
             {agent?.status === 'approved' && paymentStatus && (
-              <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
+              <div className="mb-4 rounded-xl bg-white p-4 shadow-sm sm:mb-6 sm:p-6">
+                <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:flex-wrap">
+                  <div className="min-w-0">
                     <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
                       Abonnement
                     </h2>
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
                       <span
                         className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
                         style={{
@@ -303,7 +332,7 @@ function AgentDetail() {
                       >
                         {PAYMENT_STATUS_CONFIG[paymentStatus.status].label}
                       </span>
-                      <p className="text-xs text-gray-500">
+                      <p className="break-words text-xs text-gray-500">
                         {paymentStatus.status === 'trial'
                           ? `Essai gratuit jusqu'au ${firebaseDateFormat(paymentStatus.trialEndAt)}`
                           : paymentStatus.nextDueAt
@@ -314,7 +343,7 @@ function AgentDetail() {
                   </div>
                   <button
                     onClick={() => setPaymentModalOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px sm:w-auto"
                     style={{ backgroundColor: colors.primary }}
                   >
                     <RiMoneyDollarCircleLine className="h-4 w-4" />
@@ -329,7 +358,7 @@ function AgentDetail() {
                   {payments.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                       {payments.map((p) => (
-                        <div key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+                        <div key={p.id} className="flex flex-col gap-1 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
                           <span className="text-gray-600">
                             {firebaseDateFormat(p.paidAt)}
                             {p.monthsCovered > 1 && (
@@ -353,7 +382,10 @@ function AgentDetail() {
             <BiensTab ownerId={agentId} onPropertiesChange={setProperties} />
 
             {/* Avis vérifiés laissés sur le site public */}
-            <AgentReviewsPanel agentId={agentId} />
+            <AgentReviewsPanel
+              agentId={agentId}
+              onSummaryChange={handleReviewSummaryChange}
+            />
           </>
         )}
       </div>

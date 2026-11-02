@@ -147,7 +147,7 @@ export default function OccupationTab({ ownerId }) {
 
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Détail par bien</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[680px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                   <th className="py-2 pr-4">Bien</th>

@@ -203,7 +203,7 @@ export default function BauxTab({ ownerId }) {
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[680px] text-left text-sm">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Bien</th>

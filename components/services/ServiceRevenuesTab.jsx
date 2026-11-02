@@ -436,7 +436,7 @@ export default function ServiceRevenuesTab() {
             ) : (
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[680px]">
                     <thead style={{ backgroundColor: colors.gray50 }}>
                       <tr>
                         {[

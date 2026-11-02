@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { Dialog, Transition } from '@headlessui/react'
-import { RiCloseLine, RiLockLine } from 'react-icons/ri'
+import { RiCheckLine, RiCloseLine, RiLockLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 
 /**
@@ -57,9 +57,9 @@ export default function AdminModal({
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
               <Dialog.Panel
-                className={`w-full transform overflow-hidden rounded-t-2xl bg-white text-left shadow-2xl transition-all sm:rounded-2xl ${SIZES[size] || SIZES.md}`}
+                className={`max-h-[92dvh] w-full transform overflow-hidden rounded-t-2xl bg-white text-left shadow-2xl transition-all sm:rounded-2xl ${SIZES[size] || SIZES.md}`}
               >
-                <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
+                <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
                   <div className="flex min-w-0 items-start gap-3">
                     {Icon && (
                       <span
@@ -93,10 +93,10 @@ export default function AdminModal({
                   )}
                 </div>
 
-                {children && <div className="max-h-[65vh] space-y-6 overflow-y-auto px-6 py-5">{children}</div>}
+                {children && <div className="max-h-[65dvh] space-y-6 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>}
 
                 {footer && (
-                  <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/80 px-6 py-4 sm:flex-row sm:justify-end">
+                  <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/80 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:py-4">
                     {footer}
                   </div>
                 )}
@@ -226,7 +226,7 @@ export function whatsappUrl(phone) {
  * - `locked` (statut final, ex. « Terminée ») : les boutons disparaissent, seul
  *   le statut reste affiché, avec `lockedMessage` pour l'expliquer.
  */
-export function StatusChoice({ options, value, onChange, locked = false, lockedMessage, columns = 'grid-cols-2 sm:grid-cols-4' }) {
+export function StatusChoice({ options, value, onChange, locked = false, lockedMessage, columns = 'grid-cols-2 sm:grid-cols-4', variant = 'buttons', descriptions = {} }) {
   const colors = useColors()
   const [pending, setPending] = useState(null)
 
@@ -253,6 +253,55 @@ export function StatusChoice({ options, value, onChange, locked = false, lockedM
           <p className="text-sm font-semibold text-gray-900">{current?.label || value}</p>
           {lockedMessage && <p className="mt-0.5 text-xs text-gray-500">{lockedMessage}</p>}
         </div>
+      </div>
+    )
+  }
+
+  if (variant === 'progress') {
+    const currentIndex = Math.max(0, options.findIndex((option) => option.value === value))
+    const selected = options[currentIndex]
+    return (
+      <div>
+        <ol className="grid grid-cols-3">
+          {options.map((option, index) => {
+            const active = index === currentIndex
+            const complete = index < currentIndex
+            const busy = pending === option.value
+            return (
+              <li key={option.value} className="relative flex flex-col items-center">
+                {index > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute right-1/2 top-4 h-0.5 w-full"
+                    style={{ backgroundColor: complete || active ? colors.primary : colors.gray200 }}
+                  />
+                )}
+                <button
+                  type="button"
+                  disabled={active || !!pending}
+                  onClick={() => choose(option.value)}
+                  aria-current={active ? 'step' : undefined}
+                  aria-label={`${option.label}${active ? ', statut actuel' : ', définir ce statut'}`}
+                  aria-busy={busy || undefined}
+                  className="relative z-10 flex min-h-8 min-w-8 items-center justify-center rounded-full border-2 px-2 text-xs font-bold transition-colors disabled:cursor-default"
+                  style={active || complete
+                    ? { borderColor: colors.primary, backgroundColor: colors.primary, color: '#fff' }
+                    : { borderColor: colors.gray200, backgroundColor: '#fff', color: colors.gray500 }}
+                >
+                  {busy ? <Spinner className="h-3.5 w-3.5" /> : complete ? <RiCheckLine className="h-4 w-4" /> : index + 1}
+                </button>
+                <span className={`mt-2 text-center text-[11px] leading-tight ${active ? 'font-bold text-gray-900' : complete ? 'font-semibold text-gray-600' : 'font-medium text-gray-500'}`}>
+                  {option.label}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+        {selected && descriptions[selected.value] && (
+          <p className="mt-4 rounded-lg bg-gray-50 px-3 py-2.5 text-xs leading-relaxed text-gray-600" aria-live="polite">
+            {descriptions[selected.value]}
+          </p>
+        )}
       </div>
     )
   }

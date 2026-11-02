@@ -41,7 +41,7 @@ const navigation = [
   { section: 'À traiter', name: 'Réservations', href: '/reservations', icon: RiCalendarCheckLine, claims: ['admin', 'manager'], module: 'reservations', badgeKey: 'pendingBookings' },
   { section: 'À traiter', name: 'Demandes de service', href: '/services', icon: RiTruckLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingServiceRequests' },
   { section: 'À traiter', name: 'Messages', href: '/messages', icon: RiMailLine, claims: ['admin', 'manager'], module: 'messages', badgeKey: 'unreadMessages' },
-  { section: 'À traiter', name: 'Candidatures', href: '/carrieres', icon: RiFileUserLine, claims: ['admin', 'manager'], module: 'careers', badgeKey: 'pendingCareerApplications' },
+  { section: 'À traiter', name: 'Carrières', href: '/carrieres', icon: RiFileUserLine, claims: ['admin', 'manager'], module: 'careers', badgeKey: 'pendingCareerApplications' },
 
   { section: 'Professionnels', name: 'Agents', href: '/agents', icon: RiBriefcaseLine, claims: ['admin', 'manager'], module: 'agents', badgeKey: 'pendingAgents' },
   { section: 'Professionnels', name: 'Artisans', href: '/workers', icon: RiHammerLine, claims: ['admin', 'manager'], module: 'workers', badgeKey: 'pendingWorkers' },
@@ -72,18 +72,19 @@ function NavSections({ items, currentPath, onNavigate }) {
     return (
       <Fragment key={item.href}>
         {heading && (
-          <p className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: SIDEBAR_HEADING }}>
+          <p className="mt-3 border-t px-4 pt-5 pb-2 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: SIDEBAR_HEADING, borderColor: SIDEBAR_BORDER }}>
             {heading}
           </p>
         )}
         <Link
           href={item.href}
-          className={`nav-item-inactive flex items-center gap-3 rounded-md px-4 py-2.5 ${isActive ? 'nav-item-active' : ''}`}
+          aria-current={isActive ? 'page' : undefined}
+          className={`nav-item-inactive flex min-h-11 items-center gap-3 rounded-md px-3.5 py-2 ${item.href === '/' ? 'mb-2' : ''} ${isActive ? 'nav-item-active' : ''}`}
           onClick={onNavigate}>
-          <item.icon className="h-[18px] w-[18px] flex-shrink-0" />
+          <item.icon className="h-[17px] w-[17px] flex-shrink-0" />
           <span className="flex-1 truncate text-[13px]">{item.name}</span>
           {count > 0 && (
-            <span className="nav-badge min-w-[20px] rounded-full px-1.5 py-0.5 text-center text-[11px] font-bold leading-none">
+            <span aria-label={`${count} élément${count > 1 ? 's' : ''} à traiter`} className={`nav-badge min-w-[20px] rounded-full px-1.5 py-1 text-center text-[10px] font-semibold leading-none ${isActive ? 'nav-badge-active' : ''}`}>
               {count > 99 ? '99+' : count}
             </span>
           )}
@@ -179,6 +180,11 @@ export default function Scaffold({ children, title, subNav }) {
         }
 
         .nav-badge {
+          color: ${colors.orangeAccent};
+          background-color: rgba(255, 255, 255, 0.09);
+        }
+
+        .nav-badge-active {
           color: #FFFFFF;
           background-color: ${colors.orangeAccent};
         }
@@ -192,6 +198,11 @@ export default function Scaffold({ children, title, subNav }) {
         .nav-item-inactive:hover {
           color: #FFFFFF;
           background-color: ${SIDEBAR_HOVER_BG};
+        }
+
+        .nav-item-inactive:focus-visible {
+          outline: 2px solid ${colors.orangeAccent};
+          outline-offset: 2px;
         }
 
         .logout-btn {
@@ -433,14 +444,19 @@ export default function Scaffold({ children, title, subNav }) {
           {subNav ? (
             subNav
           ) : (
-            <main className="admin-content flex-1">
-              <div className="flex-1 py-6">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-                  <h1 className="text-2xl font-bold" style={{ color: colors.gray900 }}>
-                    {title}
-                  </h1>
-                </div>
-                <div className="mx-auto mt-6 max-w-7xl px-4 sm:px-6 md:px-8">
+            <main
+              className="admin-content min-h-screen min-w-0 w-full flex-1"
+              style={{ backgroundColor: colors.gray50 }}
+            >
+              <div className="min-w-0 flex-1 py-4 sm:py-8">
+                {title && (
+                  <div className="mx-auto mb-4 max-w-7xl px-3 sm:mb-5 sm:px-6 md:px-8">
+                    <h1 className="text-xl font-bold tracking-tight sm:text-2xl" style={{ color: colors.gray900 }}>
+                      {title}
+                    </h1>
+                  </div>
+                )}
+                <div className="mx-auto min-w-0 max-w-7xl px-3 sm:px-6 md:px-8">
                   {children}
                 </div>
               </div>

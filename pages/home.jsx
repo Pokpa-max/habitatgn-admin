@@ -150,7 +150,7 @@ function TodoPanel() {
 
 function Home() {
   return (
-    <Scaffold>
+    <Scaffold title="Vue d’ensemble">
       <TodoPanel />
       <DashbordCard />
     </Scaffold>

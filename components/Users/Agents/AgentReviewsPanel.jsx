@@ -15,7 +15,7 @@ const authHeaders = async () => {
  * demande de visite a été prise en charge), avec suppression d'un avis
  * abusif. Lecture / suppression via /api/agentReviews (SDK admin).
  */
-export default function AgentReviewsPanel({ agentId }) {
+export default function AgentReviewsPanel({ agentId, onSummaryChange }) {
   const colors = useColors()
   const [reviews, setReviews] = useState(null)
   const [reviewToDelete, setReviewToDelete] = useState(null)
@@ -62,8 +62,16 @@ export default function AgentReviewsPanel({ agentId }) {
       ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
       : 0
 
+  useEffect(() => {
+    onSummaryChange?.({
+      count: reviews?.length || 0,
+      average,
+      loading: reviews === null,
+    })
+  }, [average, onSummaryChange, reviews])
+
   return (
-    <div className="rounded-xl bg-white p-6 shadow-sm">
+    <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
       <ConfirmModal
         open={!!reviewToDelete}
         setOpen={() => setReviewToDelete(null)}
@@ -86,9 +94,9 @@ export default function AgentReviewsPanel({ agentId }) {
       {reviews && reviews.length > 0 ? (
         <div className="divide-y divide-gray-100">
           {reviews.map((review) => (
-            <div key={review.id} className="flex items-start justify-between gap-4 py-4">
-              <div>
-                <div className="flex items-center gap-2">
+            <div key={review.id} className="flex items-start justify-between gap-3 py-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-semibold text-gray-900">{review.author}</p>
                   <span className="flex items-center gap-0.5 text-xs text-gray-500">
                     <RiStarFill className="h-3.5 w-3.5" style={{ color: colors.primary }} />
@@ -96,7 +104,7 @@ export default function AgentReviewsPanel({ agentId }) {
                   </span>
                   {review.listingTitle && <span className="text-xs text-gray-400">· {review.listingTitle}</span>}
                 </div>
-                {review.comment && <p className="mt-1 text-sm text-gray-600">{review.comment}</p>}
+                {review.comment && <p className="mt-1 break-words text-sm text-gray-600">{review.comment}</p>}
               </div>
               <button
                 onClick={() => setReviewToDelete(review)}

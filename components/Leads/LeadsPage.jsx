@@ -133,7 +133,12 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
             onChange={(status) => onStatusChange(lead, status)}
             locked={lead.status === 'closed'}
             lockedMessage="Demande clôturée : plus aucune action à faire."
-            columns="grid-cols-3"
+            variant="progress"
+            descriptions={{
+              new: 'Demande reçue. Contactez le visiteur pour convenir d’un créneau.',
+              contacted: 'Visiteur contacté. La demande reste à suivre jusqu’à sa clôture.',
+              closed: 'Demande terminée. Son statut ne peut plus être modifié.',
+            }}
           />
         </ModalSection>
       )}
@@ -413,7 +418,7 @@ export default function LeadsPage() {
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[680px]">
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
                   <th scope="col" className="w-8 px-4 py-2.5">

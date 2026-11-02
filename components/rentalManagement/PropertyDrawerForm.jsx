@@ -73,6 +73,15 @@ const PERIOD_OPTIONS = [
   { value: 'yearly', label: 'Annuel' },
 ]
 
+function FormSectionHeading({ children, description }) {
+  return (
+    <div className="border-t border-gray-100 pt-5">
+      <h3 className="text-xs font-bold uppercase tracking-wide text-gray-500">{children}</h3>
+      {description && <p className="mt-1 text-xs leading-relaxed text-gray-500">{description}</p>}
+    </div>
+  )
+}
+
 export default function PropertyDrawerForm({
   open,
   setOpen,
@@ -181,8 +190,20 @@ export default function PropertyDrawerForm({
   }
 
   const hourToTime = (hour, fallback) => {
+    if (typeof hour === 'string' && hour.includes(':')) return hour
     if (hour === undefined || hour === null || Number.isNaN(Number(hour))) return fallback
     return `${String(hour).padStart(2, '0')}:00`
+  }
+
+  const resolveAmenities = (item) => {
+    const value = item?.amenities ?? item?.features?.amenities ?? item?.commodites ?? item?.equipements ?? []
+    if (Array.isArray(value)) {
+      return value.map((amenity) => typeof amenity === 'string' ? amenity : amenity?.label || amenity?.name || '').filter(Boolean).join(', ')
+    }
+    if (value && typeof value === 'object') {
+      return Object.entries(value).filter(([, enabled]) => Boolean(enabled)).map(([name]) => name).join(', ')
+    }
+    return ''
   }
 
   const {
@@ -221,6 +242,7 @@ export default function PropertyDrawerForm({
     } else if (selected) {
       const owner = owners?.find((o) => o.id === selected.ownerId)
       reset({
+        title: selected.title || '',
         transactionType: selected.type?.transaction || 'rent',
         propertyType: selected.type?.property || 'apartment',
         region: selected.location?.region || '',
@@ -232,16 +254,43 @@ export default function PropertyDrawerForm({
         surface: resolveSurfaceValue(selected),
         bedrooms: selected.features?.bedrooms || '',
         bathrooms: selected.features?.bathrooms || '',
+        livingRooms: selected.features?.livingRooms ?? '',
+        kitchens: selected.features?.kitchens ?? '',
+        selfContainedRooms: selected.features?.selfContainedRooms ?? '',
+        externalBathrooms: selected.features?.externalBathrooms ?? '',
         floor: selected.features?.floor || '',
         furnished: selected.features?.furnished ?? true,
         condition: selected.features?.condition || 'good',
+        marriedCouplesOnly: selected.features?.marriedCouplesOnly ?? false,
+        maxGuests: selected.features?.maxGuests ?? selected.maxGuests ?? '',
+        amenitiesText: resolveAmenities(selected),
         ownerId: selected.ownerId || lockedOwnerId || owners?.[0]?.id || '',
         commissionRate: selected.commissionRate,
         priceAmount: selected.price?.amount ?? resolveRentValue(selected),
         currency: selected.price?.currency || 'GNF',
         period: selected.price?.period === 'yearly' ? 'yearly' : 'monthly',
-        deposit: selected.price?.deposit ?? '',
+        deposit: isDaily ? selected.price?.deposit ?? '' : Number(selected.price?.deposit) > 12 ? selected.price.deposit : '',
+        advanceMonths: selected.price?.advanceMonths ?? 3,
+        depositMonths: selected.price?.depositMonths ?? (Number(selected.price?.deposit) > 0 && Number(selected.price?.deposit) <= 12 ? selected.price.deposit : ''),
+        agencyFeeMonths: selected.price?.agencyFeeMonths ?? 1,
+        agencyFeePercent: selected.price?.agencyFeePercent ?? 5,
+        notaryFeePercent: selected.price?.notaryFeePercent ?? 5,
         negotiable: selected.price?.negotiable ?? false,
+        weeklyRate: selected.additionalRates?.weekly ?? '',
+        monthlyRate: selected.additionalRates?.monthly ?? '',
+        parcelled: selected.parcelInfo?.isParcelled ?? false,
+        totalParcels: selected.parcelInfo?.totalParcels ?? selected.parcelInfo?.parcelCount ?? '',
+        availableParcels: selected.parcelInfo?.availableParcels ?? '',
+        areaPerParcel: selected.parcelInfo?.areaPerParcel ?? selected.parcelInfo?.parcelArea ?? '',
+        pricePerParcel: selected.parcelInfo?.pricePerParcel ?? '',
+        hasLandTitle: selected.documents?.hasLandTitle ?? selected.hasLandTitle ?? (Array.isArray(selected.documents?.available) && selected.documents.available.includes('landTitle')),
+        otherDocuments: selected.documents?.notes ?? '',
+        prefinancingAvailable: selected.prefinancing?.available ?? false,
+        downPayment: selected.prefinancing?.downPayment ?? '',
+        downPaymentNegotiable: selected.prefinancing?.downPaymentNegotiable ?? false,
+        monthlyInstallment: selected.prefinancing?.monthlyInstallment ?? '',
+        financingDuration: selected.prefinancing?.durationMonths ?? '',
+        financingNotes: selected.prefinancing?.notes ?? '',
         minStay: selected.minStay ?? '',
         maxStay: selected.maxStay ?? '',
         checkInTime: hourToTime(selected.checkInHour, '14:00'),
@@ -249,6 +298,7 @@ export default function PropertyDrawerForm({
         contactName: selected.contact?.name || owner?.name || '',
         contactPhone: selected.contact?.phone || owner?.phone || '',
         contactWhatsapp: selected.contact?.whatsapp || '',
+        contactEmail: selected.contact?.email || '',
         agencyName: selected.contact?.agencyName || '',
         publishNow: (selected.status || 'available') === 'available',
       })
@@ -256,6 +306,7 @@ export default function PropertyDrawerForm({
       const owner = owners?.find((o) => o.id === (lockedOwnerId || owners?.[0]?.id))
       reset({
         category: 'houses',
+        title: '',
         transactionType: 'rent',
         propertyType: 'apartment',
         region: '',
@@ -268,16 +319,43 @@ export default function PropertyDrawerForm({
         surface: '',
         bedrooms: '',
         bathrooms: '',
+        livingRooms: '',
+        kitchens: '',
+        selfContainedRooms: '',
+        externalBathrooms: '',
         floor: '',
         furnished: true,
         condition: 'good',
+        marriedCouplesOnly: false,
+        maxGuests: '',
+        amenitiesText: '',
         ownerId: lockedOwnerId || owners?.[0]?.id || '',
         commissionRate: '10',
         priceAmount: '',
         currency: 'GNF',
         period: 'monthly',
         deposit: '',
+        advanceMonths: 3,
+        depositMonths: 2,
+        agencyFeeMonths: 1,
+        agencyFeePercent: 5,
+        notaryFeePercent: 5,
         negotiable: false,
+        weeklyRate: '',
+        monthlyRate: '',
+        parcelled: false,
+        totalParcels: '',
+        availableParcels: '',
+        areaPerParcel: '',
+        pricePerParcel: '',
+        hasLandTitle: false,
+        otherDocuments: '',
+        prefinancingAvailable: false,
+        downPayment: '',
+        downPaymentNegotiable: false,
+        monthlyInstallment: '',
+        financingDuration: '',
+        financingNotes: '',
         minStay: '',
         maxStay: '',
         checkInTime: '14:00',
@@ -285,6 +363,7 @@ export default function PropertyDrawerForm({
         contactName: owner?.name || '',
         contactPhone: owner?.phone || '',
         contactWhatsapp: '',
+        contactEmail: '',
         agencyName: '',
         publishNow: true,
         newOwnerName: '',
@@ -395,18 +474,25 @@ export default function PropertyDrawerForm({
       const period = isDaily ? 'nightly' : transaction === 'sale' ? 'total' : data.period
 
       const features = isLand
-        ? { area: Number(data.surface) || 0 }
+        ? { ...(selected?.features || {}), area: Number(data.surface) || 0 }
         : {
+            ...(selected?.features || {}),
             area: Number(data.surface) || 0,
             bedrooms: Number(data.bedrooms) || 0,
             bathrooms: Number(data.bathrooms) || 0,
+            ...(data.livingRooms !== '' ? { livingRooms: Number(data.livingRooms) || 0 } : {}),
+            ...(data.kitchens !== '' ? { kitchens: Number(data.kitchens) || 0 } : {}),
+            ...(data.selfContainedRooms !== '' ? { selfContainedRooms: Number(data.selfContainedRooms) || 0 } : {}),
+            ...(data.externalBathrooms !== '' ? { externalBathrooms: Number(data.externalBathrooms) || 0 } : {}),
             ...(data.floor ? { floor: Number(data.floor) } : {}),
             furnished: isDaily ? true : !!data.furnished,
             condition: data.condition || 'good',
+            ...(isDaily && data.maxGuests !== '' ? { maxGuests: Number(data.maxGuests) || 0 } : {}),
+            ...(data.marriedCouplesOnly ? { marriedCouplesOnly: true } : {}),
           }
 
       const municipality = data.municipality || data.region
-      const title = [
+      const generatedTitle = [
         PROPERTY_TYPE_OPTIONS.find((o) => o.value === data.propertyType)?.label || 'Logement',
         data.neighborhood || municipality || data.region,
       ]
@@ -414,10 +500,11 @@ export default function PropertyDrawerForm({
         .join(' - ')
 
       const payload = {
-        title,
+        title: data.title?.trim() || selected?.title || generatedTitle,
         category: PLURAL_TO_SINGULAR_CATEGORY[targetCollection] || 'house',
         type: { transaction, property: data.propertyType },
         location: {
+          ...(selected?.location || {}),
           region: data.region,
           municipality,
           ...(data.neighborhood ? { neighborhood: data.neighborhood } : {}),
@@ -425,12 +512,58 @@ export default function PropertyDrawerForm({
         },
         features,
         price: {
+          ...(selected?.price || {}),
           amount: Number(data.priceAmount) || 0,
           currency: data.currency || 'GNF',
           period,
           ...(data.deposit ? { deposit: Number(data.deposit) } : {}),
+          ...(data.advanceMonths !== '' ? { advanceMonths: Number(data.advanceMonths) } : {}),
+          ...(data.depositMonths !== '' ? { depositMonths: Number(data.depositMonths) } : {}),
+          ...(data.agencyFeeMonths !== '' ? { agencyFeeMonths: Number(data.agencyFeeMonths) } : {}),
+          ...(data.agencyFeePercent !== '' ? { agencyFeePercent: Number(data.agencyFeePercent) } : {}),
+          ...(data.notaryFeePercent !== '' ? { notaryFeePercent: Number(data.notaryFeePercent) } : {}),
           negotiable: !!data.negotiable,
         },
+        amenities: (data.amenitiesText || '').split(',').map((amenity) => amenity.trim()).filter(Boolean),
+        ...(isDaily ? {
+          additionalRates: {
+            ...(selected?.additionalRates || {}),
+            ...(data.weeklyRate !== '' ? { weekly: Number(data.weeklyRate) } : {}),
+            ...(data.monthlyRate !== '' ? { monthly: Number(data.monthlyRate) } : {}),
+          },
+        } : {}),
+        ...(isLand ? {
+          parcelInfo: {
+            ...(selected?.parcelInfo || {}),
+            isParcelled: !!data.parcelled,
+            ...(data.parcelled ? {
+              totalParcels: Number(data.totalParcels) || 0,
+              availableParcels: Number(data.availableParcels) || Number(data.totalParcels) || 0,
+              areaPerParcel: Number(data.areaPerParcel) || 0,
+              pricePerParcel: Number(data.pricePerParcel) || 0,
+            } : {}),
+          },
+          documents: {
+            ...(selected?.documents || {}),
+            hasLandTitle: !!data.hasLandTitle,
+            available: Array.from(new Set([
+              ...((Array.isArray(selected?.documents?.available) ? selected.documents.available : []).filter((document) => document !== 'landTitle')),
+              ...(data.hasLandTitle ? ['landTitle'] : []),
+            ])),
+            ...(data.otherDocuments ? { notes: data.otherDocuments.trim() } : {}),
+          },
+          prefinancing: {
+            ...(selected?.prefinancing || {}),
+            available: !!data.prefinancingAvailable,
+            ...(data.prefinancingAvailable ? {
+              downPayment: Number(data.downPayment) || 0,
+              downPaymentNegotiable: !!data.downPaymentNegotiable,
+              monthlyInstallment: Number(data.monthlyInstallment) || 0,
+              durationMonths: Number(data.financingDuration) || 0,
+              ...(data.financingNotes ? { notes: data.financingNotes.trim() } : {}),
+            } : {}),
+          },
+        } : {}),
         ...(isDaily && data.minStay ? { minStay: Number(data.minStay) } : {}),
         ...(isDaily && data.maxStay ? { maxStay: Number(data.maxStay) } : {}),
         ...(isDaily && data.checkInTime
@@ -440,18 +573,20 @@ export default function PropertyDrawerForm({
           ? { checkOutHour: Number(data.checkOutTime.split(':')[0]) }
           : {}),
         contact: {
+          ...(selected?.contact || {}),
           agencyName: data.agencyName || '',
           name: data.contactName || '',
           phone: data.contactPhone || '',
           whatsapp: data.contactWhatsapp || data.contactPhone || '',
+          email: data.contactEmail || '',
         },
         description: data.description || '',
         ownerId,
         commissionRate: Number(data.commissionRate) || 0,
         status: data.publishNow !== false ? 'available' : 'draft',
-        published: true,
+        published: data.publishNow !== false,
         verified: selected ? selected.verified : false,
-        isAvailable: true,
+        isAvailable: data.publishNow !== false,
         ...imageFields,
       }
 
@@ -497,8 +632,8 @@ export default function PropertyDrawerForm({
   }
 
   const inputClass =
-    'w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary'
-  const labelClass = 'mb-2 block text-sm font-semibold text-gray-900'
+    'w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
+  const labelClass = 'mb-1.5 block text-xs font-semibold text-gray-700'
 
   return (
     <DrawerForm
@@ -506,6 +641,8 @@ export default function PropertyDrawerForm({
       setOpen={setOpen}
       onSubmit={handleSubmit(onSubmit)}
       title={selected ? 'Modifier le bien' : 'Ajouter un bien'}
+      variant="detail"
+      eyebrow={selected ? "Modification de l'annonce" : 'Nouvelle annonce'}
       description={
         selected ? 'Mettez à jour les informations du bien' : 'Enregistrer un nouveau bien'
       }
@@ -522,14 +659,14 @@ export default function PropertyDrawerForm({
             <>
               <button
                 type="button"
-                className="rounded border border-gray-300 bg-white px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                 onClick={() => setOpen(false)}
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
                 style={{ backgroundColor: colors.primary }}
               >
                 <RiCheckLine className="h-4 w-4" />
@@ -603,7 +740,7 @@ export default function PropertyDrawerForm({
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label className={labelClass}>Ville</label>
                 <input type="text" {...register('city')} className={inputClass} placeholder="Conakry" />
@@ -663,6 +800,18 @@ export default function PropertyDrawerForm({
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className={labelClass}>Titre de l&apos;annonce</label>
+              <input
+                type="text"
+                {...register('title')}
+                className={inputClass}
+                placeholder="Ex. Appartement lumineux à Kipé"
+              />
+            </div>
+
+            <FormSectionHeading>Localisation</FormSectionHeading>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -745,7 +894,9 @@ export default function PropertyDrawerForm({
               </div>
             )}
 
-            <div className={`grid gap-4 ${isLand ? 'grid-cols-1' : 'grid-cols-3'}`}>
+            <FormSectionHeading>Caractéristiques du bien</FormSectionHeading>
+
+            <div className={`grid gap-4 ${isLand ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'}`}>
               <div>
                 <label className={labelClass}>Surface (m²)</label>
                 <input type="number" {...register('surface')} className={inputClass} />
@@ -764,8 +915,71 @@ export default function PropertyDrawerForm({
               )}
             </div>
 
+            {!isLand && !isDaily && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Salons</label>
+                  <input type="number" min="0" {...register('livingRooms')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Cuisines</label>
+                  <input type="number" min="0" {...register('kitchens')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Chambres autonomes</label>
+                  <input type="number" min="0" {...register('selfContainedRooms')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Douches extérieures</label>
+                  <input type="number" min="0" {...register('externalBathrooms')} className={inputClass} />
+                </div>
+              </div>
+            )}
+
+            {isLand && (
+              <section className="space-y-4 rounded-xl border border-gray-200 p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Informations sur le terrain</h3>
+                  <p className="mt-1 text-xs text-gray-500">Parcelles, documents et modalités de financement.</p>
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" {...register('hasLandTitle')} className="h-4 w-4" />
+                  Titre foncier disponible
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" {...register('parcelled')} className="h-4 w-4" />
+                  Terrain vendu par parcelles
+                </label>
+                {watch('parcelled') && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className={labelClass}>Nombre total de parcelles</label><input type="number" min="1" {...register('totalParcels')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Parcelles disponibles</label><input type="number" min="0" {...register('availableParcels')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Surface par parcelle (m²)</label><input type="number" min="0" {...register('areaPerParcel')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Prix par parcelle</label><input type="number" min="0" {...register('pricePerParcel')} className={inputClass} /></div>
+                  </div>
+                )}
+                <div>
+                  <label className={labelClass}>Autres documents ou précisions</label>
+                  <textarea rows={2} {...register('otherDocuments')} className={inputClass} />
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" {...register('prefinancingAvailable')} className="h-4 w-4" />
+                  Préfinancement disponible
+                </label>
+                {watch('prefinancingAvailable') && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className={labelClass}>Apport initial</label><input type="number" min="0" {...register('downPayment')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Mensualité</label><input type="number" min="0" {...register('monthlyInstallment')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Durée (mois)</label><input type="number" min="0" {...register('financingDuration')} className={inputClass} /></div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-800"><input type="checkbox" {...register('downPaymentNegotiable')} className="h-4 w-4" />Apport négociable</label>
+                    <div className="col-span-2"><label className={labelClass}>Conditions de financement</label><textarea rows={2} {...register('financingNotes')} className={inputClass} /></div>
+                  </div>
+                )}
+              </section>
+            )}
+
             {!isLand && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <label className={labelClass}>Étage</label>
                   <input type="number" {...register('floor')} className={inputClass} />
@@ -794,6 +1008,10 @@ export default function PropertyDrawerForm({
             {isDaily && (
               <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
                 <div>
+                  <label className={labelClass}>Voyageurs maximum</label>
+                  <input type="number" min="1" {...register('maxGuests')} className={inputClass} />
+                </div>
+                <div>
                   <label className={labelClass}>Séjour min (nuits)</label>
                   <input type="number" min="1" {...register('minStay')} className={inputClass} />
                 </div>
@@ -811,6 +1029,19 @@ export default function PropertyDrawerForm({
                 </div>
               </div>
             )}
+
+            <FormSectionHeading>Description et équipements</FormSectionHeading>
+
+            <div>
+              <label className={labelClass}>Équipements et commodités</label>
+              <input
+                type="text"
+                {...register('amenitiesText')}
+                className={inputClass}
+                placeholder="Climatisation, parking, groupe électrogène"
+              />
+              <p className="mt-1 text-xs text-gray-500">Séparez les équipements par des virgules.</p>
+            </div>
 
             <div>
               <label className={labelClass}>Description</label>
@@ -918,6 +1149,8 @@ export default function PropertyDrawerForm({
               </div>
             )}
 
+            <FormSectionHeading>Contact affiché sur l&apos;annonce</FormSectionHeading>
+
             <div className="border-t border-gray-100 pt-5">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Contact affiché sur l'annonce
@@ -954,8 +1187,14 @@ export default function PropertyDrawerForm({
                   <label className={labelClass}>WhatsApp (optionnel)</label>
                   <input type="text" {...register('contactWhatsapp')} className={inputClass} />
                 </div>
+                <div>
+                  <label className={labelClass}>Email (optionnel)</label>
+                  <input type="email" {...register('contactEmail')} className={inputClass} />
+                </div>
               </div>
             </div>
+
+            <FormSectionHeading>Conditions financières</FormSectionHeading>
 
             <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
               <div>
@@ -993,13 +1232,32 @@ export default function PropertyDrawerForm({
                 </div>
               )}
               <div>
-                <label className={labelClass}>Caution (optionnel)</label>
+                <label className={labelClass}>{isDaily ? 'Caution de séjour' : 'Caution fixe (optionnel)'}</label>
                 <input type="number" {...register('deposit')} className={inputClass} />
               </div>
+              {!isDaily && watch('transactionType') !== 'sale' && (
+                <>
+                  <div><label className={labelClass}>Loyer d&apos;avance (mois)</label><input type="number" min="0" {...register('advanceMonths')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Caution (mois)</label><input type="number" min="0" {...register('depositMonths')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Frais d&apos;agence (mois)</label><input type="number" min="0" {...register('agencyFeeMonths')} className={inputClass} /></div>
+                </>
+              )}
+              {watch('transactionType') === 'sale' && (
+                <>
+                  <div><label className={labelClass}>Frais d&apos;agence (%)</label><input type="number" min="0" {...register('agencyFeePercent')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Frais de notaire (%)</label><input type="number" min="0" {...register('notaryFeePercent')} className={inputClass} /></div>
+                </>
+              )}
               <div>
-                <label className={labelClass}>Commission agence (%)</label>
+                <label className={labelClass}>Commission de gestion (%)</label>
                 <input type="number" {...register('commissionRate')} className={inputClass} placeholder="Ex: 10" />
               </div>
+              {isDaily && (
+                <>
+                  <div><label className={labelClass}>Tarif semaine</label><input type="number" min="0" {...register('weeklyRate')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Tarif mois</label><input type="number" min="0" {...register('monthlyRate')} className={inputClass} /></div>
+                </>
+              )}
               <div className="flex items-end pb-3">
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                   <input type="checkbox" {...register('negotiable')} className="h-4 w-4" />

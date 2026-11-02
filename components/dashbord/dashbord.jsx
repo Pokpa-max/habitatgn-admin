@@ -32,7 +32,6 @@ import {
   Users,
   ShieldCheck,
   Scale,
-  Building2,
   Home,
   CalendarCheck,
   Wallet,
@@ -137,6 +136,7 @@ function ManagerDashboard() {
 function PropertyOccupationChart() {
   const colors = useColors()
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [counts, setCounts] = useState({ occupied: 0, vacant: 0, inactive: 0 })
 
   useEffect(() => {
@@ -148,7 +148,7 @@ function PropertyOccupationChart() {
           inactive: properties.filter((p) => p.status === 'inactive').length,
         })
       })
-      .catch(() => {})
+      .catch(() => setLoadError(true))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -163,7 +163,7 @@ function PropertyOccupationChart() {
         Répartition des biens gérés
       </p>
       <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-        {total} bien{total > 1 ? 's' : ''}
+        {isLoading ? '…' : loadError ? '—' : `${total} bien${total > 1 ? 's' : ''}`}
       </p>
       <p className="mt-0.5 text-xs text-gray-400">Occupés, vacants et inactifs</p>
 
@@ -171,6 +171,10 @@ function PropertyOccupationChart() {
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
             Chargement...
+          </div>
+        ) : loadError ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Impossible de charger la répartition
           </div>
         ) : total === 0 ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
@@ -221,6 +225,7 @@ const parseItemDate = (dateVal) => {
 function RevenueChart({ onCurrentMonthRevenue }) {
   const colors = useColors()
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [data, setData] = useState([])
   const [totals, setTotals] = useState({ plateforme: 0, encaisse: 0 })
 
@@ -243,7 +248,7 @@ function RevenueChart({ onCurrentMonthRevenue }) {
           const d = new Date(now.getFullYear(), now.getMonth() - (MONTHS_BACK - 1 - i), 1)
           return {
             key: `${d.getFullYear()}-${d.getMonth()}`,
-            label: d.toLocaleDateString('fr-FR', { month: 'short' }),
+            label: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
             plateforme: 0,
             encaisse: 0,
           }
@@ -289,9 +294,11 @@ function RevenueChart({ onCurrentMonthRevenue }) {
           plateforme: months.reduce((sum, m) => sum + m.plateforme, 0),
           encaisse: months.reduce((sum, m) => sum + m.encaisse, 0),
         })
-        onCurrentMonthRevenue?.(months[months.length - 1]?.plateforme || 0)
+        onCurrentMonthRevenue?.({ status: 'ready', value: months[months.length - 1]?.plateforme || 0 })
       } catch (error) {
         console.error('Erreur lors du chargement du revenu:', error)
+        setLoadError(true)
+        onCurrentMonthRevenue?.({ status: 'error' })
       }
       setIsLoading(false)
     }
@@ -327,16 +334,16 @@ function RevenueChart({ onCurrentMonthRevenue }) {
             Revenu plateforme
           </p>
           <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-            {formatGNF(totals.plateforme)}
+            {isLoading ? '…' : loadError ? '—' : formatGNF(totals.plateforme)}
           </p>
-          <p className="mt-0.5 text-xs text-gray-400">{MONTHS_BACK} derniers mois</p>
+          <p className="mt-0.5 text-xs text-gray-400">{MONTHS_BACK} derniers mois, mois en cours partiel</p>
         </div>
         <div className="text-right">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
             Total encaissé
           </p>
           <p className="mt-1 text-2xl font-extrabold text-gray-400">
-            {formatGNF(totals.encaisse)}
+            {isLoading ? '…' : loadError ? '—' : formatGNF(totals.encaisse)}
           </p>
           <p className="mt-0.5 text-xs text-gray-400">commissions + loyers reversés</p>
         </div>
@@ -358,6 +365,10 @@ function RevenueChart({ onCurrentMonthRevenue }) {
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
             Chargement...
+          </div>
+        ) : loadError ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Impossible de charger les revenus
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -406,7 +417,6 @@ function RevenueChart({ onCurrentMonthRevenue }) {
 
 function DashboardCard() {
   const colors = useColors()
-  const notifications = useNotifications()
   const AuthUser = useUser()
 
   const [stats, setStats] = useState({
@@ -418,15 +428,18 @@ function DashboardCard() {
     agencies: { active: 0, total: 0 },
     properties: { published: 0, draft: 0 },
   })
-  const [monthlyRevenue, setMonthlyRevenue] = useState(0)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [statsError, setStatsError] = useState(false)
+  const [monthlyRevenue, setMonthlyRevenue] = useState({ status: 'loading', value: 0 })
   const [recentLeads, setRecentLeads] = useState([])
   const [leadsLoading, setLeadsLoading] = useState(true)
+  const [leadsError, setLeadsError] = useState(false)
 
   useEffect(() => {
     if (AuthUser.claims?.userType !== 'admin') return
     getLeads()
       .then((leads) => setRecentLeads(leads.slice(0, 5)))
-      .catch(() => {})
+      .catch(() => setLeadsError(true))
       .finally(() => setLeadsLoading(false))
   }, [AuthUser.claims?.userType])
 
@@ -492,11 +505,16 @@ function DashboardCard() {
         })
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error)
+        setStatsError(true)
+      } finally {
+        setStatsLoading(false)
       }
     }
 
     fetchData()
   }, [AuthUser.claims?.userType])
+
+  const statValue = (value) => statsLoading ? '…' : statsError ? '—' : value
 
   // `accent` réservé à une seule tuile par page : celle qui réclame une
   // attention immédiate (cf. proposition de palette validée). Les autres
@@ -550,28 +568,28 @@ function DashboardCard() {
       {/* Ligne principale — reprend exactement les 4 tuiles de la
           proposition de palette validée (mêmes libellés, même tuile
           orange accent), avec les vraies données. */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           icon={Home}
           label="Annonces en ligne"
-          value={stats.properties.published}
-          subValue={`${stats.properties.draft} en brouillon`}
+          value={statValue(stats.properties.published)}
+          subValue={statsLoading || statsError ? undefined : `${stats.properties.draft} en brouillon`}
         />
         <StatCard
           icon={Wallet}
-          label="Revenus du mois"
-          value={formatGNF(monthlyRevenue)}
+          label="Revenu plateforme · mois en cours"
+          value={monthlyRevenue.status === 'loading' ? '…' : monthlyRevenue.status === 'error' ? '—' : formatGNF(monthlyRevenue.value)}
         />
         <StatCard
           icon={CalendarCheck}
-          label="Demandes de visite"
-          value={notifications.pendingLeads > 0 ? `${notifications.pendingLeads} nouvelles` : 'Aucune nouvelle'}
+          label="Utilisateurs"
+          value={statValue(stats.customers)}
           accent
         />
         <StatCard
           icon={Hammer}
-          label="Artisans à valider"
-          value={stats.workers.pending}
+          label="Agences partenaires actives"
+          value={statValue(stats.agencies.active)}
         />
       </div>
 
@@ -602,6 +620,10 @@ function DashboardCard() {
           <div className="flex h-24 items-center justify-center text-sm text-gray-400">
             Chargement...
           </div>
+        ) : leadsError ? (
+          <div className="flex h-24 items-center justify-center text-sm text-gray-400">
+            Impossible de charger les demandes de visite
+          </div>
         ) : recentLeads.length === 0 ? (
           <div className="flex h-24 items-center justify-center text-sm text-gray-400">
             Aucune demande de visite pour le moment
@@ -609,7 +631,7 @@ function DashboardCard() {
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[680px]">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
                     {['Demandeur', 'Annonce', 'Reçu le', 'Statut', ''].map((h) => (
@@ -679,28 +701,19 @@ function DashboardCard() {
           l'orange reste réservé à la tuile "Demandes de visite" ci-dessus). */}
       <div>
         <h2 className="mb-3 text-sm font-bold text-gray-900">Autres indicateurs</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           <StatCard
             icon={Briefcase}
             label="Agents"
-            value={stats.agents.approved}
-            subValue={`${stats.agents.pending} en attente de validation`}
+            value={statValue(stats.agents.approved)}
           />
           <StatCard
             icon={Hammer}
             label="Artisans"
-            value={stats.workers.approved}
-            subValue={`${stats.workers.pending} en attente de validation`}
+            value={statValue(stats.workers.approved)}
           />
-          <StatCard icon={Users} label="Utilisateurs" value={stats.customers} />
-          <StatCard icon={ShieldCheck} label="Managers & admins" value={stats.managers} />
-          <StatCard icon={Scale} label="Partenaires légaux" value={stats.legalPartners} />
-          <StatCard
-            icon={Building2}
-            label="Agences partenaires"
-            value={stats.agencies.active}
-            subValue={`${stats.agencies.total} au total`}
-          />
+          <StatCard icon={ShieldCheck} label="Managers & admins" value={statValue(stats.managers)} />
+          <StatCard icon={Scale} label="Partenaires légaux" value={statValue(stats.legalPartners)} />
         </div>
       </div>
     </div>

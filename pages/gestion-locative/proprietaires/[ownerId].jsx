@@ -196,7 +196,7 @@ function OwnerDetail() {
                 </button>
               </div>
 
-              <div className="mt-6 grid grid-cols-3 gap-4">
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
                 <StatCard
                   icon={RiHome4Line}
                   label="Biens gérés"

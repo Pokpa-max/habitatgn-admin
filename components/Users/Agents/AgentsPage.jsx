@@ -418,7 +418,7 @@ export default function AgentsPage() {
         }}
       />
 
-      <div className="rounded-xl bg-white p-6 shadow-sm">
+      <div className="rounded-xl bg-white p-3 shadow-sm sm:p-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Agents</h2>
@@ -583,8 +583,142 @@ export default function AgentsPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-visible rounded-lg border border-gray-200">
-            <div>
+          <div className="space-y-3">
+            <div className="space-y-3 lg:hidden">
+              {visible.map((request) => (
+                <article key={request.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    {isBulkSelectable(request) && (
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(request.id)}
+                        onChange={() => toggleSelect(request.id)}
+                        aria-label={`Sélectionner ${request.fullName || 'cet agent'}`}
+                        className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded"
+                        style={{ accentColor: colors.primary }}
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-sm font-semibold text-gray-900">
+                        {request.fullName || '—'}
+                      </h3>
+                      <p className="mt-0.5 break-words text-xs text-gray-500">
+                        {request.accountType === 'agence'
+                          ? `Agence · ${request.agencyName || 'Sans nom'}`
+                          : 'Particulier'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <StatusPill tone={request.isAvailable ? 'success' : 'error'}>
+                      {request.isAvailable ? 'Actif' : 'Bloqué'}
+                    </StatusPill>
+                    {request.paymentStatus?.status && request.paymentStatus.status !== 'unknown' && (
+                      <StatusPill tone={PAYMENT_STATUS_CONFIG[request.paymentStatus.status]?.tone || 'neutral'}>
+                        {PAYMENT_STATUS_CONFIG[request.paymentStatus.status]?.label || request.paymentStatus.status}
+                      </StatusPill>
+                    )}
+                  </div>
+
+                  <dl className="mt-3 grid gap-2 border-t border-gray-100 pt-3 text-xs">
+                    {request.phone && (
+                      <div className="flex min-w-0 items-center gap-2 text-gray-600">
+                        <RiPhoneLine className="h-4 w-4 shrink-0 text-gray-400" />
+                        <a href={`tel:${request.phone}`} className="break-all">{request.phone}</a>
+                      </div>
+                    )}
+                    {request.email && (
+                      <div className="flex min-w-0 items-center gap-2 text-gray-600">
+                        <RiMailLine className="h-4 w-4 shrink-0 text-gray-400" />
+                        <a href={`mailto:${request.email}`} className="break-all">{request.email}</a>
+                      </div>
+                    )}
+                    {request.commune && (
+                      <div className="flex min-w-0 items-center gap-2 capitalize text-gray-600">
+                        <RiMapPinLine className="h-4 w-4 shrink-0 text-gray-400" />
+                        <span className="break-words">{request.commune}</span>
+                      </div>
+                    )}
+                    {request.paymentStatus?.nextDueAt && (
+                      <div className="text-gray-500">
+                        Prochaine échéance : {firebaseDateFormat(request.paymentStatus.nextDueAt)}
+                      </div>
+                    )}
+                  </dl>
+
+                  <div className="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3">
+                    {actioningId === request.id ? (
+                      <div className="flex flex-1 justify-center py-2"><Loader color="#111827" /></div>
+                    ) : (
+                      <div className="relative flex flex-1 items-center gap-2" data-menu-root>
+                        {request.status === 'approved' && request.userId ? (
+                          <Link
+                            href={`/agents/${request.userId}`}
+                            className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition-colors hover:brightness-[0.98]"
+                            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                          >
+                            <RiProfileLine className="h-4 w-4" />
+                            Voir le profil de l'agent
+                          </Link>
+                        ) : <span className="flex-1 text-xs text-gray-400">Actions de candidature</span>}
+                        {((canProcess && request.status === 'pending') || (canPayments && request.status === 'approved') || (canProcess && request.status === 'approved') || isAdmin) && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setMenuOpenId((current) => current === request.id ? null : request.id)}
+                              aria-label="Autres actions"
+                              aria-haspopup="menu"
+                              aria-expanded={menuOpenId === request.id}
+                              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition-colors ${menuOpenId === request.id ? 'border-gray-300 bg-gray-100 text-gray-800' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}
+                            >
+                              <RiMore2Fill className="h-5 w-5" />
+                            </button>
+                            {menuOpenId === request.id && (
+                          <div role="menu" className="absolute bottom-full right-0 z-30 mb-2 w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
+                            {canProcess && request.status === 'pending' && (
+                              <>
+                                <button type="button" onClick={() => { setMenuOpenId(null); handleApprove(request) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                  <RiCheckLine className="h-4 w-4" style={{ color: colors.primary }} /> Approuver la candidature
+                                </button>
+                                <button type="button" onClick={() => { setMenuOpenId(null); handleReject(request) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                  <RiCloseLine className="h-4 w-4 text-gray-400" /> Refuser la candidature
+                                </button>
+                              </>
+                            )}
+                            {canPayments && request.status === 'approved' && (
+                              <button type="button" onClick={() => { setMenuOpenId(null); setPaymentTarget(request); setPaymentModalOpen(true) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                <RiMoneyDollarCircleLine className="h-4 w-4 text-gray-400" /> Enregistrer un paiement
+                              </button>
+                            )}
+                            {canProcess && request.status === 'approved' && (
+                              <button type="button" onClick={() => { setMenuOpenId(null); setBlockTarget(request); setBlockModalOpen(true) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: request.isAvailable ? colors.warning : colors.success }} />
+                                {request.isAvailable ? 'Bloquer le compte' : 'D\u00e9bloquer le compte'}
+                              </button>
+                            )}
+                            {isAdmin && request.status === 'approved' && (
+                              <button type="button" onClick={() => { setMenuOpenId(null); setPasswordTarget(request); setPasswordModalOpen(true) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                <RiLockPasswordLine className="h-4 w-4 text-gray-400" /> Modifier le mot de passe
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button type="button" onClick={() => { setMenuOpenId(null); setDeleteTarget(request) }} className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-red-100 px-3 py-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50">
+                                <RiDeleteBinLine className="h-4 w-4" /> Supprimer le compte
+                              </button>
+                            )}
+                          </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto rounded-lg border border-gray-200 lg:block">
               <table className="w-full table-fixed">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>

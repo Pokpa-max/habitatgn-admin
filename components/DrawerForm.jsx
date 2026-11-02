@@ -12,8 +12,11 @@ export default function DrawerForm({
   children,
   onSubmit,
   maxWidth = 'max-w-2xl',
+  variant = 'default',
+  eyebrow,
 }) {
   const colors = useColors()
+  const detailStyle = variant === 'detail'
 
   return (
     <Transition.Root show={open} as={Fragment}>
@@ -45,49 +48,50 @@ export default function DrawerForm({
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <div className={`pointer-events-auto w-screen ${maxWidth}`}>
-                <form
-                  onSubmit={onSubmit}
-                  className="flex h-full flex-col overflow-hidden bg-white shadow-2xl sm:rounded-l-2xl"
-                >
-                  <div className="relative border-b border-gray-100 bg-white px-6 py-5">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="h-7 w-1.5 flex-shrink-0 rounded-full"
-                          style={{ backgroundColor: colors.primary }}
-                        />
-                        <div>
-                          <Dialog.Title className="text-lg font-bold tracking-tight text-gray-900">
-                            {title}
-                          </Dialog.Title>
-                          {description && (
-                            <p className="mt-0.5 text-sm text-gray-500">
-                              {description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-shrink-0 items-center">
-                        <button
-                          type="button"
-                          className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
-                          onClick={() => setOpen(false)}
-                        >
-                          <span className="sr-only">Fermer</span>
-                          <RiCloseLine className="h-5 w-5" aria-hidden="true" />
-                        </button>
+              <Dialog.Panel
+                as="form"
+                onSubmit={onSubmit}
+                className={`pointer-events-auto flex h-full w-screen flex-col overflow-hidden bg-white shadow-2xl ${detailStyle ? 'sm:rounded-l-xl' : 'sm:rounded-l-2xl'} ${maxWidth}`}
+              >
+                <div className={`relative border-b px-5 py-5 sm:px-7 ${detailStyle ? 'border-gray-200 bg-white' : 'border-gray-100 bg-white'}`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      {detailStyle && eyebrow && (
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: colors.primary }}>
+                          {eyebrow}
+                        </p>
+                      )}
+                      <div>
+                        <Dialog.Title className="text-lg font-bold tracking-tight text-gray-900">
+                          {title}
+                        </Dialog.Title>
+                        {description && (
+                          <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                            {description}
+                          </p>
+                        )}
                       </div>
                     </div>
+                    <div className="flex flex-shrink-0 items-center">
+                      <button
+                        type="button"
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition-all hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                        onClick={() => setOpen(false)}
+                        aria-label="Fermer"
+                      >
+                        <span className="sr-only">Fermer</span>
+                        <RiCloseLine className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto bg-white p-6">
-                    {children}
-                  </div>
-                  <div className="flex flex-shrink-0 justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4">
-                    {footerButtons}
-                  </div>
-                </form>
-              </div>
+                </div>
+                <div className={`min-h-0 flex-1 overflow-y-auto ${detailStyle ? 'bg-white' : 'bg-white p-6'}`}>
+                  {children}
+                </div>
+                <div className={`flex shrink-0 flex-wrap items-center justify-end gap-2 border-t px-5 py-4 sm:px-7 ${detailStyle ? 'border-gray-200 bg-gray-50' : 'border-gray-100 bg-white'}`}>
+                  {footerButtons}
+                </div>
+              </Dialog.Panel>
             </Transition.Child>
           </div>
         </div>
