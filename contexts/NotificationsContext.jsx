@@ -52,6 +52,7 @@ export function NotificationsProvider({ children }) {
   const knownBookingIds = useRef(null)
   const knownCareerApplicationIds = useRef(null)
   const knownLeadIds = useRef(null)
+  const authGeneration = useRef(0)
 
   useEffect(() => {
     let unsubAgents = null
@@ -64,6 +65,7 @@ export function NotificationsProvider({ children }) {
 
     // Start Firestore listeners only once the user is authenticated
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      const generation = ++authGeneration.current
       // Clean up previous listeners on auth change
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()
@@ -80,32 +82,38 @@ export function NotificationsProvider({ children }) {
       knownCareerApplicationIds.current = null
       knownLeadIds.current = null
 
-      if (!user) {
-        setPendingAgents(0)
-        setPendingWorkers(0)
-        setUnreadMessages(0)
-        setPendingMovingRequests(0)
-        setPendingRentalRequests(0)
-        setPendingLegalRequests(0)
-        setPendingArtisanRequests(0)
-        setPendingBookings(0)
-        setPendingCareerApplications(0)
-        setPendingLeads(0)
-        return
-      }
+      // Do not retain one account's counters while the next account's access
+      // and listeners are being resolved.
+      setPendingAgents(0)
+      setPendingWorkers(0)
+      setUnreadMessages(0)
+      setPendingMovingRequests(0)
+      setPendingRentalRequests(0)
+      setPendingLegalRequests(0)
+      setPendingArtisanRequests(0)
+      setPendingBookings(0)
+      setPendingCareerApplications(0)
+      setPendingLeads(0)
+
+      if (!user) return
 
       // Un manager restreint (permissions Firestore, voir managerModules.js)
       // ne doit pas ouvrir de listener sur des collections hors de ses
       // modules accordés — sinon Firestore rejette (permission-denied)
       // à chaque page puisque ce contexte est monté globalement.
       const tokenResult = await user.getIdTokenResult().catch(() => null)
-      const role = tokenResult?.claims?.role
-      let permissions = null
+      if (generation !== authGeneration.current) return
+      const role = tokenResult?.claims?.userType || tokenResult?.claims?.role
+      let permissions = []
       if (role === 'manager') {
         const snap = await getDoc(doc(db, 'users', user.uid)).catch(() => null)
-        permissions = snap?.data()?.permissions ?? null
+        if (generation !== authGeneration.current) return
+        const storedPermissions = snap?.data()?.permissions
+        permissions = Array.isArray(storedPermissions) ? storedPermissions : null
       }
-      const canAccess = (module) => role === 'admin' || !permissions || permissions.includes(module)
+      const canAccess = (module) =>
+        role === 'admin' ||
+        (role === 'manager' && Array.isArray(permissions) && permissions.includes(module))
 
       if (canAccess('agents')) {
         const qAgents = query(
@@ -304,6 +312,7 @@ export function NotificationsProvider({ children }) {
     })
 
     return () => {
+      authGeneration.current += 1
       unsubAuth()
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()

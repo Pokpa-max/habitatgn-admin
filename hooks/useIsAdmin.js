@@ -6,5 +6,5 @@ import { useUser } from 'next-firebase-auth'
 // façon vérifiées "admin only" côté serveur (voir verifyAdminRequest).
 export function useIsAdmin() {
   const AuthUser = useUser()
-  return AuthUser.claims?.userType === 'admin'
+  return (AuthUser.claims?.userType || AuthUser.claims?.role) === 'admin'
 }

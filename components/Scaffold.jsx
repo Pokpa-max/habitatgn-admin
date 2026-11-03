@@ -112,16 +112,24 @@ export default function Scaffold({ children, title, subNav }) {
   // donnant l'impression que le menu "disparaît" avant la déconnexion.
   const [signingOut, setSigningOut] = useState(false)
   const AuthUser = useUser()
+  const userType = AuthUser.claims?.userType || AuthUser.claims?.role
   const router = useRouter()
   // Purement cosmétique (masque les items non autorisés) — la vraie barrière
   // est le check SSR par page (voir utils/firebase/checkManagerAccess.js).
   // null tant que non chargé = ne rien masquer, pour éviter un flash de nav
   // incomplète le temps de la lecture Firestore.
   const [managerPermissions, setManagerPermissions] = useState(null)
+  const [managerPermissionUserId, setManagerPermissionUserId] = useState(null)
 
   useEffect(() => {
-    if (AuthUser.claims?.userType !== 'manager' || !AuthUser.id) return
+    if (userType !== 'manager' || !AuthUser.id) {
+      setManagerPermissions(null)
+      setManagerPermissionUserId(null)
+      return
+    }
     let cancelled = false
+    setManagerPermissionUserId(AuthUser.id)
+    setManagerPermissions(null)
     getDoc(doc(db, 'users', AuthUser.id))
       .then((snap) => {
         if (cancelled) return
@@ -135,12 +143,12 @@ export default function Scaffold({ children, title, subNav }) {
     return () => {
       cancelled = true
     }
-  }, [AuthUser.claims?.userType, AuthUser.id])
+  }, [userType, AuthUser.id])
 
   const canSeeNavItem = (item) => {
-    if (!item.claims.includes(AuthUser.claims?.userType)) return false
-    if (AuthUser.claims?.userType !== 'manager' || !item.module) return true
-    if (managerPermissions === null) return false
+    if (!item.claims.includes(userType)) return false
+    if (userType !== 'manager' || !item.module) return true
+    if (managerPermissionUserId !== AuthUser.id || managerPermissions === null) return false
     return managerPermissions.includes(item.module)
   }
 
@@ -324,7 +332,7 @@ export default function Scaffold({ children, title, subNav }) {
                       {AuthUser?.displayName || 'Utilisateur'}
                     </p>
                     <p className="text-xs" style={{ color: SIDEBAR_TEXT }}>
-                      {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
+                      {userType === 'admin' ? 'Administrateur' : 'Manager'}
                     </p>
                   </div>
                   <button
@@ -395,7 +403,7 @@ export default function Scaffold({ children, title, subNav }) {
                       {AuthUser?.displayName || 'Utilisateur'}
                     </p>
                     <p className="text-xs" style={{ color: SIDEBAR_TEXT }}>
-                      {AuthUser.claims?.userType === 'admin' ? 'Administrateur' : 'Manager'}
+                      {userType === 'admin' ? 'Administrateur' : 'Manager'}
                     </p>
                   </div>
                 </div>

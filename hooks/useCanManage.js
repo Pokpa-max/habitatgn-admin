@@ -11,12 +11,15 @@ import { hasManagerAction } from '@/lib/constants/managerModules'
 // les règles Firestore + la garde SSR au niveau du module entier).
 export function useCanManage(moduleKey, action) {
   const AuthUser = useUser()
-  const userType = AuthUser.claims?.userType
+  const userType = AuthUser.claims?.userType || AuthUser.claims?.role
+  const [permissionUserId, setPermissionUserId] = useState(null)
   const [permissions, setPermissions] = useState(undefined) // undefined = pas encore chargé
 
   useEffect(() => {
     if (userType !== 'manager' || !AuthUser.id) return
     let cancelled = false
+    setPermissionUserId(AuthUser.id)
+    setPermissions(undefined)
     getDoc(doc(db, 'users', AuthUser.id))
       .then((snap) => {
         if (!cancelled) setPermissions(snap.data()?.permissions ?? null)
@@ -31,6 +34,7 @@ export function useCanManage(moduleKey, action) {
 
   if (userType === 'admin') return true
   if (userType !== 'manager') return false
+  if (permissionUserId !== AuthUser.id) return false
   if (permissions === undefined) return false // ne pas flasher le bouton avant de savoir
   return hasManagerAction(permissions, moduleKey, action)
 }
