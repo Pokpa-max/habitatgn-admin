@@ -126,15 +126,15 @@ export default function PricingPackagesTab({
 
   return (
     <>
-      <div className="rounded-xl bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
+      <div className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-lg font-bold text-gray-900">{title}</h2>
             <p className="mt-1 text-sm text-gray-500">{description}</p>
           </div>
           <button
             onClick={openAdd}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md sm:w-auto"
             style={{ backgroundColor: colors.primary }}
           >
             <RiAddLine className="h-4 w-4" />
@@ -153,10 +153,10 @@ export default function PricingPackagesTab({
         ) : (
           <div className="divide-y divide-gray-100">
             {packages.map((pkg) => (
-              <div key={pkg.id} className="flex items-center justify-between gap-4 py-4">
+              <div key={pkg.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-gray-900">{pkg.name}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="break-words font-semibold text-gray-900">{pkg.name}</p>
                     {pkg.recommended && (
                       <span
                         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
@@ -167,7 +167,7 @@ export default function PricingPackagesTab({
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-sm text-gray-500">{pkg.description}</p>
+                  <p className="mt-0.5 break-words text-sm text-gray-500">{pkg.description}</p>
                   <p className="mt-1 text-sm font-semibold" style={{ color: colors.primary }}>
                     {pkg.priceDisplay || formatGNF(pkg.priceGNF)}
                     {showDelayDays && pkg.delayDays ? ` · ${pkg.delayDays} jours` : ''}
@@ -183,9 +183,9 @@ export default function PricingPackagesTab({
                   )}
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
                   {deleteConfirm === pkg.id ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       <span className="text-xs text-gray-500">Confirmer ?</span>
                       <button
                         onClick={() => handleDelete(pkg)}
@@ -263,7 +263,7 @@ export default function PricingPackagesTab({
           </>
         }
       >
-        <div className="space-y-5 px-6 py-6 sm:p-8">
+        <div className="space-y-5 px-0 py-2 sm:px-2 sm:py-0">
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom de l'offre *
@@ -277,7 +277,7 @@ export default function PricingPackagesTab({
             {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-900">
                 {priceLabel} *

@@ -33,6 +33,7 @@ import {
   restoreWorkerVisibility,
   updateWorkerPlan,
   toggleWorkerCertification,
+  setWorkerSubscriptionSuspended,
 } from '@/lib/services/workers'
 import {
   desableUser,
@@ -151,6 +152,17 @@ function WorkerDetail() {
       )
     } catch (e) {
       notify('Une erreur est survenue', 'error')
+    }
+  }
+
+  const handleToggleSubscriptionSuspension = async () => {
+    const suspended = !worker.subscriptionSuspended
+    try {
+      await setWorkerSubscriptionSuspended(workerId, suspended)
+      setWorker((prev) => ({ ...prev, subscriptionSuspended: suspended }))
+      notify(suspended ? 'Abonnement suspendu' : 'Abonnement réactivé', 'success')
+    } catch (e) {
+      notify('Impossible de modifier le statut de l’abonnement', 'error')
     }
   }
 
@@ -354,7 +366,13 @@ function WorkerDetail() {
                       color: PAYMENT_STATUS_CONFIG[paymentStatus.status].color,
                     }}
                   >
-                    {PAYMENT_STATUS_CONFIG[paymentStatus.status].label}
+                    {worker.subscriptionSuspended
+                      ? 'Suspendu'
+                      : paymentStatus.status === 'overdue'
+                      ? 'Expiré'
+                      : paymentStatus.status === 'trial'
+                      ? 'Essai'
+                      : PAYMENT_STATUS_CONFIG[paymentStatus.status].label}
                   </span>
                   <p className="text-xs text-gray-500">
                     {paymentStatus.status === 'trial'
@@ -372,6 +390,13 @@ function WorkerDetail() {
               >
                 <RiMoneyDollarCircleLine className="h-4 w-4" />
                 Enregistrer un paiement
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleSubscriptionSuspension}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                {worker.subscriptionSuspended ? 'Réactiver abonnement' : 'Suspendre abonnement'}
               </button>
             </div>
 
@@ -401,6 +426,25 @@ function WorkerDetail() {
             </div>
           </div>
         )}
+
+        {/* Statistiques transmises par le site public, si disponibles. */}
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-500">Statistiques du profil</h2>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              ['Consultations', worker.stats?.views ?? worker.profileViews],
+              ['Clics WhatsApp', worker.stats?.whatsappClicks ?? worker.whatsappClicks],
+              ['Appels', worker.stats?.callClicks ?? worker.callClicks],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg bg-gray-50 p-4">
+                <p className="text-xs font-medium text-gray-500">{label}</p>
+                <p className="mt-1 text-xl font-bold text-gray-900">
+                  {Number.isFinite(Number(value)) ? Number(value).toLocaleString('fr-FR') : '—'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Plan payant & Certification (badges sur le site public) */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">

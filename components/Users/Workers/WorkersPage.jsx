@@ -903,8 +903,14 @@ export default function WorkersPage() {
                       <td className="px-6 py-3">
                         {worker.paymentStatus?.status !== 'unknown' && (
                           <>
-                            <StatusPill tone={PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].tone}>
-                              {PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].label}
+                            <StatusPill
+                              tone={worker.subscriptionSuspended ? 'warning' : PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].tone}
+                            >
+                              {worker.subscriptionSuspended
+                                ? 'Suspendu'
+                                : worker.paymentStatus.status === 'overdue'
+                                ? 'Expiré'
+                                : PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].label}
                             </StatusPill>
                             <p className="mt-1 font-mono text-[11px] text-gray-400">
                               {worker.paymentStatus.status === 'trial'
