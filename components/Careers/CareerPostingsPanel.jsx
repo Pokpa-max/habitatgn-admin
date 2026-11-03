@@ -268,8 +268,47 @@ export default function CareerPostingsPanel({ canManage }) {
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px]">
+            <div className="divide-y divide-gray-100 lg:hidden">
+              {filtered.map((posting) => (
+                <article key={posting.id} className="min-w-0 space-y-4 overflow-hidden p-4">
+                  <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Poste</p>
+                      <h3 className="[overflow-wrap:anywhere] text-sm font-semibold leading-5 text-gray-900">{posting.title}</h3>
+                      <p className="mt-1 [overflow-wrap:anywhere] text-xs text-gray-500">{posting.department}</p>
+                    </div>
+                    <div className="flex min-w-0 items-center justify-between gap-3 border-t border-gray-100 pt-3 sm:block sm:shrink-0 sm:border-0 sm:pt-0 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 sm:mb-1">Publication</p>
+                      <StatusPill tone={posting.status === 'published' ? 'success' : 'gray'}>
+                        {posting.status === 'published' ? 'Publiée' : 'Brouillon'}
+                      </StatusPill>
+                    </div>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-3 rounded-lg bg-gray-50 p-3 sm:grid sm:grid-cols-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Lieu</p>
+                      <p className="mt-1 [overflow-wrap:anywhere] text-sm text-gray-700">{posting.location}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Contrat</p>
+                      <p className="mt-1 [overflow-wrap:anywhere] text-sm text-gray-700">{posting.employmentType}</p>
+                    </div>
+                    <div className="min-w-0 sm:col-span-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Créée le</p>
+                      <p className="mt-1 text-sm text-gray-700">{posting.createdAt ? firebaseDateFormat(posting.createdAt) : '—'}</p>
+                    </div>
+                  </div>
+                  {canManage && (
+                    <div className="flex flex-col gap-2 border-t border-gray-100 pt-3 sm:flex-row">
+                      <button type="button" onClick={() => openEdit(posting)} aria-label={`Modifier ${posting.title}`} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 sm:flex-1"><RiEditLine className="h-4 w-4" />Modifier</button>
+                      <button type="button" onClick={() => setDeleteTarget(posting)} aria-label={`Supprimer ${posting.title}`} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-red-100 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 sm:flex-1"><RiDeleteBinLine className="h-4 w-4" />Supprimer</button>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>{['Poste', 'Lieu et contrat', 'Publication', 'Créée le', ''].map((heading) => <th key={heading} className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-600">{heading}</th>)}</tr>
                 </thead>
