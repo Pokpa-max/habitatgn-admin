@@ -3,7 +3,7 @@ import { authAdmin, dbAdmin } from 'lib/firebase-admin/admin_config'
 import { setCustomUserClaims } from '@/utils/firebase/auth'
 import { verifyAdminRequest } from '@/utils/firebase/verifyAdminRequest'
 import { FieldValue } from 'firebase-admin/firestore'
-import { ALL_MANAGER_MODULE_KEYS, hasManagerAction } from '@/lib/constants/managerModules'
+import { hasManagerAction } from '@/lib/constants/managerModules'
 import { logAuditEvent } from '@/lib/firebase-admin/auditLog'
 
 // Même logique que habitatgnweb/src/lib/workerSearchIndex.ts — nécessaire pour que
@@ -41,6 +41,10 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ code: 0, message: 'Méthode non autorisée.' })
+  }
+
   const caller = await verifyAdminRequest(req)
   if (!caller) {
     return res.status(403).json({ code: 0, message: 'Accès refusé.' })
@@ -55,9 +59,14 @@ export default async function handler(
       name,
       passWord,
       type,
-    } = req.body
+    } = req.body || {}
 
-    if (!email || typeof passWord !== 'string' || passWord.length < 6) {
+    if (
+      typeof email !== 'string' ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      typeof passWord !== 'string' ||
+      passWord.length < 6
+    ) {
       return res.status(400).json({
         code: 0,
         message: 'Le mot de passe doit contenir au moins 6 caractères.',
@@ -84,7 +93,13 @@ export default async function handler(
     } = req.body
 
     const validTypes = ['admin', 'manager', 'agent', 'worker', 'ouvrier']
-    let userType = validTypes.includes(type) ? type : 'manager'
+    if (type !== undefined && !validTypes.includes(type)) {
+      return res.status(400).json({ code: 0, message: 'Type de compte invalide.' })
+    }
+    let userType = type || 'manager'
+    if (!['admin', 'manager'].includes(caller.userType) && ['admin', 'manager'].includes(userType)) {
+      return res.status(403).json({ code: 0, message: 'Seul un administrateur peut créer ce type de compte.' })
+    }
     if (userType === 'ouvrier') userType = 'worker'
 
     // Un manager ne peut jamais créer un compte admin/manager (escalade de
@@ -102,8 +117,7 @@ export default async function handler(
         })
       }
       const moduleKey = userType === 'agent' ? 'agents' : 'workers'
-      const callerSnap = await dbAdmin.collection('users').doc(caller.uid).get()
-      if (!hasManagerAction(callerSnap.data()?.permissions, moduleKey, 'process')) {
+      if (!hasManagerAction(caller.permissions, moduleKey, 'process')) {
         return res.status(403).json({
           code: 0,
           message: "Vous n'avez pas la permission de créer ce type de compte.",
@@ -134,10 +148,8 @@ export default async function handler(
       isAvailable: true,
       provider: 'email',
       uid: uid,
-      // Tous les modules cochés par défaut : le manager est pleinement
-      // fonctionnel dès sa création, un admin peut ensuite le restreindre
-      // depuis l'écran "Permissions" (voir components/Users/UsersList.jsx).
-      ...(userType === 'manager' ? { permissions: ALL_MANAGER_MODULE_KEYS } : {}),
+      // New managers have no access until an admin grants explicit permissions.
+      ...(userType === 'manager' ? { permissions: [] } : {}),
     })
 
     // 4. Créé directement par l'admin : mêmes champs qu'une demande soumise depuis le

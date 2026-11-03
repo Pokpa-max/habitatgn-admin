@@ -26,7 +26,6 @@ import { useUser } from 'next-firebase-auth'
 import { useColors } from '../contexts/ColorContext'
 import { useRouter } from 'next/router'
 import { db } from '../lib/firebase/client_config'
-import { ALL_MANAGER_MODULE_KEYS } from '../lib/constants/managerModules'
 import ChangePasswordModal from './ChangePasswordModal'
 import Loader from './Loader'
 import PushAlertsBanner from './PushAlertsBanner'
@@ -126,10 +125,12 @@ export default function Scaffold({ children, title, subNav }) {
     getDoc(doc(db, 'users', AuthUser.id))
       .then((snap) => {
         if (cancelled) return
-        setManagerPermissions(snap.data()?.permissions || ALL_MANAGER_MODULE_KEYS)
+        setManagerPermissions(
+          Array.isArray(snap.data()?.permissions) ? snap.data().permissions : []
+        )
       })
       .catch(() => {
-        if (!cancelled) setManagerPermissions(ALL_MANAGER_MODULE_KEYS)
+        if (!cancelled) setManagerPermissions([])
       })
     return () => {
       cancelled = true
@@ -139,7 +140,7 @@ export default function Scaffold({ children, title, subNav }) {
   const canSeeNavItem = (item) => {
     if (!item.claims.includes(AuthUser.claims?.userType)) return false
     if (AuthUser.claims?.userType !== 'manager' || !item.module) return true
-    if (managerPermissions === null) return true
+    if (managerPermissions === null) return false
     return managerPermissions.includes(item.module)
   }
 

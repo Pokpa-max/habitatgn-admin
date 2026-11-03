@@ -18,10 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Manager : il faut le module Agents (et le droit de traiter pour supprimer)
   if (caller.userType === 'manager') {
-    const callerSnap = await dbAdmin.collection('users').doc(caller.uid).get()
-    const permissions = callerSnap.data()?.permissions
     const action = req.method === 'DELETE' ? 'process' : null
-    const allowed = action ? hasManagerAction(permissions, 'agents', action) : !permissions || permissions.includes('agents')
+    const allowed = action
+      ? hasManagerAction(caller.permissions, 'agents', action)
+      : Array.isArray(caller.permissions) && caller.permissions.includes('agents')
     if (!allowed) return res.status(403).json({ message: 'Accès refusé.' })
   }
 

@@ -36,8 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (caller.userType === 'manager') {
-      const callerSnap = await dbAdmin.collection('users').doc(caller.uid).get()
-      if (!hasManagerAction(callerSnap.data()?.permissions, ROLE_MODULE[assignedRole], 'process')) {
+      if (!hasManagerAction(caller.permissions, ROLE_MODULE[assignedRole], 'process')) {
         return res.status(403).json({ message: 'Vous ne pouvez pas valider ce type de compte.' })
       }
     }

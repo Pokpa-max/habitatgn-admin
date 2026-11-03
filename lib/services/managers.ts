@@ -1,5 +1,5 @@
 import { auth, db } from '@/lib/firebase/client_config'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -11,15 +11,20 @@ import { notifySiteUser } from '@/lib/services/accountNotifications'
 const userRef = (userId) => doc(db, `users/${userId}`)
 
 export const desableUserFirestore = async (userId, isAvailable) => {
-  await updateDoc(userRef(userId), { isAvailable: isAvailable })
-  // Compte débloqué : la personne est prévenue (bloqué, elle ne pourrait pas lire la notification)
+  // Account availability is written by the authenticated Admin SDK route.
+  // Notify the account only after a successful reactivation.
   if (isAvailable) await notifySiteUser('account_reactivated', { userId })
 }
 
 // Modules délégués à un manager (voir lib/constants/managerModules.js et
 // firestore.rules — isAdminOrManager). Sans effet sur un compte admin.
 export const updateUserPermissions = async (userId, permissions) => {
-  await updateDoc(userRef(userId), { permissions })
+  const response = await fetchWithPost('/api/updateManagerPermissions', {
+    uid: userId,
+    permissions,
+  })
+  if (response.code === 0) throw new Error(response.message || 'Impossible de mettre à jour les permissions')
+  return response
 }
 
 export const getUserAvailability = async (userId) => {

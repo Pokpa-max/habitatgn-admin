@@ -5,13 +5,12 @@ import { useColors } from '../../contexts/ColorContext'
 import {
   MANAGER_MODULES,
   MANAGER_ACTIONS,
-  ALL_MANAGER_MODULE_KEYS,
+  ALL_MANAGER_PERMISSIONS,
   permissionsToSelection as buildInitialSelection,
 } from '../../lib/constants/managerModules'
 
-// Champ `permissions` absent sur le compte = accès total (même défaut que
-// firestore.rules -> managerPermissions()), pour rester cohérent avec les
-// managers créés avant cette fonctionnalité.
+// Un compte sans permissions commence sans accès ; l'administrateur attribue
+// explicitement les modules et actions nécessaires.
 function ManagerPermissionsModal({ manager, open, setOpen, onSave }) {
   const colors = useColors()
   const [selected, setSelected] = useState(() => buildInitialSelection(null))
@@ -32,9 +31,8 @@ function ManagerPermissionsModal({ manager, open, setOpen, onSave }) {
     })
   }
 
-  // Décocher un module retire aussi toutes ses actions ; cocher un module
-  // qui n'avait encore aucune action explicitement décochée les coche
-  // toutes (même défaut "accès total" que buildInitialSelection).
+  // Décocher un module retire aussi toutes ses actions ; le recocher donne
+  // explicitement toutes les actions de ce module.
   const toggleModule = (module) => {
     setSelected((prev) => {
       const next = new Set(prev)
@@ -74,7 +72,9 @@ function ManagerPermissionsModal({ manager, open, setOpen, onSave }) {
         <>
           <button
             type="button"
-            onClick={() => setSelected(buildInitialSelection(ALL_MANAGER_MODULE_KEYS))}
+            onClick={() =>
+              setSelected(new Set(ALL_MANAGER_PERMISSIONS))
+            }
             className="rounded-lg px-3 py-2.5 text-sm font-semibold text-gray-500 hover:text-gray-700 sm:mr-auto"
           >
             Tout cocher

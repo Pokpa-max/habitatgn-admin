@@ -9,6 +9,5 @@ export async function hasManagerModuleAccess(uid, userType, module) {
   if (userType !== 'manager') return false
   const snap = await dbAdmin.collection('users').doc(uid).get()
   const permissions = snap.data()?.permissions
-  if (!permissions) return true
-  return permissions.includes(module)
+  return Array.isArray(permissions) && permissions.includes(module)
 }

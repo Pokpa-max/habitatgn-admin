@@ -10,7 +10,7 @@ import { updateUserPermissions } from '@/lib/services/managers'
 import {
   MANAGER_MODULES,
   MANAGER_ACTIONS,
-  ALL_MANAGER_MODULE_KEYS,
+  ALL_MANAGER_PERMISSIONS,
   permissionsToSelection,
 } from '@/lib/constants/managerModules'
 
@@ -65,7 +65,7 @@ export function ManagerCard({ manager, onSaved }) {
     save(next)
   }
 
-  const setAll = (on) => save(on ? permissionsToSelection(ALL_MANAGER_MODULE_KEYS) : new Set())
+  const setAll = (on) => save(on ? permissionsToSelection(ALL_MANAGER_PERMISSIONS) : new Set())
   const moduleCount = MANAGER_MODULES.filter((m) => selected.has(m.key)).length
 
   return (

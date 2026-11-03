@@ -11,14 +11,18 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ code: 0, message: 'Méthode non autorisée.' })
+  }
+
   const caller = await verifyAdminRequest(req)
   if (!caller || caller.userType !== 'admin') {
     return res.status(403).json({ code: 0, message: 'Accès refusé.' })
   }
 
-  const { uid, newPassword } = req.body
+  const { uid, newPassword } = req.body || {}
 
-  if (!uid || typeof newPassword !== 'string' || newPassword.length < 6) {
+  if (typeof uid !== 'string' || !uid || typeof newPassword !== 'string' || newPassword.length < 6) {
     return res.status(400).json({
       code: 0,
       message: 'Le nouveau mot de passe doit contenir au moins 6 caractères.',
@@ -26,7 +30,18 @@ export default async function handler(
   }
 
   try {
+    if (uid === caller.uid) {
+      return res.status(400).json({ code: 0, message: 'Utilisez le changement de mot de passe de votre compte.' })
+    }
+
+    const target = await authAdmin.getUser(uid)
+    const targetRole = target.customClaims?.userType || target.customClaims?.role
+    if (!['manager', 'agent', 'worker'].includes(targetRole)) {
+      return res.status(403).json({ code: 0, message: 'Réinitialisation réservée aux comptes manager, agent et artisan.' })
+    }
+
     await authAdmin.updateUser(uid, { password: newPassword })
+    await authAdmin.revokeRefreshTokens(uid)
     await logAuditEvent({
       action: 'user.password_reset',
       actorUid: caller.uid,
