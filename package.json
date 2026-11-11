@@ -44,5 +44,14 @@
   },
   "engines": {
     "node": "22.x"
+  },
+  "resolutions": {
+    "protobufjs": "7.6.6",
+    "node-forge": "1.4.3",
+    "jws": "^4.0.1",
+    "websocket-driver": "0.7.5",
+    "lodash": "4.18.1",
+    "**/minimatch": "3.1.5",
+    "**/brace-expansion": "1.1.22"
   }
 }
