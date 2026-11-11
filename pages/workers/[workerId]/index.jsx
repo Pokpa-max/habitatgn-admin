@@ -229,9 +229,9 @@ function WorkerDetail() {
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <button
           onClick={() => router.back()}
-          className="mb-4 flex items-center text-sm text-gray-600 hover:text-gray-900"
+          className="group mb-5 inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
-          <RiArrowLeftLine className="mr-1.5 h-4 w-4" />
+          <RiArrowLeftLine className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
           Retour
         </button>
 
@@ -426,25 +426,6 @@ function WorkerDetail() {
             </div>
           </div>
         )}
-
-        {/* Statistiques transmises par le site public, si disponibles. */}
-        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-500">Statistiques du profil</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {[
-              ['Consultations', worker.stats?.views ?? worker.profileViews],
-              ['Clics WhatsApp', worker.stats?.whatsappClicks ?? worker.whatsappClicks],
-              ['Appels', worker.stats?.callClicks ?? worker.callClicks],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-gray-50 p-4">
-                <p className="text-xs font-medium text-gray-500">{label}</p>
-                <p className="mt-1 text-xl font-bold text-gray-900">
-                  {Number.isFinite(Number(value)) ? Number(value).toLocaleString('fr-FR') : '—'}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Plan payant & Certification (badges sur le site public) */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">

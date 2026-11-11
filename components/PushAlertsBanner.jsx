@@ -54,8 +54,8 @@ export default function PushAlertsBanner() {
         if (role === 'manager') {
           const userSnapshot = await getDoc(doc(db, 'users', user.uid))
           const permissions = userSnapshot.data()?.permissions
-          // Alertes envoyées pour ces modules (site : lib/staffAlerts) ; sans liste, tous les modules
-          if (Array.isArray(permissions) && !ALERT_MODULES.some((m) => permissions.includes(m))) return setState('hidden')
+          // Alertes envoyées pour ces modules (site : lib/staffAlerts), comme les règles Firestore
+          if (!Array.isArray(permissions) || !ALERT_MODULES.some((m) => permissions.includes(m))) return setState('hidden')
         }
         const registration = await navigator.serviceWorker.register(SW_URL)
         const subscription = await registration.pushManager.getSubscription()

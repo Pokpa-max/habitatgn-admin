@@ -183,9 +183,9 @@ function AgentDetail() {
       <div className="mx-auto min-w-0 max-w-6xl py-4 sm:py-6">
         <button
           onClick={() => router.back()}
-          className="mb-4 flex items-center text-sm text-gray-600 hover:text-gray-900"
+          className="group mb-5 inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
-          <RiArrowLeftLine className="mr-1.5 h-4 w-4" />
+          <RiArrowLeftLine className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
           Retour
         </button>
 
