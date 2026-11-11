@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { RiNotification3Line, RiCloseLine } from 'react-icons/ri'
-import { auth } from '@/lib/firebase/client_config'
+import { auth, db } from '@/lib/firebase/client_config'
+import { doc, getDoc } from 'firebase/firestore'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 
@@ -10,6 +11,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.batimoo.com'
 const SW_URL = '/admin-sw.js'
 const DISMISS_KEY = 'batimoo_admin_alerts_dismissed_at'
 const DISMISS_DAYS = 7
+// Modules dont les nouveautés déclenchent une alerte
+const ALERT_MODULES = ['services', 'leads', 'reservations', 'agents', 'workers']
 
 const supported = () =>
   typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
@@ -29,7 +32,8 @@ const toUint8Array = (base64) => {
 
 /**
  * Bandeau « Activez les alertes » : notifications de l'ordinateur ou du
- * téléphone pour les nouvelles demandes, même quand l'admin est fermée.
+ * téléphone pour les nouvelles demandes (service, visite, réservation,
+ * inscription agent / artisan), même quand l'admin est fermée.
  * Affiché tant que ce n'est pas activé sur cet appareil.
  */
 export default function PushAlertsBanner() {
@@ -43,14 +47,33 @@ export default function PushAlertsBanner() {
     let cancelled = false
     ;(async () => {
       try {
+        const user = auth.currentUser
+        if (!user) return setState('hidden')
+        const tokenResult = await user.getIdTokenResult()
+        const role = tokenResult.claims.userType || tokenResult.claims.role
+        if (role === 'manager') {
+          const userSnapshot = await getDoc(doc(db, 'users', user.uid))
+          const permissions = userSnapshot.data()?.permissions
+          // Alertes envoyées pour ces modules (site : lib/staffAlerts) ; sans liste, tous les modules
+          if (Array.isArray(permissions) && !ALERT_MODULES.some((m) => permissions.includes(m))) return setState('hidden')
+        }
         const registration = await navigator.serviceWorker.register(SW_URL)
         const subscription = await registration.pushManager.getSubscription()
         if (cancelled) return
-        if (subscription && Notification.permission === 'granted') setState('on')
-        else if (Notification.permission === 'denied') setState(dismissedRecently() ? 'hidden' : 'denied')
+        if (subscription && Notification.permission === 'granted') {
+          const token = await auth.currentUser?.getIdToken()
+          if (!token) throw new Error('auth')
+          const response = await fetch(`${SITE_URL}/api/push/subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(subscription),
+          })
+          if (!response.ok) throw new Error('subscription-sync')
+          setState('on')
+        } else if (Notification.permission === 'denied') setState(dismissedRecently() ? 'hidden' : 'denied')
         else setState(dismissedRecently() ? 'hidden' : 'off')
       } catch {
-        if (!cancelled) setState('hidden')
+        if (!cancelled) setState('off')
       }
     })()
     return () => {
@@ -68,21 +91,24 @@ export default function PushAlertsBanner() {
   const enable = async () => {
     setBusy(true)
     try {
+      const token = await auth.currentUser?.getIdToken()
+      if (!token) throw new Error('auth')
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') {
         setState(permission === 'denied' ? 'denied' : 'off')
         return
       }
       const registration = await navigator.serviceWorker.ready
-      const keyResponse = await fetch(`${SITE_URL}/api/push/public-key`)
-      if (!keyResponse.ok) throw new Error('configuration')
-      const { publicKey } = await keyResponse.json()
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: toUint8Array(publicKey),
-      })
-      const token = await auth.currentUser?.getIdToken()
-      if (!token) throw new Error('auth')
+      let subscription = await registration.pushManager.getSubscription()
+      if (!subscription) {
+        const keyResponse = await fetch(`${SITE_URL}/api/push/public-key`)
+        if (!keyResponse.ok) throw new Error('configuration')
+        const { publicKey } = await keyResponse.json()
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: toUint8Array(publicKey),
+        })
+      }
       const response = await fetch(`${SITE_URL}/api/push/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -112,7 +138,8 @@ export default function PushAlertsBanner() {
             <>
               <p className="font-semibold text-gray-900">Activez les alertes sur cet appareil</p>
               <p className="text-gray-600">
-                Soyez prévenu des nouvelles demandes de service dès leur arrivée, même quand l&apos;admin est fermée.
+                Soyez prévenu dès leur arrivée des nouvelles demandes de service, demandes de visite, réservations et
+                inscriptions d&apos;agents ou d&apos;artisans, même quand l&apos;admin est fermée.
               </p>
             </>
           ) : (

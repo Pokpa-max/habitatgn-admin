@@ -1,5 +1,5 @@
 // Service worker de l'app d'administration : uniquement les notifications
-// push (nouvelles demandes de service…). Aucune mise en cache : l'app reste
+// push (demandes de service, de visite, réservations, inscriptions…). Aucune mise en cache : l'app reste
 // toujours chargée depuis le réseau.
 // Les notifications sont envoyées par le site public (habitatgnweb, lib/push).
 
