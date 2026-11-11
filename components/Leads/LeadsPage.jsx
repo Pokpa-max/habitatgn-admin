@@ -16,7 +16,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import StatusPill from '@/components/ui/StatusPill'
 import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice, whatsappUrl } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
-import { getLeads, updateLeadStatus, deleteLead } from '@/lib/services/leads'
+import { getLeads, getLeadOwners, updateLeadStatus, deleteLead } from '@/lib/services/leads'
 import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
@@ -119,6 +119,23 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
         </div>
       </ModalSection>
 
+      {lead.owner && (
+        <ModalSection title="Annonce publiée par">
+          <div className="flex items-center justify-between gap-3">
+            <OwnerTag owner={lead.owner} />
+            {lead.owner.type !== 'batimoo' && lead.ownerId && (
+              <a
+                href={`/agents/${lead.ownerId}`}
+                className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold"
+                style={{ color: colors.primary }}
+              >
+                Voir le profil
+              </a>
+            )}
+          </div>
+        </ModalSection>
+      )}
+
       <ModalSection title="Visiteur">
         <ModalFields fields={[{ label: 'Téléphone', value: lead.phone }, { label: 'Nom', value: lead.name }]} />
       </ModalSection>
@@ -169,7 +186,9 @@ export default function LeadsPage() {
       setIsLoading(true)
       try {
         const data = await getLeads()
-        setLeads(data)
+        // Agence / particulier qui a publié l'annonce, ajouté à chaque demande
+        const owners = await getLeadOwners(data.map((lead) => lead.ownerId)).catch(() => ({}))
+        setLeads(data.map((lead) => ({ ...lead, owner: owners[lead.ownerId] || null })))
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -436,6 +455,7 @@ export default function LeadsPage() {
                   {[
                     { label: 'Demandeur' },
                     { label: 'Annonce' },
+                    { label: 'Publié par' },
                     { label: 'Reçu le', secondary: true },
                     { label: 'Statut' },
                     { label: 'Actions' },
@@ -488,6 +508,9 @@ export default function LeadsPage() {
                         {lead.listingType === 'lands' ? 'Terrain' : 'Bien'}
                       </span>
                     </td>
+                    <td className="px-6 py-3">
+                      {lead.owner ? <OwnerTag owner={lead.owner} /> : <span className="text-xs text-gray-400">—</span>}
+                    </td>
                     <td className="hidden px-6 py-3 font-mono text-xs text-gray-500 lg:table-cell">
                       {firebaseDateFormat(lead.createdAt)}
                     </td>
@@ -525,6 +548,29 @@ export default function LeadsPage() {
             <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+// « Agence · Nom » / « Particulier · Nom » / « BâtiMoo »
+function OwnerTag({ owner }) {
+  const colors = useColors()
+  const meta = {
+    agence: { label: 'Agence', bg: colors.primaryLight || '#E8EFF8', color: colors.primary },
+    particulier: { label: 'Particulier', bg: colors.gray100, color: colors.gray700 },
+    batimoo: { label: 'BâtiMoo', bg: colors.gray100, color: colors.gray700 },
+  }[owner.type] || { label: owner.type, bg: colors.gray100, color: colors.gray700 }
+  return (
+    <div className="min-w-0">
+      <span
+        className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+        style={{ backgroundColor: meta.bg, color: meta.color }}
+      >
+        {meta.label}
+      </span>
+      {owner.type !== 'batimoo' && owner.name && (
+        <p className="mt-1 max-w-[12rem] truncate text-sm text-gray-700">{owner.name}</p>
       )}
     </div>
   )

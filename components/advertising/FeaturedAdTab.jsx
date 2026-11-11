@@ -37,6 +37,7 @@ export default function FeaturedAdTab() {
   const [uploadingNew, setUploadingNew] = useState(false)
   const [replacingIndex, setReplacingIndex] = useState(null)
   const [deletingIndex, setDeletingIndex] = useState(null)
+  const [toggling, setToggling] = useState(false)
 
   const addInputRef = useRef(null)
   const replaceInputRef = useRef(null)
@@ -122,9 +123,20 @@ export default function FeaturedAdTab() {
     setAds((prev) => prev.map((ad, i) => (i === index ? { ...ad, linkUrl } : ad)))
   }
 
-  const handleToggleEnabled = (value) => {
-    if (!canProcess) return
+  // Activer / désactiver s'applique tout de suite sur le site (avant, il
+  // fallait aussi cliquer sur « Enregistrer » : sinon rien ne changeait).
+  const handleToggleEnabled = async (value) => {
+    if (!canProcess || toggling) return
+    setToggling(true)
     setEnabled(value)
+    try {
+      await saveFeaturedAdSettings({ enabled: value, text, linkUrl, ads })
+      notify(value ? 'Publicité activée sur le site' : 'Publicité désactivée sur le site', 'success')
+    } catch (e) {
+      setEnabled(!value)
+      notify('Une erreur est survenue', 'error')
+    }
+    setToggling(false)
   }
 
   const handleSave = async () => {
@@ -169,7 +181,7 @@ export default function FeaturedAdTab() {
             <Switch
               checked={enabled}
               onChange={handleToggleEnabled}
-              disabled={!canProcess}
+              disabled={!canProcess || toggling}
               className={classNames(
                 enabled ? '' : 'bg-gray-200',
                 'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none'
