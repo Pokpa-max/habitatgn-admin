@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import {
-  RiImageLine,
   RiAdvertisementLine,
   RiBroadcastLine,
 } from 'react-icons/ri'
@@ -14,33 +13,31 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
 import { useColors } from '@/contexts/ColorContext'
-import HeroTab from '@/components/advertising/HeroTab'
 import FeaturedAdTab from '@/components/advertising/FeaturedAdTab'
 import LaunchOfferTab from '@/components/advertising/LaunchOfferTab'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const TABS = [
-  { value: 'hero', label: "Bannière d'accueil", icon: RiImageLine },
   { value: 'featured-ad', label: 'Publicité en vedette', icon: RiAdvertisementLine },
   { value: 'launch-offer', label: 'Offre de lancement', icon: RiBroadcastLine },
 ]
 
 function Advertising() {
   const colors = useColors()
-  const [activeTab, setActiveTab] = useState('hero')
+  const [activeTab, setActiveTab] = useState('featured-ad')
 
   return (
     <Scaffold>
       <Header title="Publicité" />
 
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
         {TABS.map((tab) => {
           const active = activeTab === tab.value
           return (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
-              className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+              className="flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
               style={
                 active
                   ? { borderColor: colors.primary, color: colors.primary }
@@ -54,7 +51,6 @@ function Advertising() {
         })}
       </div>
 
-      {activeTab === 'hero' && <HeroTab />}
       {activeTab === 'featured-ad' && <FeaturedAdTab />}
       {activeTab === 'launch-offer' && <LaunchOfferTab />}
     </Scaffold>

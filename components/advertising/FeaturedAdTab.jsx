@@ -18,7 +18,6 @@ import {
   uploadFeaturedAdImage,
   removeFeaturedAdImage,
 } from '@/lib/services/siteSettings'
-import PagePreview from './PagePreview'
 import { useCanManage } from '@/hooks/useCanManage'
 
 function classNames(...classes) {
@@ -37,6 +36,7 @@ export default function FeaturedAdTab() {
   const [ads, setAds] = useState([])
   const [uploadingNew, setUploadingNew] = useState(false)
   const [replacingIndex, setReplacingIndex] = useState(null)
+  const [deletingIndex, setDeletingIndex] = useState(null)
 
   const addInputRef = useRef(null)
   const replaceInputRef = useRef(null)
@@ -87,11 +87,23 @@ export default function FeaturedAdTab() {
     setReplacingIndex(null)
   }
 
-  const removeAd = (index) => {
+  // Suppression enregistrée tout de suite (avant, il fallait penser à cliquer
+  // sur « Enregistrer » : l'image revenait au rechargement).
+  const removeAd = async (index) => {
     if (!canDelete) return
+    if (!window.confirm('Supprimer cette publicité du site ?')) return
     const oldUrl = ads[index]?.imageUrl
-    setAds((prev) => prev.filter((_, i) => i !== index))
-    if (oldUrl) removeFeaturedAdImage(oldUrl)
+    const nextAds = ads.filter((_, i) => i !== index)
+    setDeletingIndex(index)
+    try {
+      await saveFeaturedAdSettings({ enabled, text, linkUrl, ads: nextAds })
+      setAds(nextAds)
+      if (oldUrl) removeFeaturedAdImage(oldUrl)
+      notify('Publicité supprimée', 'success')
+    } catch (e) {
+      notify('La suppression a échoué', 'error')
+    }
+    setDeletingIndex(null)
   }
 
   const moveAd = (index, direction) => {
@@ -142,7 +154,8 @@ export default function FeaturedAdTab() {
           <div>
             <h2 className="text-lg font-bold text-gray-900">Publicité en vedette</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Bannière publicitaire affichée sur le site. Les changements sont visibles immédiatement.
+              Encart « Sponsorisé » glissé dans la liste des biens et la Marketplace (un seul par page).
+              Avec plusieurs images, une est tirée au hasard à chaque visite.
             </p>
             <p className="mt-2 text-xs font-medium text-amber-700">
               Format d'image recommandé : environ 1200 × 280&nbsp;px (ratio ~4:1).
@@ -208,10 +221,9 @@ export default function FeaturedAdTab() {
         {/* Liste des images */}
         <div className="space-y-3">
           {ads.map((ad, index) => (
-            <div key={ad.imageUrl + index} className="flex gap-4 rounded-lg border border-gray-200 p-3">
+            <div key={ad.imageUrl + index} className="flex flex-col gap-3 rounded-lg border border-gray-200 p-3 sm:flex-row sm:items-center sm:gap-4">
               <div
-                className="relative w-96 shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50"
-                style={{ height: '63px' }}
+                className="relative aspect-[4/1] w-full shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50 sm:w-64"
               >
                 <img src={ad.imageUrl} alt="" className="h-full w-full object-cover" />
                 {replacingIndex === index && (
@@ -243,11 +255,11 @@ export default function FeaturedAdTab() {
                   onChange={(e) => updateLinkUrl(index, e.target.value)}
                   disabled={!canProcess}
                   placeholder="/lands ou /contact"
-                  className="w-full max-w-32 rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+                  className="w-full rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
                 />
               </div>
 
-              <div className="flex shrink-0 flex-col items-center justify-center gap-1">
+              <div className="flex shrink-0 items-center justify-end gap-1 sm:flex-col sm:justify-center">
                 {canProcess && (
                   <>
                     <button
@@ -274,10 +286,17 @@ export default function FeaturedAdTab() {
                   <button
                     type="button"
                     onClick={() => removeAd(index)}
-                    className="rounded p-1.5 hover:bg-red-50"
-                    aria-label="Supprimer"
+                    disabled={deletingIndex !== null}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold hover:bg-red-50 disabled:opacity-50"
+                    style={{ color: colors.error }}
+                    aria-label="Supprimer cette publicité"
                   >
-                    <RiDeleteBinLine className="h-4 w-4" style={{ color: colors.error }} />
+                    {deletingIndex === index ? (
+                      <RiLoader4Line className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RiDeleteBinLine className="h-4 w-4" />
+                    )}
+                    Supprimer
                   </button>
                 )}
               </div>
@@ -369,10 +388,38 @@ export default function FeaturedAdTab() {
         )}
       </div>
 
-      <PagePreview
-        highlight="top-banner"
-        caption="Bandeau affiché une fois par session, sur toutes les pages, au-dessus du menu"
-      />
+      <SponsoredPreview />
+    </div>
+  )
+}
+
+// Schéma : où l'encart apparaît (dans la grille des annonces, sur toute la largeur)
+function SponsoredPreview() {
+  const colors = useColors()
+  return (
+    <div className="h-fit rounded-xl bg-white p-6 shadow-sm">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Aperçu de l'emplacement</p>
+      <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div className="grid grid-cols-4 gap-1.5">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-8 rounded bg-gray-200" />
+          ))}
+        </div>
+        <div className="overflow-hidden rounded border-2" style={{ borderColor: colors.primary }}>
+          <div className="flex h-8 items-center justify-center text-[10px] font-bold" style={{ backgroundColor: colors.primary, color: '#fff' }}>
+            Votre image
+          </div>
+          <div className="bg-white px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-gray-500">Sponsorisé</div>
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-8 rounded bg-gray-200" />
+          ))}
+        </div>
+      </div>
+      <p className="mt-3 text-center text-xs text-gray-500">
+        Après les premières annonces, sur la page des biens et la Marketplace
+      </p>
     </div>
   )
 }
