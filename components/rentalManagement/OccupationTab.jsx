@@ -1,31 +1,48 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { RiPieChartLine } from 'react-icons/ri'
+import { RiPieChartLine, RiHome4Line, RiHome3Line, RiCheckboxCircleLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
-
-function StatCard({ label, value, color }) {
-  return (
-    <div className="rounded-lg border border-gray-200 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-bold" style={{ color }}>
-        {value}
-      </p>
-    </div>
-  )
-}
 
 const STATUS_LABELS = { vacant: 'Vacant', occupied: 'Occupé', inactive: 'Inactif' }
 const STATUS_COLORS = { vacant: '#F59E0B', occupied: '#16A34A', inactive: '#9CA3AF' }
 
+const PAGE_SIZE = 10
+
 export default function OccupationTab({ ownerId }) {
   const colors = useColors()
+
+  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
+    <div
+      className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+    >
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} />
+      </div>
+      <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+        {label}
+      </p>
+      <p className="font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
+        {value}
+      </p>
+    </div>
+  )
   const [properties, setProperties] = useState([])
   const [leases, setLeases] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [ownerId])
 
   useEffect(() => {
     const load = async () => {
@@ -61,6 +78,8 @@ export default function OccupationTab({ ownerId }) {
   const activeLeaseByProperty = (propertyId) =>
     leases.find((l) => l.propertyId === propertyId && l.status === 'active')
 
+  const visibleProperties = properties.slice(0, visibleCount)
+
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
       <div className="mb-6">
@@ -80,10 +99,34 @@ export default function OccupationTab({ ownerId }) {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <StatCard label="Biens gérés" value={total} color={colors.primary} />
-            <StatCard label="Taux d'occupation" value={`${occupancyRate}%`} color="#065F46" />
-            <StatCard label="Occupés" value={occupied} color="#16A34A" />
-            <StatCard label="Vacants" value={vacant} color="#92400E" />
+            <StatCard
+              icon={RiHome4Line}
+              label="Biens gérés"
+              value={total}
+              iconBg={colors.primaryVeryLight}
+              iconColor={colors.primary}
+            />
+            <StatCard
+              icon={RiPieChartLine}
+              label="Taux d'occupation"
+              value={`${occupancyRate}%`}
+              iconBg="#F0FDF4"
+              iconColor="#065F46"
+            />
+            <StatCard
+              icon={RiCheckboxCircleLine}
+              label="Occupés"
+              value={occupied}
+              iconBg="#F0FDF4"
+              iconColor={colors.success}
+            />
+            <StatCard
+              icon={RiHome3Line}
+              label="Vacants"
+              value={vacant}
+              iconBg="#FFFBEB"
+              iconColor="#92400E"
+            />
           </div>
 
           <div className="mb-6 h-64 rounded-lg border border-gray-100 p-4">
@@ -93,7 +136,7 @@ export default function OccupationTab({ ownerId }) {
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="count" radius={[6, 6, 0, 0]} isAnimationActive={false}>
                   {chartData.map((entry) => (
                     <Cell key={entry.status} fill={STATUS_COLORS[entry.status]} />
                   ))}
@@ -104,16 +147,16 @@ export default function OccupationTab({ ownerId }) {
 
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Détail par bien</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[680px] text-left text-sm">
               <thead>
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr className="border-b border-gray-100 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                   <th className="py-2 pr-4">Bien</th>
                   <th className="py-2 pr-4">Statut</th>
                   <th className="py-2 pr-4">Locataire actuel</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {properties.map((property) => {
+                {visibleProperties.map((property) => {
                   const lease = activeLeaseByProperty(property.id)
                   return (
                     <tr key={property.id}>
@@ -139,6 +182,9 @@ export default function OccupationTab({ ownerId }) {
               </tbody>
             </table>
           </div>
+          {visibleCount < properties.length && (
+            <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+          )}
         </>
       )}
     </div>

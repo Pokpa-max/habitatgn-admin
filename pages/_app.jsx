@@ -28,7 +28,9 @@ function MyApp({ Component, pageProps }) {
         </NotificationsProvider>
       </ColorProvider>
       <Toaster position="top-right" />
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV === 'development' && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   )
 }

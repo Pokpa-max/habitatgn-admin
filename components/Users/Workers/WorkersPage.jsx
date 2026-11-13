@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
   RiCheckLine,
   RiCloseLine,
@@ -11,19 +11,48 @@ import {
   RiProfileLine,
   RiSearchLine,
   RiAddLine,
+  RiMoneyDollarCircleLine,
+  RiArrowRightSLine,
+  RiForbidLine,
+  RiLockUnlockLine,
+  RiLockPasswordLine,
+  RiShieldCheckFill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
-import { getWorkers, approveWorker, rejectWorker } from '@/lib/services/workers'
+import ResetPasswordModal from '@/components/Users/ResetPasswordModal'
+import {
+  getWorkers,
+  approveWorker,
+  rejectWorker,
+  hideWorkerFromPublic,
+  restoreWorkerVisibility,
+  toggleWorkerCertification,
+} from '@/lib/services/workers'
 import {
   desableUser,
   desableUserFirestore,
   getUserAvailability,
+  resetManagerPassword,
 } from '@/lib/services/managers'
+import {
+  getAllWorkerPayments,
+  getWorkerSubscriptionAmount,
+  recordWorkerPayment,
+  computeWorkerPaymentStatus,
+} from '@/lib/services/workerPayments'
+import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
+import RecordPaymentModal from './RecordPaymentModal'
+import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
+import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
+import AdminModal from '@/components/ui/AdminModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
+import { firebaseDateFormat } from '@/utils/date'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
@@ -33,6 +62,34 @@ const STATUS_FILTERS = [
   { value: 'rejected', label: 'Rejetés' },
 ]
 
+const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
+
+function ActionRow({ as = 'a', icon: Icon, iconColor, iconBg, label, tone, ...props }) {
+  const Tag = as
+  const labelColor = tone === 'danger' ? '#DC2626' : '#374151'
+  return (
+    <Tag
+      {...props}
+      type={as === 'button' ? 'button' : undefined}
+      className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+    >
+      <span
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4.5 w-4.5" style={{ color: iconColor }} />
+      </span>
+      <span className="flex-1 text-sm font-semibold" style={{ color: labelColor }}>
+        {label}
+      </span>
+      <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100" />
+    </Tag>
+  )
+}
+
+const STATUS_LABEL = { pending: 'En attente', approved: 'Approuvé', rejected: 'Refusé' }
+const STATUS_TONE = { pending: 'warning', approved: 'success', rejected: 'error' }
+
 function ActionsModal({
   worker,
   open,
@@ -40,122 +97,118 @@ function ActionsModal({
   onApprove,
   onReject,
   onToggleBlock,
+  onToggleCertification,
+  onRecordPayment,
+  onResetPassword,
+  canProcess,
+  canPayments,
+  isAdmin,
 }) {
   const colors = useColors()
   if (!worker) return null
   const status = worker.status || 'pending'
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" />
-        </Transition.Child>
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      size="sm"
+      eyebrow="Artisan · que voulez-vous faire ?"
+      title={worker.name || 'Artisan'}
+      meta={<StatusPill tone={STATUS_TONE[status] || 'gray'}>{STATUS_LABEL[status] || status}</StatusPill>}
+    >
+      <div className="-mx-3 -my-2 space-y-0.5">
+        <Link href={`/workers/${worker.id}`} passHref legacyBehavior>
+          <ActionRow
+            icon={RiProfileLine}
+            iconColor={colors.gray600}
+            iconBg={colors.gray100}
+            label="Voir détail (réalisations, avis)"
+          />
+        </Link>
 
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
-                <div className="border-b border-gray-200 px-5 py-4">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {worker.name}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Choisir une action
-                  </p>
-                </div>
+        {canProcess && status === 'pending' && (
+          <>
+            <ActionRow
+              as="button"
+              onClick={onApprove}
+              icon={RiCheckLine}
+              iconColor={colors.primary}
+              iconBg={colors.primaryVeryLight}
+              label="Approuver le profil"
+            />
+            <ActionRow
+              as="button"
+              onClick={onReject}
+              icon={RiCloseLine}
+              iconColor={colors.gray500}
+              iconBg={colors.gray100}
+              label="Rejeter le profil"
+              tone="danger"
+            />
+          </>
+        )}
 
-                <div className="space-y-1 p-2">
-                  <Link href={`/workers/${worker.id}`}>
-                    <a className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                      <RiProfileLine className="h-4 w-4 text-gray-400" />
-                      Voir détail (réalisations, avis)
-                    </a>
-                  </Link>
+        {canProcess && status === 'approved' && (
+          <ActionRow
+            as="button"
+            onClick={onToggleCertification}
+            icon={RiShieldCheckFill}
+            iconColor={worker.isCertified ? colors.gray500 : '#2563EB'}
+            iconBg={worker.isCertified ? colors.gray100 : '#EFF6FF'}
+            label={worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
+          />
+        )}
 
-                  {status === 'pending' && (
-                    <>
-                      <button
-                        onClick={onApprove}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiCheckLine
-                          className="h-4 w-4"
-                          style={{ color: colors.primary }}
-                        />
-                        Approuver le profil
-                      </button>
-                      <button
-                        onClick={onReject}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        <RiCloseLine className="h-4 w-4 text-gray-400" />
-                        Rejeter le profil
-                      </button>
-                    </>
-                  )}
+        {canPayments && status === 'approved' && (
+          <ActionRow
+            as="button"
+            onClick={onRecordPayment}
+            icon={RiMoneyDollarCircleLine}
+            iconColor={colors.primary}
+            iconBg={colors.primaryVeryLight}
+            label="Enregistrer un paiement"
+          />
+        )}
 
-                  {status === 'approved' && worker.userId && (
-                    <button
-                      onClick={onToggleBlock}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                    >
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{
-                          backgroundColor: worker.isAvailable
-                            ? colors.gray700
-                            : colors.primary,
-                        }}
-                      />
-                      {worker.isAvailable
-                        ? 'Bloquer le compte'
-                        : 'Débloquer le compte'}
-                    </button>
-                  )}
+        {canProcess && (status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onToggleBlock}
+            icon={worker.isAvailable ? RiForbidLine : RiLockUnlockLine}
+            iconColor={worker.isAvailable ? '#D97706' : colors.primary}
+            iconBg={worker.isAvailable ? '#FEF3C7' : colors.primaryVeryLight}
+            label={worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+            tone={worker.isAvailable ? 'danger' : undefined}
+          />
+        )}
 
-                  {status === 'rejected' && (
-                    <p className="px-3 py-2.5 text-sm text-gray-400">
-                      Aucune action disponible
-                    </p>
-                  )}
-                </div>
+        {isAdmin && status === 'approved' && worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onResetPassword}
+            icon={RiLockPasswordLine}
+            iconColor={colors.primary}
+            iconBg={colors.primaryVeryLight}
+            label="Modifier le mot de passe"
+          />
+        )}
 
-                <div className="border-t border-gray-200 p-2">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+        {status === 'rejected' && !worker.suspendedByAdmin && (
+          <p className="px-3 py-2.5 text-sm text-gray-400">
+            Aucune action disponible
+          </p>
+        )}
+      </div>
+    </AdminModal>
   )
 }
 
 export default function WorkersPage() {
   const colors = useColors()
+  const isAdmin = useIsAdmin()
+  const canProcess = useCanManage('workers', 'process')
+  const canPayments = useCanManage('workers', 'payments')
   const [workers, setWorkers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
@@ -165,24 +218,42 @@ export default function WorkersPage() {
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [actionsTarget, setActionsTarget] = useState(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState(null)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [subscriptionAmount, setSubscriptionAmount] = useState(0)
+  const [paymentTarget, setPaymentTarget] = useState(null)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [payments, setPayments] = useState([])
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
+    setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
+
+  useEffect(() => {
+    getWorkerSubscriptionAmount().then(setSubscriptionAmount).catch(() => {})
+  }, [])
 
   const fetchWorkersData = async () => {
     setIsLoading(true)
     try {
-      const data = await getWorkers()
+      const [data, allPayments] = await Promise.all([getWorkers(), getAllWorkerPayments()])
       const withAvailability = await Promise.all(
         data.map(async (w) => ({
           ...w,
-          isAvailable: await getUserAvailability(w.userId),
+          isAvailable: await getUserAvailability(w.userId).catch(() => true),
+          paymentStatus: computeWorkerPaymentStatus(
+            w,
+            allPayments.filter((p) => p.workerId === w.id)
+          ),
         }))
       )
       setWorkers(withAvailability)
+      setPayments(allPayments)
     } catch (err) {
       console.error(err)
       notify('Erreur lors du chargement des ouvriers', 'error')
@@ -196,11 +267,22 @@ export default function WorkersPage() {
   }, [])
 
   const handleApprove = async (worker) => {
+    if (!canProcess) return
     setActioningId(worker.id)
     try {
       await approveWorker(worker.id, worker.userId)
+      const approvedAt = new Date()
       setWorkers((prev) =>
-        prev.map((w) => (w.id === worker.id ? { ...w, status: 'approved' } : w))
+        prev.map((w) =>
+          w.id === worker.id
+            ? {
+                ...w,
+                status: 'approved',
+                approvedAt,
+                paymentStatus: computeWorkerPaymentStatus({ ...w, status: 'approved', approvedAt }, []),
+              }
+            : w
+        )
       )
       notify('Ouvrier approuvé', 'success')
     } catch (e) {
@@ -211,6 +293,7 @@ export default function WorkersPage() {
   }
 
   const handleReject = async (worker) => {
+    if (!canProcess) return
     setActioningId(worker.id)
     try {
       await rejectWorker(worker.id)
@@ -225,19 +308,181 @@ export default function WorkersPage() {
     setActionsModalOpen(false)
   }
 
+  const setWorkerBlockedState = async (worker, blocked) => {
+    await desableUser(worker.userId, blocked)
+    await desableUserFirestore(worker.userId, !blocked)
+    if (blocked) {
+      await hideWorkerFromPublic(worker.id)
+    } else {
+      await restoreWorkerVisibility(worker.id)
+    }
+  }
+
   const handleToggleBlock = async () => {
-    if (!blockTarget) return
+    if (!blockTarget || !canProcess) return
     const nextAvailable = !blockTarget.isAvailable
     try {
-      await desableUser(blockTarget.userId, !nextAvailable)
-      await desableUserFirestore(blockTarget.userId, nextAvailable)
+      await setWorkerBlockedState(blockTarget, !nextAvailable)
       setWorkers((prev) =>
         prev.map((w) =>
-          w.id === blockTarget.id ? { ...w, isAvailable: nextAvailable } : w
+          w.id === blockTarget.id
+            ? {
+                ...w,
+                isAvailable: nextAvailable,
+                ...(nextAvailable
+                  ? { status: 'approved', suspendedByAdmin: false }
+                  : { status: 'rejected', suspendedByAdmin: true }),
+              }
+            : w
         )
       )
       notify('Action effectuée avec succès', 'success')
       setBlockModalOpen(false)
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
+
+  const handleBulkApprove = async () => {
+    if (!canProcess) return
+    const targets = filtered.filter((w) => selectedIds.has(w.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => approveWorker(w.id, w.userId)))
+      const approvedAt = new Date()
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) =>
+        prev.map((w) =>
+          targetIds.has(w.id)
+            ? {
+                ...w,
+                status: 'approved',
+                approvedAt,
+                paymentStatus: computeWorkerPaymentStatus({ ...w, status: 'approved', approvedAt }, []),
+              }
+            : w
+        )
+      )
+      notify(`${targets.length} ouvrier(s) approuvé(s)`, 'success')
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'approbation groupée", 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkReject = async () => {
+    if (!canProcess) return
+    const targets = filtered.filter((w) => selectedIds.has(w.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => rejectWorker(w.id)))
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) => prev.map((w) => (targetIds.has(w.id) ? { ...w, status: 'rejected' } : w)))
+      notify(`${targets.length} ouvrier(s) rejeté(s)`, 'success')
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors du rejet groupé', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleToggleCertification = async (worker) => {
+    if (!canProcess || !worker) return
+    const nextCertified = !worker.isCertified
+    setActioningId(worker.id)
+    try {
+      await toggleWorkerCertification(worker.id, nextCertified)
+      setWorkers((prev) =>
+        prev.map((w) => (w.id === worker.id ? { ...w, isCertified: nextCertified } : w))
+      )
+      notify(
+        nextCertified
+          ? 'Badge Certifié attribué avec succès'
+          : 'Badge Certifié retiré',
+        'success'
+      )
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setActioningId(null)
+    setActionsModalOpen(false)
+  }
+
+  const handleBulkCertify = async (certified) => {
+    if (!canProcess) return
+    const targets = filtered.filter((w) => selectedIds.has(w.id) && w.isCertified !== certified)
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => toggleWorkerCertification(w.id, certified)))
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) =>
+        prev.map((w) => (targetIds.has(w.id) ? { ...w, isCertified: certified } : w))
+      )
+      notify(
+        certified
+          ? `${targets.length} ouvrier(s) certifié(s)`
+          : `${targets.length} badge(s) certifié(s) retiré(s)`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'action groupée", 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkBlock = async (blocked) => {
+    if (!canProcess) return
+    const targets = filtered.filter((w) => selectedIds.has(w.id) && w.userId)
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((w) => setWorkerBlockedState(w, blocked)))
+      const targetIds = new Set(targets.map((w) => w.id))
+      setWorkers((prev) =>
+        prev.map((w) =>
+          targetIds.has(w.id)
+            ? {
+                ...w,
+                isAvailable: !blocked,
+                ...(blocked
+                  ? { status: 'rejected', suspendedByAdmin: true }
+                  : { status: 'approved', suspendedByAdmin: false }),
+              }
+            : w
+        )
+      )
+      notify(
+        blocked ? `${targets.length} ouvrier(s) bloqué(s)` : `${targets.length} ouvrier(s) débloqué(s)`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify("Erreur lors de l'action groupée", 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
+    if (!paymentTarget || !canPayments) return
+    try {
+      await recordWorkerPayment(paymentTarget.id, amount, paidAt, monthsCovered)
+      const allPayments = await getAllWorkerPayments()
+      setWorkers((prev) =>
+        prev.map((w) => ({
+          ...w,
+          paymentStatus: computeWorkerPaymentStatus(
+            w,
+            allPayments.filter((p) => p.workerId === w.id)
+          ),
+        }))
+      )
+      setPayments(allPayments)
+      notify('Paiement enregistré', 'success')
     } catch (e) {
       notify('Une erreur est survenue', 'error')
     }
@@ -256,6 +501,32 @@ export default function WorkersPage() {
     )
   })
   const visible = filtered.slice(0, visibleCount)
+
+  // Sélectionnable dépend de l'action groupée disponible pour l'onglet actif :
+  // pending -> approuver/rejeter, approved -> bloquer, rejected -> débloquer
+  // (uniquement les comptes bloqués par un admin, pas les vraies candidatures rejetées).
+  const isBulkSelectable = (w) => {
+    if (!canProcess) return false // toutes les actions groupées de cette page sont des actions "process"
+    if (statusFilter === 'pending') return true
+    if (statusFilter === 'approved') return !!w.userId
+    if (statusFilter === 'rejected') return !!w.suspendedByAdmin && !!w.userId
+    return false
+  }
+  const selectableIds = filtered.filter(isBulkSelectable).map((w) => w.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
 
   return (
     <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
@@ -283,6 +554,37 @@ export default function WorkersPage() {
           setBlockTarget(actionsTarget)
           setBlockModalOpen(true)
         }}
+        onToggleCertification={() => handleToggleCertification(actionsTarget)}
+        onRecordPayment={() => {
+          setActionsModalOpen(false)
+          setPaymentTarget(actionsTarget)
+          setPaymentModalOpen(true)
+        }}
+        onResetPassword={() => {
+          setActionsModalOpen(false)
+          setPasswordTarget(actionsTarget)
+          setPasswordModalOpen(true)
+        }}
+        canProcess={canProcess}
+        canPayments={canPayments}
+        isAdmin={isAdmin}
+      />
+
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        setOpen={setPaymentModalOpen}
+        defaultAmount={subscriptionAmount}
+        onConfirm={handleRecordPayment}
+      />
+
+      <ResetPasswordModal
+        manager={passwordTarget}
+        open={passwordModalOpen}
+        setOpen={setPasswordModalOpen}
+        onReset={async (worker, newPassword) => {
+          await resetManagerPassword(worker.userId, newPassword)
+          notify('Mot de passe modifié avec succès', 'success')
+        }}
       />
 
       <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -293,26 +595,31 @@ export default function WorkersPage() {
               Profils d'artisans/ouvriers inscrits depuis le site public
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative sm:w-64">
-              <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Rechercher nom, spécialité, zone..."
-                className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-              />
+          {statusFilter !== REVENUE_TAB.value && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative sm:w-64">
+                <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Rechercher nom, spécialité, zone..."
+                  className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+                />
+              </div>
+              {canProcess && (
+                <button
+                  type="button"
+                  onClick={() => setCreateDrawerOpen(true)}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <RiAddLine className="h-4 w-4" />
+                  Ajouter un Ouvrier
+                </button>
+              )}
             </div>
-            <button
-              onClick={() => setCreateDrawerOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter un Ouvrier
-            </button>
-          </div>
+          )}
         </div>
 
         <CreateUserDrawer
@@ -321,20 +628,22 @@ export default function WorkersPage() {
           defaultRole="worker"
           onCreate={() => {
             fetchWorkersData()
+            setStatusFilter('approved')
           }}
         />
 
-        <div className="mb-6 flex gap-2 border-b border-gray-200">
-          {STATUS_FILTERS.map((f) => {
-            const count = workers.filter(
-              (w) => (w.status || 'pending') === f.value
-            ).length
+        <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
+          {[...STATUS_FILTERS, ...(canPayments ? [REVENUE_TAB] : [])].map((f) => {
+            const isRevenueTab = f.value === REVENUE_TAB.value
+            const count = isRevenueTab
+              ? null
+              : workers.filter((w) => (w.status || 'pending') === f.value).length
             const active = statusFilter === f.value
             return (
               <button
                 key={f.value}
                 onClick={() => setStatusFilter(f.value)}
-                className="flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
+                className="flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors"
                 style={
                   active
                     ? { borderColor: colors.primary, color: colors.primary }
@@ -342,28 +651,115 @@ export default function WorkersPage() {
                 }
               >
                 {f.label}
-                <span
-                  className="rounded-full px-1.5 py-0.5 text-xs"
-                  style={
-                    active
-                      ? {
-                          backgroundColor: colors.primaryVeryLight,
-                          color: colors.primary,
-                        }
-                      : {
-                          backgroundColor: colors.gray100,
-                          color: colors.gray500,
-                        }
-                  }
-                >
-                  {count}
-                </span>
+                {count !== null && (
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-xs"
+                    style={
+                      active
+                        ? {
+                            backgroundColor: colors.primaryVeryLight,
+                            color: colors.primary,
+                          }
+                        : {
+                            backgroundColor: colors.gray100,
+                            color: colors.gray500,
+                          }
+                    }
+                  >
+                    {count}
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
 
-        {isLoading ? (
+        {statusFilter !== REVENUE_TAB.value && selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} ouvrier{selectedIds.size > 1 ? 's' : ''} sélectionné
+              {selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {canProcess && statusFilter === 'pending' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={handleBulkApprove}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
+                    style={{ color: colors.primary }}
+                  >
+                    Approuver
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={handleBulkReject}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Rejeter
+                  </button>
+                </>
+              )}
+              {canProcess && statusFilter === 'approved' && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkCertify(true)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-60"
+                  >
+                    <RiShieldCheckFill className="h-3.5 w-3.5 text-blue-600" />
+                    Certifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkCertify(false)}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    Décertifier
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkBlock(true)}
+                    className="rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold hover:bg-amber-50 disabled:opacity-60"
+                    style={{ borderColor: colors.warning, color: colors.warning }}
+                  >
+                    Bloquer
+                  </button>
+                </>
+              )}
+              {canProcess && statusFilter === 'rejected' && (
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => handleBulkBlock(false)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 disabled:opacity-60"
+                  style={{ color: colors.primary }}
+                >
+                  Débloquer
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
+
+        {statusFilter === REVENUE_TAB.value ? (
+          <WorkerRevenueChart payments={payments} isLoading={isLoading} />
+        ) : isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader color="#111827" />
           </div>
@@ -377,23 +773,37 @@ export default function WorkersPage() {
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[680px]">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-3">
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
+                    </th>
                     {[
-                      'Ouvrier',
-                      'Spécialités',
-                      'Zones',
-                      'Contact',
-                      'Statut',
-                      'Actions',
-                    ].map((h) => (
+                      { label: 'Ouvrier' },
+                      { label: 'Spécialités', secondary: true },
+                      { label: 'Contact' },
+                      { label: 'Statut' },
+                      { label: 'Abonnement' },
+                      { label: 'Actions' },
+                    ].map((col) => (
                       <th
-                        key={h}
+                        key={col.label}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                          col.secondary ? 'hidden lg:table-cell' : ''
+                        }`}
                       >
-                        {h}
+                        {col.label}
                       </th>
                     ))}
                   </tr>
@@ -401,7 +811,18 @@ export default function WorkersPage() {
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {visible.map((worker) => (
                     <tr key={worker.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="w-8 px-4 py-4">
+                        {isBulkSelectable(worker) && (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(worker.id)}
+                            onChange={() => toggleSelect(worker.id)}
+                            className="h-4 w-4 cursor-pointer rounded"
+                            style={{ accentColor: colors.primary }}
+                          />
+                        )}
+                      </td>
+                      <td className="px-6 py-3">
                         <div className="flex items-center gap-3">
                           <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-gray-100">
                             {worker.imageUrl ? (
@@ -417,9 +838,21 @@ export default function WorkersPage() {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              {worker.name}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {worker.name}
+                              </p>
+                              {worker.isCertified && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border border-blue-200"
+                                  style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}
+                                  title="Ouvrier certifié BâtiMoo"
+                                >
+                                  <RiShieldCheckFill className="h-3 w-3 text-blue-600" />
+                                  Certifié
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs uppercase tracking-wide text-gray-400">
                               {worker.accountType === 'enterprise'
                                 ? 'Entreprise'
@@ -428,7 +861,7 @@ export default function WorkersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="hidden px-6 py-3 lg:table-cell">
                         <div className="flex flex-wrap gap-1.5">
                           {(worker.specialties || []).map((s) => (
                             <span
@@ -440,62 +873,77 @@ export default function WorkersPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs text-gray-500">
-                          {(worker.communes || []).join(', ') || '—'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {worker.phone && (
-                          <p className="flex items-center gap-1 text-xs text-gray-500">
+                          <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" />{' '}
                             {worker.phone}
                           </p>
                         )}
                         {worker.whatsapp && (
-                          <p className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                          <p className="mt-1 flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiWhatsappLine className="h-3.5 w-3.5" />{' '}
                             {worker.whatsapp}
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{
-                            backgroundColor: worker.isAvailable
-                              ? colors.primaryVeryLight
-                              : colors.gray100,
-                            color: worker.isAvailable
-                              ? colors.primaryDark
-                              : colors.gray600,
-                          }}
-                        >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{
-                              backgroundColor: worker.isAvailable
-                                ? colors.primary
-                                : colors.gray500,
-                            }}
-                          />
-                          {worker.isAvailable ? 'Actif' : 'Bloqué'}
-                        </span>
+                      <td className="px-6 py-3">
+                        {worker.suspendedByAdmin ? (
+                          <StatusPill
+                            tone="warning"
+                          >
+                            Suspendu
+                          </StatusPill>
+                        ) : (
+                          <StatusPill tone={worker.isAvailable ? 'success' : 'error'}>
+                            {worker.isAvailable ? 'Actif' : 'Bloqué'}
+                          </StatusPill>
+                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
+                        {worker.paymentStatus?.status !== 'unknown' && (
+                          <>
+                            <StatusPill
+                              tone={worker.subscriptionSuspended ? 'warning' : PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].tone}
+                            >
+                              {worker.subscriptionSuspended
+                                ? 'Suspendu'
+                                : worker.paymentStatus.status === 'overdue'
+                                ? 'Expiré'
+                                : PAYMENT_STATUS_CONFIG[worker.paymentStatus.status].label}
+                            </StatusPill>
+                            <p className="mt-1 font-mono text-[11px] text-gray-400">
+                              {worker.paymentStatus.status === 'trial'
+                                ? `Essai jusqu'au ${firebaseDateFormat(worker.paymentStatus.trialEndAt)}`
+                                : worker.paymentStatus.nextDueAt
+                                ? `Échéance ${firebaseDateFormat(worker.paymentStatus.nextDueAt)}`
+                                : ''}
+                            </p>
+                          </>
+                        )}
+                      </td>
+                      <td className="px-6 py-3">
                         {actioningId === worker.id ? (
                           <Loader color="#111827" />
                         ) : (
-                          <button
-                            onClick={() => {
-                              setActionsTarget(worker)
-                              setActionsModalOpen(true)
-                            }}
-                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                            title="Actions"
-                          >
-                            <RiMore2Fill className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {canProcess && worker.status === 'pending' && (
+                              <PendingDecisionButtons
+                                onApprove={() => handleApprove(worker)}
+                                onReject={() => handleReject(worker)}
+                              />
+                            )}
+                            <button
+                              onClick={() => {
+                                setActionsTarget(worker)
+                                setActionsModalOpen(true)
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                              title="Autres actions"
+                            >
+                              <RiMore2Fill className="h-4 w-4" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

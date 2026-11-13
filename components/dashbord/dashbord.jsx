@@ -1,31 +1,216 @@
 import { db } from '@/lib/firebase/client_config'
-import { useAuthUser } from 'next-firebase-auth'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { useUser } from 'next-firebase-auth'
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore'
+import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import {
   Area,
   CartesianGrid,
+  Cell,
   ComposedChart,
+  Legend,
   Line,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
 } from 'recharts'
 import { useColors } from '../../contexts/ColorContext'
+import { useNotifications } from '../../contexts/NotificationsContext'
 import { formatGNF } from '@/utils/format'
-import { getMovingRequests } from '@/lib/services/movingRequests'
-import { getRentalManagementRequests } from '@/lib/services/rentalManagementRequests'
-import { getLegalSecurityRequests } from '@/lib/services/legalSecurityRequests'
+import { firebaseDateFormat } from '@/utils/date'
+import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
 import { getManagedProperties } from '@/lib/services/managedProperties'
+import { getLeads } from '@/lib/services/leads'
+import StatusPill from '@/components/ui/StatusPill'
+import { RiPhoneLine, RiHome4Line, RiLandscapeLine, RiArrowRightLine } from 'react-icons/ri'
 import {
   Briefcase,
   Hammer,
   Users,
   ShieldCheck,
   Scale,
-  Building2,
+  Home,
+  CalendarCheck,
+  Wallet,
+  Mail,
+  Truck,
 } from 'lucide-react'
+
+const OCCUPATION_LABELS = { occupied: 'Occupé', vacant: 'Vacant', inactive: 'Inactif' }
+const OCCUPATION_COLORS = { occupied: '#16A34A', vacant: '#F59E0B', inactive: '#9CA3AF' }
+
+// Tuiles du dashboard manager — un module accordé (voir
+// lib/constants/managerModules.js) donne droit à sa tuile ; sans le champ
+// permissions (compte créé avant cette fonctionnalité), tout s'affiche.
+const MANAGER_TILES = [
+  { module: 'leads', label: 'Demandes de visite', href: '/leads', icon: CalendarCheck, badgeKey: 'pendingLeads' },
+  { module: 'agents', label: 'Agents', href: '/agents', icon: Briefcase, badgeKey: 'pendingAgents' },
+  { module: 'workers', label: 'Ouvriers', href: '/workers', icon: Hammer, badgeKey: 'pendingWorkers' },
+  { module: 'properties', label: 'Gestion locative', href: '/gestion-locative', icon: Home },
+  { module: 'reservations', label: 'Réservations', href: '/reservations', icon: CalendarCheck, badgeKey: 'pendingBookings' },
+  { module: 'services', label: 'Services', href: '/services', icon: Truck },
+  { module: 'messages', label: 'Messages', href: '/messages', icon: Mail, badgeKey: 'unreadMessages' },
+]
+
+// Dashboard par défaut pour un manager — remplace l'ancien texte de
+// bienvenue statique par un vrai aperçu : une tuile par module auquel il a
+// accès, avec le compteur réel si ce module en a un.
+function ManagerDashboard() {
+  const colors = useColors()
+  const notifications = useNotifications()
+  const AuthUser = useUser()
+  const [permissions, setPermissions] = useState(undefined)
+
+  useEffect(() => {
+    if (!AuthUser.id) return
+    getDoc(doc(db, 'users', AuthUser.id))
+      .then((snap) => setPermissions(snap.data()?.permissions ?? null))
+      .catch(() => setPermissions(null))
+  }, [AuthUser.id])
+
+  // undefined = pas encore chargé -> ne rien afficher plutôt que flasher
+  // toutes les tuiles puis les retirer.
+  if (permissions === undefined) return null
+
+  const tiles = MANAGER_TILES.filter(
+    (tile) => !permissions || permissions.includes(tile.module)
+  )
+  // Le graphe lit managed_properties (Firestore : isAdminOrManager("properties")) —
+  // ne l'afficher que si ce module est bien accordé, sinon permission-denied.
+  const canSeeOccupationChart = !permissions || permissions.includes('properties')
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-lg font-extrabold" style={{ color: colors.gray900 }}>
+          Bienvenue, {AuthUser?.displayName || 'Manager'}
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: colors.gray500 }}>
+          Voici un aperçu des sections auxquelles vous avez accès.
+        </p>
+      </div>
+
+      {tiles.length === 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
+          Aucun module ne vous a encore été attribué — contactez un administrateur.
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {tiles.map((tile) => {
+            const count = tile.badgeKey ? notifications[tile.badgeKey] : undefined
+            return (
+              <Link
+                key={tile.module}
+                href={tile.href}
+                className="flex h-full flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}>
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: colors.primaryVeryLight }}
+                >
+                  <tile.icon className="h-4 w-4" style={{ color: colors.primary }} />
+                </div>
+                <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                  {tile.label}
+                </p>
+                {count !== undefined && (
+                  <p className="-mt-1.5 font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
+                    {count > 0 ? `${count} nouvelle${count > 1 ? 's' : ''}` : 'Aucune nouvelle'}
+                  </p>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Répartition du parc géré (occupé/vacant/inactif) — même donnée que
+// components/rentalManagement/OccupationTab.jsx, présentée ici en donut
+// pour une vue d'ensemble rapide depuis le dashboard.
+function PropertyOccupationChart() {
+  const colors = useColors()
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [counts, setCounts] = useState({ occupied: 0, vacant: 0, inactive: 0 })
+
+  useEffect(() => {
+    getManagedProperties()
+      .then((properties) => {
+        setCounts({
+          occupied: properties.filter((p) => p.status === 'occupied').length,
+          vacant: properties.filter((p) => p.status === 'vacant').length,
+          inactive: properties.filter((p) => p.status === 'inactive').length,
+        })
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  const total = counts.occupied + counts.vacant + counts.inactive
+  const data = ['occupied', 'vacant', 'inactive']
+    .map((key) => ({ key, name: OCCUPATION_LABELS[key], value: counts[key] }))
+    .filter((d) => d.value > 0)
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
+        Répartition des biens gérés
+      </p>
+      <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
+        {isLoading ? '…' : loadError ? '—' : `${total} bien${total > 1 ? 's' : ''}`}
+      </p>
+      <p className="mt-0.5 text-xs text-gray-400">Occupés, vacants et inactifs</p>
+
+      <div className="mt-2 h-64">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Chargement...
+          </div>
+        ) : loadError ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Impossible de charger la répartition
+          </div>
+        ) : total === 0 ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Aucun bien géré pour le moment
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={55}
+                outerRadius={85}
+                paddingAngle={2}
+                isAnimationActive={false}
+              >
+                {data.map((entry) => (
+                  <Cell key={entry.key} fill={OCCUPATION_COLORS[entry.key]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" height={24} iconType="circle" iconSize={8} />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const LEAD_STATUS_META = {
+  new: { label: 'Nouveau', tone: 'warning' },
+  contacted: { label: 'Contacté', tone: 'primary' },
+  closed: { label: 'Clôturé', tone: 'success' },
+}
 
 const MONTHS_BACK = 6
 
@@ -37,9 +222,10 @@ const parseItemDate = (dateVal) => {
   return isNaN(d.getTime()) ? null : d
 }
 
-function RevenueChart() {
+function RevenueChart({ onCurrentMonthRevenue }) {
   const colors = useColors()
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [data, setData] = useState([])
   const [totals, setTotals] = useState({ plateforme: 0, encaisse: 0 })
 
@@ -47,13 +233,14 @@ function RevenueChart() {
     const load = async () => {
       setIsLoading(true)
       try {
-        const [moving, rental, legal, payments, properties] = await Promise.all([
-          getMovingRequests(),
-          getRentalManagementRequests(),
-          getLegalSecurityRequests(),
+        const [allRequests, payments, properties] = await Promise.all([
+          getAllServiceRequests(),
           getRentPayments(),
           getManagedProperties(),
         ])
+        const moving = allRequests.filter((r) => r.category === 'demenagement')
+        const rental = allRequests.filter((r) => r.category === 'gestion-locative')
+        const legal = allRequests.filter((r) => r.category === 'securisation-fonciere')
         const propertiesById = Object.fromEntries(properties.map((p) => [p.id, p]))
 
         const now = new Date()
@@ -61,7 +248,7 @@ function RevenueChart() {
           const d = new Date(now.getFullYear(), now.getMonth() - (MONTHS_BACK - 1 - i), 1)
           return {
             key: `${d.getFullYear()}-${d.getMonth()}`,
-            label: d.toLocaleDateString('fr-FR', { month: 'short' }),
+            label: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }),
             plateforme: 0,
             encaisse: 0,
           }
@@ -79,7 +266,7 @@ function RevenueChart() {
         }
 
         moving.forEach((r) => {
-          if (r.status === 'done' || r.status === 'completed') {
+          if (r.status === 'completed') {
             const amount = Number(r.price || r.estimatedPrice || r.amount || 0)
             addAmount(r.createdAt, amount)
           }
@@ -90,13 +277,13 @@ function RevenueChart() {
           addAmount(p.createdAt || p.paymentDate, grossAmount * (commissionRate / 100), grossAmount)
         })
         rental.forEach((r) => {
-          if (r.status === 'done') {
+          if (r.status === 'completed') {
             const amount = Number(r.amount || r.fee || 0)
             addAmount(r.createdAt, amount)
           }
         })
         legal.forEach((r) => {
-          if (r.status === 'done') {
+          if (r.status === 'completed') {
             const amount = Number(r.price || r.fee || r.amount || 0)
             addAmount(r.createdAt, amount)
           }
@@ -107,13 +294,17 @@ function RevenueChart() {
           plateforme: months.reduce((sum, m) => sum + m.plateforme, 0),
           encaisse: months.reduce((sum, m) => sum + m.encaisse, 0),
         })
+        onCurrentMonthRevenue?.({ status: 'ready', value: months[months.length - 1]?.plateforme || 0 })
       } catch (error) {
         console.error('Erreur lors du chargement du revenu:', error)
+        setLoadError(true)
+        onCurrentMonthRevenue?.({ status: 'error' })
       }
       setIsLoading(false)
     }
 
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -143,16 +334,16 @@ function RevenueChart() {
             Revenu plateforme
           </p>
           <p className="mt-1 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-            {formatGNF(totals.plateforme)}
+            {isLoading ? '…' : loadError ? '—' : formatGNF(totals.plateforme)}
           </p>
-          <p className="mt-0.5 text-xs text-gray-400">{MONTHS_BACK} derniers mois</p>
+          <p className="mt-0.5 text-xs text-gray-400">{MONTHS_BACK} derniers mois, mois en cours partiel</p>
         </div>
         <div className="text-right">
           <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
             Total encaissé
           </p>
           <p className="mt-1 text-2xl font-extrabold text-gray-400">
-            {formatGNF(totals.encaisse)}
+            {isLoading ? '…' : loadError ? '—' : formatGNF(totals.encaisse)}
           </p>
           <p className="mt-0.5 text-xs text-gray-400">commissions + loyers reversés</p>
         </div>
@@ -174,6 +365,10 @@ function RevenueChart() {
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
             Chargement...
+          </div>
+        ) : loadError ? (
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">
+            Impossible de charger les revenus
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
@@ -201,6 +396,7 @@ function RevenueChart() {
                 fill="url(#grossFill)"
                 dot={false}
                 activeDot={{ r: 4, fill: colors.gray400, strokeWidth: 0 }}
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
@@ -209,6 +405,7 @@ function RevenueChart() {
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 4, fill: colors.primary, strokeWidth: 0 }}
+                isAnimationActive={false}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -220,7 +417,7 @@ function RevenueChart() {
 
 function DashboardCard() {
   const colors = useColors()
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
 
   const [stats, setStats] = useState({
     agents: { approved: 0, pending: 0 },
@@ -229,7 +426,22 @@ function DashboardCard() {
     managers: 0,
     legalPartners: 0,
     agencies: { active: 0, total: 0 },
+    properties: { published: 0, draft: 0 },
   })
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [statsError, setStatsError] = useState(false)
+  const [monthlyRevenue, setMonthlyRevenue] = useState({ status: 'loading', value: 0 })
+  const [recentLeads, setRecentLeads] = useState([])
+  const [leadsLoading, setLeadsLoading] = useState(true)
+  const [leadsError, setLeadsError] = useState(false)
+
+  useEffect(() => {
+    if (AuthUser.claims?.userType !== 'admin') return
+    getLeads()
+      .then((leads) => setRecentLeads(leads.slice(0, 5)))
+      .catch(() => setLeadsError(true))
+      .finally(() => setLeadsLoading(false))
+  }, [AuthUser.claims?.userType])
 
   useEffect(() => {
     if (AuthUser.claims?.userType !== 'admin') return
@@ -239,8 +451,11 @@ function DashboardCard() {
         const agentRequestsRef = collection(db, 'agent_requests')
         const workersRef = collection(db, 'workers')
         const usersRef = collection(db, 'users')
-        const legalPartnersRef = collection(db, 'legalPartners')
+        const legalPartnersRef = collection(db, 'legal_partners')
         const agenciesRef = collection(db, 'partner_agencies')
+        const housesRef = collection(db, 'houses')
+        const landsRef = collection(db, 'lands')
+        const dailyRentalsRef = collection(db, 'daily_rentals')
 
         const [
           snapAgentsApproved,
@@ -251,6 +466,9 @@ function DashboardCard() {
           snapManagers,
           snapLegalPartners,
           snapAgencies,
+          snapHouses,
+          snapLands,
+          snapDailyRentals,
         ] = await Promise.all([
           getDocs(query(agentRequestsRef, where('status', '==', 'approved'))),
           getDocs(query(agentRequestsRef, where('status', '==', 'pending'))),
@@ -260,7 +478,15 @@ function DashboardCard() {
           getDocs(query(usersRef, where('type', 'in', ['manager', 'admin']))),
           getDocs(legalPartnersRef),
           getDocs(agenciesRef),
+          getDocs(housesRef),
+          getDocs(landsRef),
+          getDocs(dailyRentalsRef),
         ])
+
+        const allProperties = [...snapHouses.docs, ...snapLands.docs, ...snapDailyRentals.docs]
+        const publishedProperties = allProperties.filter(
+          (d) => (d.data().status || 'available') === 'available'
+        ).length
 
         setStats({
           agents: { approved: snapAgentsApproved.size, pending: snapAgentsPending.size },
@@ -272,75 +498,226 @@ function DashboardCard() {
             active: snapAgencies.docs.filter((d) => d.data().active).length,
             total: snapAgencies.size,
           },
+          properties: {
+            published: publishedProperties,
+            draft: allProperties.length - publishedProperties,
+          },
         })
       } catch (error) {
         console.error('Erreur lors du chargement des données:', error)
+        setStatsError(true)
+      } finally {
+        setStatsLoading(false)
       }
     }
 
     fetchData()
   }, [AuthUser.claims?.userType])
 
-  const StatCard = ({ icon: Icon, label, value, subValue }) => (
-    <div className="group flex h-full flex-col justify-between rounded-xl border border-gray-100 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-400">{label}</p>
-          <p className="mt-2 text-3xl font-extrabold" style={{ color: colors.gray900 }}>{value}</p>
-          {subValue && (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: colors.primaryVeryLight, color: colors.primaryDark }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: colors.primary }} />
-              {subValue}
-            </div>
-          )}
-        </div>
-        <div
-          className="flex h-12 w-12 items-center justify-center rounded-xl transition-colors group-hover:scale-105"
-          style={{ backgroundColor: colors.primaryVeryLight }}
-        >
-          <Icon className="h-6 w-6" style={{ color: colors.primary }} />
-        </div>
+  const statValue = (value) => statsLoading ? '…' : statsError ? '—' : value
+
+  // `accent` réservé à une seule tuile par page : celle qui réclame une
+  // attention immédiate (cf. proposition de palette validée). Les autres
+  // tuiles restent sur le traitement neutre/primaire par défaut. Layout
+  // en pile verticale (icône puis libellé puis valeur puis delta) —
+  // reproduit exactement la carte de la maquette, pas une variante.
+  const StatCard = ({ icon: Icon, label, value, subValue, accent = false }) => (
+    <div
+      className="flex h-full flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={
+        accent
+          ? { background: `linear-gradient(155deg, ${colors.orangeAccent} 0%, ${colors.orangeHover} 100%)` }
+          : { backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }
+      }
+    >
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: accent ? 'rgba(255,255,255,0.2)' : colors.primaryVeryLight }}
+      >
+        <Icon className="h-4 w-4" style={{ color: accent ? '#FFFFFF' : colors.primary }} />
       </div>
+      <p
+        className="text-xs font-semibold"
+        style={{ color: accent ? 'rgba(255,255,255,0.85)' : colors.gray500 }}
+      >
+        {label}
+      </p>
+      <p
+        className="-mt-1.5 font-mono text-xl font-semibold tracking-tight"
+        style={{ color: accent ? '#FFFFFF' : colors.gray900 }}
+      >
+        {value}
+      </p>
+      {subValue && (
+        <p
+          className="-mt-1.5 text-[11.5px]"
+          style={{ color: accent ? 'rgba(255,255,255,0.85)' : colors.gray500 }}
+        >
+          {subValue}
+        </p>
+      )}
     </div>
   )
 
   if (AuthUser.claims?.userType !== 'admin') {
-    return (
-      <div className="rounded-lg border border-gray-200 bg-white p-6 text-center text-sm text-gray-500">
-        Bienvenue sur le portail BâtiServices Admin.
-      </div>
-    )
+    return <ManagerDashboard />
   }
 
   return (
     <div className="space-y-6">
-      <RevenueChart />
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Ligne principale — reprend exactement les 4 tuiles de la
+          proposition de palette validée (mêmes libellés, même tuile
+          orange accent), avec les vraies données. */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
-          icon={Briefcase}
-          label="Agents"
-          value={stats.agents.approved}
-          subValue={`${stats.agents.pending} en attente de validation`}
+          icon={Home}
+          label="Annonces en ligne"
+          value={statValue(stats.properties.published)}
+          subValue={statsLoading || statsError ? undefined : `${stats.properties.draft} en brouillon`}
+        />
+        <StatCard
+          icon={Wallet}
+          label="Revenu plateforme · mois en cours"
+          value={monthlyRevenue.status === 'loading' ? '…' : monthlyRevenue.status === 'error' ? '—' : formatGNF(monthlyRevenue.value)}
+        />
+        <StatCard
+          icon={CalendarCheck}
+          label="Utilisateurs"
+          value={statValue(stats.customers)}
+          accent
         />
         <StatCard
           icon={Hammer}
-          label="Ouvriers"
-          value={stats.workers.approved}
-          subValue={`${stats.workers.pending} en attente de validation`}
-        />
-        <StatCard icon={Users} label="Utilisateurs" value={stats.customers} />
-        <StatCard icon={ShieldCheck} label="Managers & admins" value={stats.managers} />
-        <StatCard icon={Scale} label="Partenaires légaux" value={stats.legalPartners} />
-        <StatCard
-          icon={Building2}
-          label="Agences sponsorisées"
-          value={stats.agencies.active}
-          subValue={`${stats.agencies.total} au total`}
+          label="Agences partenaires actives"
+          value={statValue(stats.agencies.active)}
         />
       </div>
+
+      {/* Statistiques — revenu plateforme et répartition du parc géré,
+          visibles directement dans la vue d'ensemble plutôt que planquées
+          dans un onglet à part. */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <RevenueChart onCurrentMonthRevenue={setMonthlyRevenue} />
+        <PropertyOccupationChart />
+      </div>
+
+      {/* Demandes de visite récentes — même tableau, même StatusPill que
+          la page /leads, qui sert de référence exacte pour tous les
+          tableaux de l'admin. */}
+      <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-gray-900">Demandes de visite récentes</h2>
+          <Link
+            href="/leads"
+            className="flex items-center gap-1 text-xs font-semibold"
+            style={{ color: colors.primary }}>
+            Voir tout
+                          <RiArrowRightLine className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+
+        {leadsLoading ? (
+          <div className="flex h-24 items-center justify-center text-sm text-gray-400">
+            Chargement...
+          </div>
+        ) : leadsError ? (
+          <div className="flex h-24 items-center justify-center text-sm text-gray-400">
+            Impossible de charger les demandes de visite
+          </div>
+        ) : recentLeads.length === 0 ? (
+          <div className="flex h-24 items-center justify-center text-sm text-gray-400">
+            Aucune demande de visite pour le moment
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px]">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    {['Demandeur', 'Annonce', 'Reçu le', 'Statut', ''].map((h) => (
+                      <th
+                        key={h || 'actions'}
+                        scope="col"
+                        className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {recentLeads.map((lead) => {
+                    const meta = LEAD_STATUS_META[lead.status] || LEAD_STATUS_META.new
+                    return (
+                      <tr key={lead.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3">
+                          <p className="text-sm font-semibold text-gray-900">{lead.name}</p>
+                          <p className="mt-0.5 flex items-center gap-1 font-mono text-xs text-gray-500">
+                            <RiPhoneLine className="h-3.5 w-3.5" /> {lead.phone}
+                          </p>
+                        </td>
+                        <td className="px-6 py-3">
+                          <p className="max-w-xs truncate text-sm text-gray-700">
+                            {lead.listingTitle}
+                          </p>
+                          <span
+                            className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                            style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
+                          >
+                            {lead.listingType === 'lands' ? (
+                              <RiLandscapeLine className="h-3 w-3" />
+                            ) : (
+                              <RiHome4Line className="h-3 w-3" />
+                            )}
+                            {lead.listingType === 'lands' ? 'Terrain' : 'Bien'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 font-mono text-xs text-gray-500">
+                          {firebaseDateFormat(lead.createdAt)}
+                        </td>
+                        <td className="px-6 py-3">
+                          <StatusPill tone={meta.tone}>{meta.label}</StatusPill>
+                        </td>
+                        <td className="px-6 py-3">
+                          <Link
+                            href="/leads"
+                            className="text-xs font-bold"
+                            style={{ color: colors.primary }}>
+                              Voir
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Autres indicateurs — le reste des chiffres existants, en
+          traitement neutre/primaire par défaut (aucun accent en plus,
+          l'orange reste réservé à la tuile "Demandes de visite" ci-dessus). */}
+      <div>
+        <h2 className="mb-3 text-sm font-bold text-gray-900">Autres indicateurs</h2>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+          <StatCard
+            icon={Briefcase}
+            label="Agents"
+            value={statValue(stats.agents.approved)}
+          />
+          <StatCard
+            icon={Hammer}
+            label="Artisans"
+            value={statValue(stats.workers.approved)}
+          />
+          <StatCard icon={ShieldCheck} label="Managers & admins" value={statValue(stats.managers)} />
+          <StatCard icon={Scale} label="Partenaires légaux" value={statValue(stats.legalPartners)} />
+        </div>
+      </div>
     </div>
-  )
+  );
 }
 
 export default DashboardCard

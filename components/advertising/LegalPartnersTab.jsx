@@ -21,6 +21,7 @@ import {
   togglePartnerAvailable,
 } from '@/lib/services/partners'
 import { CONAKRY_COMMUNES } from '../../_data'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const TYPE_LABELS = {
   notaire: 'Cabinet Notarial',
@@ -30,6 +31,8 @@ const TYPE_LABELS = {
 
 export default function LegalPartnersTab() {
   const colors = useColors()
+  const canProcess = useCanManage('partners', 'process')
+  const canDelete = useCanManage('partners', 'delete')
   const [partners, setPartners] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -102,6 +105,7 @@ export default function LegalPartnersTab() {
   }
 
   const onSubmit = async ({ logoFile, ...data }) => {
+    if (!canProcess) return
     setSaving(true)
     try {
       let logo = selected?.logo || ''
@@ -129,6 +133,7 @@ export default function LegalPartnersTab() {
   }
 
   const handleToggleAvailable = async (partner) => {
+    if (!canProcess) return
     const nextAvailable = !partner.available
     try {
       await togglePartnerAvailable(partner.id, nextAvailable)
@@ -141,6 +146,7 @@ export default function LegalPartnersTab() {
   }
 
   const handleDelete = async (partner) => {
+    if (!canDelete) return
     try {
       await deletePartner(partner.id)
       setPartners((prev) => prev.filter((p) => p.id !== partner.id))
@@ -162,14 +168,16 @@ export default function LegalPartnersTab() {
               Répertoire de notaires, juristes et bureaux techniques
             </p>
           </div>
-          <button
-            onClick={openAdd}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <RiAddLine className="h-4 w-4" />
-            Ajouter
-          </button>
+          {canProcess && (
+            <button
+              onClick={openAdd}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter
+            </button>
+          )}
         </div>
 
         {isLoading ? (
@@ -219,7 +227,8 @@ export default function LegalPartnersTab() {
                       <span className="text-xs text-gray-500">Confirmer ?</span>
                       <button
                         onClick={() => handleDelete(partner)}
-                        className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                        style={{ backgroundColor: colors.error }}
                       >
                         Oui
                       </button>
@@ -232,30 +241,37 @@ export default function LegalPartnersTab() {
                     </div>
                   ) : (
                     <>
-                      <button
-                        onClick={() => handleToggleAvailable(partner)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: partner.available ? colors.primary : colors.gray400 }}
-                        />
-                        {partner.available ? 'Disponible' : 'Indisponible'}
-                      </button>
-                      <button
-                        onClick={() => openEdit(partner)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                        title="Modifier"
-                      >
-                        <RiEditLine className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(partner.id)}
-                        className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                        title="Supprimer"
-                      >
-                        <RiDeleteBinLine className="h-4 w-4" />
-                      </button>
+                      {canProcess && (
+                        <button
+                          onClick={() => handleToggleAvailable(partner)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
+                        >
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: partner.available ? colors.success : colors.gray400 }}
+                          />
+                          {partner.available ? 'Disponible' : 'Indisponible'}
+                        </button>
+                      )}
+                      {canProcess && (
+                        <button
+                          onClick={() => openEdit(partner)}
+                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                          title="Modifier"
+                        >
+                          <RiEditLine className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => setDeleteConfirm(partner.id)}
+                          className="rounded-lg border border-gray-200 p-2 transition-colors hover:bg-red-50"
+                          style={{ color: colors.error }}
+                          title="Supprimer"
+                        >
+                          <RiDeleteBinLine className="h-4 w-4" />
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
@@ -314,38 +330,38 @@ export default function LegalPartnersTab() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom du cabinet / entreprise *
             </label>
             <input
               type="text"
               {...register('name', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Étude Notariale Diallo & Associés"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Personne à contacter
             </label>
             <input
               type="text"
               {...register('contactPerson')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Me Mariama Diallo"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Type *
               </label>
               <select
                 {...register('type', { required: true })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="notaire">Cabinet Notarial</option>
                 <option value="juriste">Cabinet Juridique</option>
@@ -354,12 +370,12 @@ export default function LegalPartnersTab() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Commune *
               </label>
               <select
                 {...register('commune', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Sélectionner</option>
                 {CONAKRY_COMMUNES.map((c) => (
@@ -368,38 +384,38 @@ export default function LegalPartnersTab() {
                   </option>
                 ))}
               </select>
-              {errors.commune && <p className="mt-1 text-xs font-semibold text-red-500">{errors.commune.message}</p>}
+              {errors.commune && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.commune.message}</p>}
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Spécialité *
             </label>
             <input
               type="text"
               {...register('specialty', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Transactions foncières & successions"
             />
-            {errors.specialty && <p className="mt-1 text-xs font-semibold text-red-500">{errors.specialty.message}</p>}
+            {errors.specialty && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.specialty.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Téléphone *
             </label>
             <input
               type="tel"
               {...register('phone', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="+224 6XX XXX XXX"
             />
-            {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
+            {errors.phone && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.phone.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Logo (optionnel)
             </label>
             <div className="flex items-center gap-4">

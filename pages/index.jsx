@@ -1,7 +1,7 @@
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 
 import HomePage from './home'
@@ -14,13 +14,16 @@ function Home() {
   )
 }
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
+})(async ({ user: AuthUser }) => {
+  if (!['admin', 'manager'].includes(AuthUser.claims.userType)) {
+    return { notFound: true }
+  }
   return {
     props: {},
   }
 })
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(Home)

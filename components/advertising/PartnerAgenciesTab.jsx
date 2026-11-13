@@ -7,6 +7,9 @@ import {
   RiTeamLine,
   RiCheckLine,
   RiImage2Fill,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiMore2Fill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -22,7 +25,9 @@ import {
   togglePartnerAgencyActive,
   slugify,
 } from '@/lib/services/partnerAgencies'
-import { getAgentRequests } from '@/lib/services/agentRequests'
+import { getAgentRequestByUserId, getAgentRequests } from '@/lib/services/agentRequests'
+import { syncAgentPro } from '@/lib/services/proPlan'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const getInitials = (name) =>
   (name || '')
@@ -34,6 +39,8 @@ const getInitials = (name) =>
 
 export default function PartnerAgenciesTab() {
   const colors = useColors()
+  const canProcess = useCanManage('partners', 'process')
+  const canDelete = useCanManage('partners', 'delete')
   const [agencies, setAgencies] = useState([])
   const [agents, setAgents] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -42,6 +49,35 @@ export default function PartnerAgenciesTab() {
   const [saving, setSaving] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+  const [menuAnchor, setMenuAnchor] = useState(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!menuOpenId) return
+      const target = event.target
+      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
+        setMenuOpenId(null)
+        setMenuAnchor(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
+
+  const openMenu = (event, agencyId) => {
+    event.stopPropagation()
+    if (menuOpenId === agencyId) {
+      setMenuOpenId(null)
+      setMenuAnchor(null)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const left = Math.max(16, Math.min(rect.right - 224, window.innerWidth - 240 - 16))
+    const top = Math.min(rect.bottom + 8, window.innerHeight - 200 - 16)
+    setMenuOpenId(agencyId)
+    setMenuAnchor({ left, top })
+  }
 
   const {
     register,
@@ -57,14 +93,20 @@ export default function PartnerAgenciesTab() {
     const load = async () => {
       setIsLoading(true)
       try {
-        const [agenciesData, agentsData] = await Promise.all([
-          getPartnerAgencies(),
-          getAgentRequests(),
-        ])
+        const agenciesData = await getPartnerAgencies()
         setAgencies(agenciesData)
-        setAgents(agentsData.filter((a) => a.status === 'approved' && a.userId))
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
+      }
+      // Liste des agents approuvés : purement une commodité pour lier une
+      // agence à un agent existant dans le formulaire — un manager qui n'a
+      // pas le module "agents" ne doit pas pour autant perdre l'accès à ses
+      // agences (voir Firestore rules -> agent_requests exige "agents").
+      try {
+        const agentsData = await getAgentRequests()
+        setAgents(agentsData.filter((a) => a.status === 'approved' && a.userId))
+      } catch (e) {
+        // non bloquant
       }
       setIsLoading(false)
     }
@@ -89,8 +131,10 @@ export default function PartnerAgenciesTab() {
       specialty: '',
       phone: '',
       website: '',
-      color: '#BD5B37',
+      color: colors.primary,
       ownerId: '',
+      plan: '',
+      planExpiresAt: '',
     })
     setPreviewUrl(null)
     setDrawerOpen(true)
@@ -98,19 +142,27 @@ export default function PartnerAgenciesTab() {
 
   const openEdit = (agency) => {
     setSelected(agency)
+    const expiresAt = agency.planExpiresAt
     reset({
       name: agency.name,
       specialty: agency.specialty || '',
       phone: agency.phone || '',
       website: agency.website || '',
-      color: agency.color || '#BD5B37',
+      color: agency.color || colors.primary,
       ownerId: agency.ownerId || '',
+      plan: agency.plan || '',
+      planExpiresAt: expiresAt
+        ? (typeof expiresAt?.toDate === 'function' ? expiresAt.toDate() : new Date(expiresAt))
+            .toISOString()
+            .slice(0, 10)
+        : '',
     })
     setPreviewUrl(agency.logoUrl || null)
     setDrawerOpen(true)
   }
 
   const onSubmit = async ({ logoFile, ...data }) => {
+    if (!canProcess) return
     setSaving(true)
     try {
       let logoUrl = selected?.logoUrl || ''
@@ -121,6 +173,8 @@ export default function PartnerAgenciesTab() {
 
       const payload = {
         ...data,
+        plan: data.plan || null,
+        planExpiresAt: data.planExpiresAt || null,
         logoUrl,
         slug: slugify(data.name),
         initials: getInitials(data.name),
@@ -137,6 +191,14 @@ export default function PartnerAgenciesTab() {
         setAgencies((prev) => [...prev, created])
         notify('Agence ajoutée avec succès', 'success')
       }
+      // Agence rattachée à un agent : son Pro suit les paiements de l'agent
+      if (payload.ownerId) {
+        const agentRequest = await getAgentRequestByUserId(payload.ownerId)
+        if (agentRequest && (await syncAgentPro(agentRequest.id)) > 0) {
+          setAgencies(await getPartnerAgencies())
+          notify("Formule Pro appliquée d'après les paiements de l'agent", 'success')
+        }
+      }
       setDrawerOpen(false)
     } catch (e) {
       notify('Une erreur est survenue', 'error')
@@ -145,6 +207,7 @@ export default function PartnerAgenciesTab() {
   }
 
   const handleToggleActive = async (agency) => {
+    if (!canProcess) return
     const nextActive = !agency.active
     try {
       await togglePartnerAgencyActive(agency.id, nextActive)
@@ -157,6 +220,7 @@ export default function PartnerAgenciesTab() {
   }
 
   const handleDelete = async (agency) => {
+    if (!canDelete) return
     try {
       await deletePartnerAgency(agency.id)
       setAgencies((prev) => prev.filter((a) => a.id !== agency.id))
@@ -178,14 +242,16 @@ export default function PartnerAgenciesTab() {
                 Cartes d'agences affichées sur la page d'accueil du site public
               </p>
             </div>
-            <button
-              onClick={openAdd}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter
-            </button>
+            {canProcess && (
+              <button
+                onClick={openAdd}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter
+              </button>
+            )}
           </div>
 
           {isLoading ? (
@@ -215,7 +281,6 @@ export default function PartnerAgenciesTab() {
                     <div>
                       <p className="font-semibold text-gray-900">{agency.name}</p>
                       <p className="text-sm text-gray-500">{agency.specialty}</p>
-                      <p className="mt-0.5 text-xs text-gray-400">/properties?agence={agency.slug}</p>
                     </div>
                   </div>
 
@@ -225,7 +290,8 @@ export default function PartnerAgenciesTab() {
                         <span className="text-xs text-gray-500">Confirmer ?</span>
                         <button
                           onClick={() => handleDelete(agency)}
-                          className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                          style={{ backgroundColor: colors.error }}
                         >
                           Oui
                         </button>
@@ -237,32 +303,16 @@ export default function PartnerAgenciesTab() {
                         </button>
                       </div>
                     ) : (
-                      <>
+                      <div data-menu-root>
                         <button
-                          onClick={() => handleToggleActive(agency)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700"
+                          type="button"
+                          onClick={(event) => openMenu(event, agency.id)}
+                          className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                          title="Actions"
                         >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: agency.active ? colors.primary : colors.gray400 }}
-                          />
-                          {agency.active ? 'Publiée' : 'Masquée'}
+                          <RiMore2Fill className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => openEdit(agency)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                          title="Modifier"
-                        >
-                          <RiEditLine className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(agency.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                          title="Supprimer"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -276,6 +326,66 @@ export default function PartnerAgenciesTab() {
           caption="Section de la page d'accueil, après la liste des biens et avant les bannières « Devenir ouvrier/agent »"
         />
       </div>
+
+      {menuOpenId && menuAnchor && (() => {
+        const agency = agencies.find((a) => a.id === menuOpenId)
+        if (!agency) return null
+        return (
+          <div
+            className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
+            style={{ left: menuAnchor.left, top: menuAnchor.top }}
+            data-menu-root
+          >
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleToggleActive(agency)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                {agency.active ? (
+                  <RiEyeOffLine className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <RiEyeLine className="h-4 w-4 text-gray-400" />
+                )}
+                {agency.active ? 'Masquer' : 'Publier'}
+              </button>
+            )}
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  openEdit(agency)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiEditLine className="h-4 w-4 text-gray-400" />
+                Modifier
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  setDeleteConfirm(agency.id)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+                style={{ color: colors.error }}
+              >
+                <RiDeleteBinLine className="h-4 w-4" />
+                Supprimer
+              </button>
+            )}
+          </div>
+        )
+      })()}
 
       <DrawerForm
         open={drawerOpen}
@@ -316,62 +426,62 @@ export default function PartnerAgenciesTab() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom de l'agence *
             </label>
             <input
               type="text"
               {...register('name', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Agence Immo Conakry"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Spécialité
             </label>
             <input
               type="text"
               {...register('specialty')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Location & vente résidentielle"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Téléphone
               </label>
               <input
                 type="tel"
                 {...register('phone')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="+224 6XX XXX XXX"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Site web
               </label>
               <input
                 type="text"
                 {...register('website')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="https://..."
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Agent lié (optionnel)
             </label>
             <select
               {...register('ownerId')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Aucun</option>
               {agents.map((a) => (
@@ -385,8 +495,34 @@ export default function PartnerAgenciesTab() {
             </p>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Plan
+              </label>
+              <select
+                {...register('plan')}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Aucun</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
+                Expire le (optionnel)
+              </label>
+              <input
+                type="date"
+                {...register('planExpiresAt')}
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Couleur du badge
             </label>
             <input
@@ -397,7 +533,7 @@ export default function PartnerAgenciesTab() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Logo (optionnel)
             </label>
             <div className="flex items-center gap-4">

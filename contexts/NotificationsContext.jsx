@@ -1,14 +1,22 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { onSnapshot, query, where } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, query, where } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase/client_config'
+import { auth, db } from '@/lib/firebase/client_config'
 import { agentRequestsCollectionRef } from '@/lib/services/agentRequests'
 import { workersCollectionRef } from '@/lib/services/workers'
 import { contactMessagesCollectionRef } from '@/lib/services/contactMessages'
-import { movingRequestsCollectionRef } from '@/lib/services/movingRequests'
-import { rentalManagementRequestsCollectionRef } from '@/lib/services/rentalManagementRequests'
-import { legalSecurityRequestsCollectionRef } from '@/lib/services/legalSecurityRequests'
+import { serviceRequestsCollectionRef, MAIN_CATEGORIES } from '@/lib/services/serviceRequests'
+import { bookingsCollectionRef } from '@/lib/services/bookings'
+import { careerApplicationsCollectionRef } from '@/lib/services/careerApplications'
+import { leadsCollectionRef } from '@/lib/services/leads'
 import { notify } from '@/utils/toast'
+import { playAlertSound } from '@/utils/alertSound'
+
+const CATEGORY_LABELS = {
+  demenagement: 'de déménagement',
+  'gestion-locative': 'de gestion locative',
+  'securisation-fonciere': 'de sécurisation foncière',
+}
 
 const NotificationsContext = createContext({
   pendingAgents: 0,
@@ -17,7 +25,11 @@ const NotificationsContext = createContext({
   pendingMovingRequests: 0,
   pendingRentalRequests: 0,
   pendingLegalRequests: 0,
+  pendingArtisanRequests: 0,
   pendingServiceRequests: 0,
+  pendingBookings: 0,
+  pendingCareerApplications: 0,
+  pendingLeads: 0,
 })
 
 export function NotificationsProvider({ children }) {
@@ -27,207 +39,293 @@ export function NotificationsProvider({ children }) {
   const [pendingMovingRequests, setPendingMovingRequests] = useState(0)
   const [pendingRentalRequests, setPendingRentalRequests] = useState(0)
   const [pendingLegalRequests, setPendingLegalRequests] = useState(0)
+  const [pendingArtisanRequests, setPendingArtisanRequests] = useState(0)
+  const [pendingBookings, setPendingBookings] = useState(0)
+  const [pendingCareerApplications, setPendingCareerApplications] = useState(0)
+  const [pendingLeads, setPendingLeads] = useState(0)
 
   // null = not yet initialized (first snapshot = baseline, no toast)
   const knownAgentIds = useRef(null)
   const knownWorkerIds = useRef(null)
   const knownMessageIds = useRef(null)
-  const knownMovingIds = useRef(null)
-  const knownRentalIds = useRef(null)
-  const knownLegalIds = useRef(null)
+  const knownServiceRequestIds = useRef(null)
+  const knownBookingIds = useRef(null)
+  const knownCareerApplicationIds = useRef(null)
+  const knownLeadIds = useRef(null)
+  const authGeneration = useRef(0)
 
   useEffect(() => {
     let unsubAgents = null
     let unsubWorkers = null
     let unsubMessages = null
-    let unsubMoving = null
-    let unsubRental = null
-    let unsubLegal = null
+    let unsubServiceRequests = null
+    let unsubBookings = null
+    let unsubCareerApplications = null
+    let unsubLeads = null
 
     // Start Firestore listeners only once the user is authenticated
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      const generation = ++authGeneration.current
       // Clean up previous listeners on auth change
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()
       if (unsubMessages) unsubMessages()
-      if (unsubMoving) unsubMoving()
-      if (unsubRental) unsubRental()
-      if (unsubLegal) unsubLegal()
+      if (unsubServiceRequests) unsubServiceRequests()
+      if (unsubBookings) unsubBookings()
+      if (unsubCareerApplications) unsubCareerApplications()
+      if (unsubLeads) unsubLeads()
       knownAgentIds.current = null
       knownWorkerIds.current = null
       knownMessageIds.current = null
-      knownMovingIds.current = null
-      knownRentalIds.current = null
-      knownLegalIds.current = null
+      knownServiceRequestIds.current = null
+      knownBookingIds.current = null
+      knownCareerApplicationIds.current = null
+      knownLeadIds.current = null
 
-      if (!user) {
-        setPendingAgents(0)
-        setPendingWorkers(0)
-        setUnreadMessages(0)
-        setPendingMovingRequests(0)
-        setPendingRentalRequests(0)
-        setPendingLegalRequests(0)
-        return
+      // Do not retain one account's counters while the next account's access
+      // and listeners are being resolved.
+      setPendingAgents(0)
+      setPendingWorkers(0)
+      setUnreadMessages(0)
+      setPendingMovingRequests(0)
+      setPendingRentalRequests(0)
+      setPendingLegalRequests(0)
+      setPendingArtisanRequests(0)
+      setPendingBookings(0)
+      setPendingCareerApplications(0)
+      setPendingLeads(0)
+
+      if (!user) return
+
+      // Un manager restreint (permissions Firestore, voir managerModules.js)
+      // ne doit pas ouvrir de listener sur des collections hors de ses
+      // modules accordés — sinon Firestore rejette (permission-denied)
+      // à chaque page puisque ce contexte est monté globalement.
+      const tokenResult = await user.getIdTokenResult().catch(() => null)
+      if (generation !== authGeneration.current) return
+      const role = tokenResult?.claims?.userType || tokenResult?.claims?.role
+      let permissions = []
+      if (role === 'manager') {
+        const snap = await getDoc(doc(db, 'users', user.uid)).catch(() => null)
+        if (generation !== authGeneration.current) return
+        const storedPermissions = snap?.data()?.permissions
+        permissions = Array.isArray(storedPermissions) ? storedPermissions : null
+      }
+      const canAccess = (module) =>
+        role === 'admin' ||
+        (role === 'manager' && Array.isArray(permissions) && permissions.includes(module))
+
+      if (canAccess('agents')) {
+        const qAgents = query(
+          agentRequestsCollectionRef,
+          where('status', '==', 'pending')
+        )
+
+        unsubAgents = onSnapshot(qAgents, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingAgents(ids.size)
+
+          if (knownAgentIds.current === null) {
+            // First load — record baseline, no toast
+            knownAgentIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownAgentIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              playAlertSound()
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} agent !`,
+                'success'
+              )
+            }
+            knownAgentIds.current = ids
+          }
+        })
       }
 
-      const qAgents = query(
-        agentRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('workers')) {
+        const qWorkers = query(
+          workersCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubAgents = onSnapshot(qAgents, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingAgents(ids.size)
+        unsubWorkers = onSnapshot(qWorkers, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingWorkers(ids.size)
 
-        if (knownAgentIds.current === null) {
-          // First load — record baseline, no toast
-          knownAgentIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownAgentIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} agent !`,
-              'success'
-            )
+          if (knownWorkerIds.current === null) {
+            knownWorkerIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownWorkerIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              playAlertSound()
+              notify(
+                `${n} nouveau${n > 1 ? 'x' : ''} profil${n > 1 ? 's' : ''} ouvrier en attente !`,
+                'success'
+              )
+            }
+            knownWorkerIds.current = ids
           }
-          knownAgentIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qWorkers = query(
-        workersCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('messages')) {
+        const qMessages = query(
+          contactMessagesCollectionRef,
+          where('read', '==', false)
+        )
 
-      unsubWorkers = onSnapshot(qWorkers, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingWorkers(ids.size)
+        unsubMessages = onSnapshot(qMessages, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setUnreadMessages(ids.size)
 
-        if (knownWorkerIds.current === null) {
-          knownWorkerIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownWorkerIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouveau${n > 1 ? 'x' : ''} profil${n > 1 ? 's' : ''} ouvrier en attente !`,
-              'success'
-            )
+          if (knownMessageIds.current === null) {
+            knownMessageIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownMessageIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              playAlertSound()
+              notify(
+                `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''} de contact !`,
+                'success'
+              )
+            }
+            knownMessageIds.current = ids
           }
-          knownWorkerIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qMessages = query(
-        contactMessagesCollectionRef,
-        where('read', '==', false)
-      )
+      if (canAccess('services')) {
+        const qServiceRequests = query(
+          serviceRequestsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubMessages = onSnapshot(qMessages, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setUnreadMessages(ids.size)
+        unsubServiceRequests = onSnapshot(qServiceRequests, (snapshot) => {
+          const docs = snapshot.docs.map((d) => ({ id: d.id, category: d.data().category }))
+          const ids = new Set(docs.map((d) => d.id))
 
-        if (knownMessageIds.current === null) {
-          knownMessageIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownMessageIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouveau${n > 1 ? 'x' : ''} message${n > 1 ? 's' : ''} de contact !`,
-              'success'
-            )
+          setPendingMovingRequests(docs.filter((d) => d.category === 'demenagement').length)
+          setPendingRentalRequests(docs.filter((d) => d.category === 'gestion-locative').length)
+          setPendingLegalRequests(docs.filter((d) => d.category === 'securisation-fonciere').length)
+          setPendingArtisanRequests(docs.filter((d) => !MAIN_CATEGORIES.includes(d.category)).length)
+
+          if (knownServiceRequestIds.current === null) {
+            knownServiceRequestIds.current = ids
+          } else {
+            const newOnes = docs.filter((d) => !knownServiceRequestIds.current.has(d.id))
+            if (newOnes.length > 0) {
+              const byCategory = newOnes.reduce((acc, d) => {
+                const label = CATEGORY_LABELS[d.category] || "d'intervention"
+                acc[label] = (acc[label] || 0) + 1
+                return acc
+              }, {})
+              Object.entries(byCategory).forEach(([label, n]) => {
+                playAlertSound()
+                notify(`${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} ${label} !`, 'success')
+              })
+            }
+            knownServiceRequestIds.current = ids
           }
-          knownMessageIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qMoving = query(
-        movingRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('reservations')) {
+        const qBookings = query(
+          bookingsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubMoving = onSnapshot(qMoving, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingMovingRequests(ids.size)
+        unsubBookings = onSnapshot(qBookings, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingBookings(ids.size)
 
-        if (knownMovingIds.current === null) {
-          knownMovingIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownMovingIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de déménagement !`,
-              'success'
-            )
+          if (knownBookingIds.current === null) {
+            knownBookingIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownBookingIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              playAlertSound()
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} réservation${n > 1 ? 's' : ''} !`,
+                'success'
+              )
+            }
+            knownBookingIds.current = ids
           }
-          knownMovingIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qRental = query(
-        rentalManagementRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('careers')) {
+        const qCareerApplications = query(
+          careerApplicationsCollectionRef,
+          where('status', '==', 'pending')
+        )
 
-      unsubRental = onSnapshot(qRental, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingRentalRequests(ids.size)
+        unsubCareerApplications = onSnapshot(qCareerApplications, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingCareerApplications(ids.size)
 
-        if (knownRentalIds.current === null) {
-          knownRentalIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownRentalIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de gestion locative !`,
-              'success'
-            )
+          if (knownCareerApplicationIds.current === null) {
+            knownCareerApplicationIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownCareerApplicationIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              playAlertSound()
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} candidature${n > 1 ? 's' : ''} emploi !`,
+                'success'
+              )
+            }
+            knownCareerApplicationIds.current = ids
           }
-          knownRentalIds.current = ids
-        }
-      })
+        })
+      }
 
-      const qLegal = query(
-        legalSecurityRequestsCollectionRef,
-        where('status', '==', 'pending')
-      )
+      if (canAccess('leads')) {
+        const qLeads = query(leadsCollectionRef, where('status', '==', 'new'))
 
-      unsubLegal = onSnapshot(qLegal, (snapshot) => {
-        const ids = new Set(snapshot.docs.map((d) => d.id))
-        setPendingLegalRequests(ids.size)
+        unsubLeads = onSnapshot(qLeads, (snapshot) => {
+          const ids = new Set(snapshot.docs.map((d) => d.id))
+          setPendingLeads(ids.size)
 
-        if (knownLegalIds.current === null) {
-          knownLegalIds.current = ids
-        } else {
-          const newOnes = [...ids].filter((id) => !knownLegalIds.current.has(id))
-          if (newOnes.length > 0) {
-            const n = newOnes.length
-            notify(
-              `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de sécurisation foncière !`,
-              'success'
-            )
+          if (knownLeadIds.current === null) {
+            knownLeadIds.current = ids
+          } else {
+            const newOnes = [...ids].filter((id) => !knownLeadIds.current.has(id))
+            if (newOnes.length > 0) {
+              const n = newOnes.length
+              playAlertSound()
+              notify(
+                `${n} nouvelle${n > 1 ? 's' : ''} demande${n > 1 ? 's' : ''} de visite !`,
+                'success'
+              )
+            }
+            knownLeadIds.current = ids
           }
-          knownLegalIds.current = ids
-        }
-      })
+        })
+      }
     })
 
     return () => {
+      authGeneration.current += 1
       unsubAuth()
       if (unsubAgents) unsubAgents()
       if (unsubWorkers) unsubWorkers()
       if (unsubMessages) unsubMessages()
-      if (unsubMoving) unsubMoving()
-      if (unsubRental) unsubRental()
-      if (unsubLegal) unsubLegal()
+      if (unsubServiceRequests) unsubServiceRequests()
+      if (unsubBookings) unsubBookings()
+      if (unsubCareerApplications) unsubCareerApplications()
+      if (unsubLeads) unsubLeads()
     }
   }, [])
 
-  const pendingServiceRequests = pendingMovingRequests + pendingRentalRequests + pendingLegalRequests
+  const pendingServiceRequests =
+    pendingMovingRequests + pendingRentalRequests + pendingLegalRequests + pendingArtisanRequests
 
   return (
     <NotificationsContext.Provider
@@ -238,7 +336,11 @@ export function NotificationsProvider({ children }) {
         pendingMovingRequests,
         pendingRentalRequests,
         pendingLegalRequests,
+        pendingArtisanRequests,
         pendingServiceRequests,
+        pendingBookings,
+        pendingCareerApplications,
+        pendingLeads,
       }}
     >
       {children}

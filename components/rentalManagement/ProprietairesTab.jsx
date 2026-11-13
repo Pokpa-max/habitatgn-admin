@@ -84,7 +84,7 @@ export default function ProprietairesTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un propriétaire..."
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <button
               onClick={openAdd}
@@ -112,20 +112,21 @@ export default function ProprietairesTab() {
               const ownerProperties = propertiesOf(owner.id)
               const totalRent = ownerProperties.reduce((sum, p) => sum + (p.rentAmount || 0), 0)
               return (
-                <Link key={owner.id} href={`/gestion-locative/proprietaires/${owner.id}`}>
-                  <a className="flex items-center justify-between gap-4 py-4 hover:bg-gray-50">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-gray-900">{owner.name}</p>
-                      <p className="text-sm text-gray-500">{owner.phone}</p>
-                      <p className="mt-1 text-xs text-gray-400">
-                        {ownerProperties.length} bien{ownerProperties.length !== 1 ? 's' : ''}
-                        {ownerProperties.length > 0 ? ` · ${formatGNF(totalRent)}/mois` : ''}
-                      </p>
-                    </div>
-                    <RiArrowRightSLine className="h-4 w-4 shrink-0" style={{ color: colors.gray400 }} />
-                  </a>
+                <Link
+                  key={owner.id}
+                  href={`/gestion-locative/proprietaires/${owner.id}`}
+                  className="flex items-center justify-between gap-4 py-4 hover:bg-gray-50">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-900">{owner.name}</p>
+                    <p className="text-sm text-gray-500">{owner.phone}</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {ownerProperties.length} bien{ownerProperties.length !== 1 ? 's' : ''}
+                      {ownerProperties.length > 0 ? ` · ${formatGNF(totalRent)}/mois` : ''}
+                    </p>
+                  </div>
+                  <RiArrowRightSLine className="h-4 w-4 shrink-0" style={{ color: colors.gray400 }} />
                 </Link>
-              )
+              );
             })}
           </div>
         )}
@@ -169,50 +170,50 @@ export default function ProprietairesTab() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Nom *
             </label>
             <input
               type="text"
               {...register('name', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+            {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Téléphone *
             </label>
             <input
               type="text"
               {...register('phone', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="+224 6XX XX XX XX"
             />
-            {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
+            {errors.phone && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.phone.message}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Email
             </label>
             <input
               type="email"
               {...register('email')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Notes
             </label>
             <textarea
               rows={2}
               {...register('notes')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
       </DrawerForm>
     </>
-  )
+  );
 }

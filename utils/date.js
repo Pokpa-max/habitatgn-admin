@@ -1,7 +1,6 @@
 import fr from 'date-fns/locale/fr'
-import { Timestamp } from '@firebase/firestore'
 import fetcher from "./fetcher";
-import { format, formatDistance, differenceInCalendarDays } from 'date-fns'
+import { format } from 'date-fns'
 
 export const firebaseDateFormat = (date, formatString = 'PP') => {
   const convertedDate = firebaseDateToJsDate(date)
@@ -14,48 +13,6 @@ export const firebaseDateFormat = (date, formatString = 'PP') => {
   }
 }
 
-export const timeSince = (firebaseDate) => {
-  const date = firebaseDateToJsDate(firebaseDate)
-  if (!date) return ''
-  try {
-    return formatDistance(date, new Date(), { addSuffix: true, locale: fr })
-  } catch (e) {
-    console.error('timeSince error:', e, { firebaseDate, date })
-    return ''
-  }
-}
-
-export const timeBetween = (firebaseDateStart, firebaseDateEnd) => {
-  const dateStart = firebaseDateToJsDate(firebaseDateStart)
-  const dateEnd = firebaseDateToJsDate(firebaseDateEnd)
-  if (!dateStart || !dateEnd) return 0
-  try {
-    return differenceInCalendarDays(dateEnd, dateStart)
-  } catch (e) {
-    console.error('timeBetween error:', e, { firebaseDateStart, firebaseDateEnd })
-    return 0
-  }
-}
-
-
-const firebaseDateToTimestamp = (firebaseDate) => {
-  let { _seconds, _nanoseconds } = firebaseDate
-
-  if (!_seconds) {
-    ; (_seconds = firebaseDate.seconds),
-      (_nanoseconds = firebaseDate.nanoseconds)
-  }
-
-  const timestamp = new Timestamp(_seconds, _nanoseconds)
-  return timestamp.toDate()
-}
-
-export const getCurrentDateOnline = async () => {
-  const data = await fetcher("/api/infos/getDate");
-  return Timestamp.fromDate(new Date(data.date));
-};
-
-
 export const getOnlineDate = async () => {
   const data = await fetcher(
     'https://www.timeapi.io/api/Time/current/zone?timeZone=Africa/Conakry'
@@ -63,36 +20,7 @@ export const getOnlineDate = async () => {
   return data.date
 }
 
-export const getCurrentDate = () => {
-  const date = new Date()
-  return format(date, 'PP', { locale: fr })
-}
-
-export const getCurrentHour = () => {
-  const date = new Date()
-  return format(date, 'HH:MM', { locale: fr })
-}
-
-export const firebaseHour = (data) => {
-  var date = new Date(0);
-  date.setSeconds(data?.seconds);
-  var timeString = date.toISOString().substring(11, 19);
-  return timeString
-}
-
-export const firebaseDateHour = (data) => {
-
-  let options = { hour: "2-digit", minute: "2-digit", year: "numeric", month: "short", day: "numeric", weekday: "long", };
-  let dateHoure = new Date(data?.seconds * 1000).toLocaleDateString("fr-FR", options);
-  return dateHoure;
-
-}
-
-
-
-
-
-export const firebaseDateToJsDate = (firebaseDate) => {
+const firebaseDateToJsDate = (firebaseDate) => {
   if (!firebaseDate) return null
 
   // Already a native Date
@@ -131,5 +59,3 @@ export const firebaseDateToJsDate = (firebaseDate) => {
   return null
 }
 
-export const firebaseDateFormatWithoutFormat = (date) =>
-  firebaseDateToJsDate(date)

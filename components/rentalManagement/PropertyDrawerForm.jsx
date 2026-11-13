@@ -1,66 +1,416 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { RiCheckLine } from 'react-icons/ri'
+import { RiCheckLine, RiCloseLine, RiImageAddLine } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import DrawerForm from '@/components/DrawerForm'
-import { addManagedProperty, editManagedProperty } from '@/lib/services/managedProperties'
+import { uploadToCloudinary } from '@/utils/cloudinary'
+import { editManagedProperty } from '@/lib/services/managedProperties'
 import { addPropertyOwner } from '@/lib/services/propertyOwners'
+import { addProperty, updateProperty } from '@/lib/services/propertyService'
+import { isListingOnline, notifyFavoritesOfChange } from '@/lib/services/accountNotifications'
+import { REGIONS, currencyOptions } from '../../_data'
 
-const PROPERTY_TYPES = ['Appartement', 'Maison', 'Studio', 'Commerce']
+const MAX_IMAGES = 5
 
-// Formulaire de création/édition d'un bien, partagé entre BiensTab (choix libre du
-// propriétaire) et la page détail propriétaire (propriétaire imposé par lockedOwnerId).
-export default function PropertyDrawerForm({ open, setOpen, selected, owners, lockedOwnerId, onSaved, onOwnerCreated }) {
+const resolveExistingImages = (selectedItem) => {
+  if (!selectedItem) return []
+  const imgs = selectedItem.images
+  const fromImages = Array.isArray(imgs)
+    ? imgs
+    : [imgs?.cover, ...(Array.isArray(imgs?.gallery) ? imgs.gallery : [])]
+  const legacyUrls = Array.isArray(selectedItem.imageUrls) ? selectedItem.imageUrls : []
+  const houseInsides = Array.isArray(selectedItem.houseInsides) ? selectedItem.houseInsides : []
+  return Array.from(
+    new Set(
+      [selectedItem.imageUrl, ...fromImages, ...legacyUrls, ...houseInsides].filter(Boolean)
+    )
+  )
+}
+
+const PROPERTY_TYPES = ['Appartement', 'Maison', 'Studio', 'Commerce', 'Terrain']
+
+const CATEGORY_OPTIONS = [
+  { value: 'houses', label: 'Bien classique (maison, appartement, terrain...)' },
+  { value: 'daily_rentals', label: 'Location journalière' },
+]
+const KNOWN_COLLECTIONS = ['houses', 'lands', 'daily_rentals', 'managed_properties']
+const SINGULAR_CATEGORY_MAP = { house: 'houses', land: 'lands', daily_rental: 'daily_rentals' }
+const PLURAL_TO_SINGULAR_CATEGORY = { houses: 'house', lands: 'land', daily_rentals: 'daily_rental' }
+
+const TRANSACTION_OPTIONS = {
+  houses: [
+    { value: 'rent', label: 'Location' },
+    { value: 'sale', label: 'Vente' },
+    { value: 'bail', label: 'Bail' },
+  ],
+  lands: [
+    { value: 'rent', label: 'Location' },
+    { value: 'sale', label: 'Vente' },
+  ],
+}
+
+const PROPERTY_TYPE_OPTIONS = [
+  { value: 'apartment', label: 'Appartement' },
+  { value: 'villa', label: 'Villa' },
+  { value: 'studio', label: 'Studio' },
+  { value: 'house', label: 'Maison' },
+  { value: 'duplex', label: 'Duplex' },
+  { value: 'commercial', label: 'Local commercial' },
+  { value: 'land', label: 'Terrain' },
+]
+
+const CONDITION_OPTIONS = [
+  { value: 'new', label: 'Neuf' },
+  { value: 'good', label: 'Bon état' },
+  { value: 'average', label: 'État moyen' },
+  { value: 'renovation', label: 'À rénover' },
+]
+
+const PERIOD_OPTIONS = [
+  { value: 'monthly', label: 'Mensuel' },
+  { value: 'yearly', label: 'Annuel' },
+]
+
+function FormSectionHeading({ children, description }) {
+  return (
+    <div className="border-t border-gray-100 pt-5">
+      <h3 className="text-xs font-bold uppercase tracking-wide text-gray-500">{children}</h3>
+      {description && <p className="mt-1 text-xs leading-relaxed text-gray-500">{description}</p>}
+    </div>
+  )
+}
+
+export default function PropertyDrawerForm({
+  open,
+  setOpen,
+  selected,
+  owners,
+  lockedOwnerId,
+  onSaved,
+  onOwnerCreated,
+}) {
   const colors = useColors()
   const [saving, setSaving] = useState(false)
   const [creatingOwner, setCreatingOwner] = useState(false)
+  const [imageFiles, setImageFiles] = useState([])
+  const [existingImageUrls, setExistingImageUrls] = useState([])
+
+  const resolveTargetCollection = (selectedItem) => {
+    if (KNOWN_COLLECTIONS.includes(selectedItem?._collection)) {
+      return selectedItem._collection
+    }
+    const rawCategory =
+      selectedItem?.category || selectedItem?.propertyCategory || ''
+    const normalized = String(rawCategory).trim().toLowerCase()
+    if (KNOWN_COLLECTIONS.includes(normalized)) return normalized
+    return SINGULAR_CATEGORY_MAP[normalized] || 'houses'
+  }
+
+  const resolveTypeValue = (value) => {
+    if (!value) return 'Appartement'
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (normalized.includes('maison') || normalized.includes('house'))
+        return 'Maison'
+      if (normalized.includes('studio')) return 'Studio'
+      if (
+        normalized.includes('commerce') ||
+        normalized.includes('boutique') ||
+        normalized.includes('commercial')
+      )
+        return 'Commerce'
+      if (
+        normalized.includes('appartement') ||
+        normalized.includes('appart') ||
+        normalized.includes('apartment')
+      )
+        return 'Appartement'
+      return value
+    }
+    if (typeof value === 'object') {
+      const candidate = value.property || value.transaction || value.type || ''
+      return resolveTypeValue(candidate)
+    }
+    return 'Appartement'
+  }
+
+  const resolveAddressValue = (selectedItem) => {
+    if (typeof selectedItem?.address === 'string' && selectedItem.address.trim()) {
+      return selectedItem.address
+    }
+    if (selectedItem?.location && typeof selectedItem.location === 'object') {
+      const parts = [
+        selectedItem.location.neighborhood,
+        selectedItem.location.municipality,
+        selectedItem.location.landmark,
+      ].filter(Boolean)
+      return parts.join(', ')
+    }
+    return ''
+  }
+
+  const resolveCityValue = (selectedItem) => {
+    if (typeof selectedItem?.city === 'string' && selectedItem.city.trim()) {
+      return selectedItem.city
+    }
+    if (selectedItem?.location && typeof selectedItem.location === 'object') {
+      return selectedItem.location.region || selectedItem.location.municipality || ''
+    }
+    return ''
+  }
+
+  const resolveRoomValue = (selectedItem) => {
+    const direct = Number(selectedItem?.nbRooms)
+    if (!Number.isNaN(direct) && direct > 0) return direct
+    const fromFeatures = Number(selectedItem?.features?.bedrooms)
+    if (!Number.isNaN(fromFeatures) && fromFeatures > 0) return fromFeatures
+    return ''
+  }
+
+  const resolveRentValue = (selectedItem) => {
+    if (typeof selectedItem?.rentAmount === 'number' || typeof selectedItem?.rentAmount === 'string') {
+      const numeric = Number(selectedItem.rentAmount)
+      if (!Number.isNaN(numeric)) return numeric
+    }
+    if (typeof selectedItem?.price === 'object' && selectedItem.price !== null) {
+      const numeric = Number(selectedItem.price.amount)
+      if (!Number.isNaN(numeric)) return numeric
+    }
+    return ''
+  }
+
+  const resolveSurfaceValue = (selectedItem) => {
+    const fromFeatures = Number(selectedItem?.features?.area)
+    if (!Number.isNaN(fromFeatures) && fromFeatures > 0) return fromFeatures
+    const direct = Number(selectedItem?.surface)
+    if (!Number.isNaN(direct) && direct > 0) return direct
+    return ''
+  }
+
+  const hourToTime = (hour, fallback) => {
+    if (typeof hour === 'string' && hour.includes(':')) return hour
+    if (hour === undefined || hour === null || Number.isNaN(Number(hour))) return fallback
+    return `${String(hour).padStart(2, '0')}:00`
+  }
+
+  const resolveAmenities = (item) => {
+    const value = item?.amenities ?? item?.features?.amenities ?? item?.commodites ?? item?.equipements ?? []
+    if (Array.isArray(value)) {
+      return value.map((amenity) => typeof amenity === 'string' ? amenity : amenity?.label || amenity?.name || '').filter(Boolean).join(', ')
+    }
+    if (value && typeof value === 'object') {
+      return Object.entries(value).filter(([, enabled]) => Boolean(enabled)).map(([name]) => name).join(', ')
+    }
+    return ''
+  }
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({ mode: 'onBlur' })
 
   useEffect(() => {
     if (!open) return
     setCreatingOwner(false)
-    if (selected) {
+    setImageFiles([])
+    setExistingImageUrls(resolveExistingImages(selected))
+
+    const targetCollection = selected ? resolveTargetCollection(selected) : null
+    const isManaged = targetCollection === 'managed_properties'
+
+    if (selected && isManaged) {
       reset({
-        type: selected.type,
-        address: selected.address,
-        city: selected.city || '',
+        type: resolveTypeValue(selected.type),
+        address: resolveAddressValue(selected),
+        city: resolveCityValue(selected),
         unitLabel: selected.unitLabel || '',
         description: selected.description || '',
-        surface: selected.surface || '',
-        nbRooms: selected.nbRooms || '',
+        surface: resolveSurfaceValue(selected),
+        nbRooms: resolveRoomValue(selected),
         ownerId: selected.ownerId || lockedOwnerId || owners?.[0]?.id || '',
         commissionRate: selected.commissionRate,
-        rentAmount: selected.rentAmount,
+        rentAmount: resolveRentValue(selected),
         status: selected.status,
       })
-    } else {
+      setValue('type', resolveTypeValue(selected.type), { shouldDirty: true, shouldTouch: true })
+    } else if (selected) {
+      const owner = owners?.find((o) => o.id === selected.ownerId)
       reset({
-        type: 'Appartement',
-        address: '',
-        city: '',
+        title: selected.title || '',
+        transactionType: selected.type?.transaction || 'rent',
+        propertyType: selected.type?.property || 'apartment',
+        region: selected.location?.region || '',
+        municipality: selected.location?.municipality || selected.city || '',
+        neighborhood: selected.location?.neighborhood || '',
+        landmark: selected.location?.landmark || '',
+        unitLabel: selected.unitLabel || '',
+        description: selected.description || '',
+        surface: resolveSurfaceValue(selected),
+        bedrooms: selected.features?.bedrooms || '',
+        bathrooms: selected.features?.bathrooms || '',
+        livingRooms: selected.features?.livingRooms ?? '',
+        kitchens: selected.features?.kitchens ?? '',
+        selfContainedRooms: selected.features?.selfContainedRooms ?? '',
+        externalBathrooms: selected.features?.externalBathrooms ?? '',
+        floor: selected.features?.floor || '',
+        furnished: selected.features?.furnished ?? true,
+        condition: selected.features?.condition || 'good',
+        marriedCouplesOnly: selected.features?.marriedCouplesOnly ?? false,
+        maxGuests: selected.features?.maxGuests ?? selected.maxGuests ?? '',
+        amenitiesText: resolveAmenities(selected),
+        ownerId: selected.ownerId || lockedOwnerId || owners?.[0]?.id || '',
+        commissionRate: selected.commissionRate,
+        priceAmount: selected.price?.amount ?? resolveRentValue(selected),
+        currency: selected.price?.currency || 'GNF',
+        period: selected.price?.period === 'yearly' ? 'yearly' : 'monthly',
+        deposit: isDaily ? selected.price?.deposit ?? '' : Number(selected.price?.deposit) > 12 ? selected.price.deposit : '',
+        advanceMonths: selected.price?.advanceMonths ?? 3,
+        depositMonths: selected.price?.depositMonths ?? (Number(selected.price?.deposit) > 0 && Number(selected.price?.deposit) <= 12 ? selected.price.deposit : ''),
+        agencyFeeMonths: selected.price?.agencyFeeMonths ?? 1,
+        agencyFeePercent: selected.price?.agencyFeePercent ?? 5,
+        notaryFeePercent: selected.price?.notaryFeePercent ?? 5,
+        negotiable: selected.price?.negotiable ?? false,
+        weeklyRate: selected.additionalRates?.weekly ?? '',
+        monthlyRate: selected.additionalRates?.monthly ?? '',
+        parcelled: selected.parcelInfo?.isParcelled ?? false,
+        totalParcels: selected.parcelInfo?.totalParcels ?? selected.parcelInfo?.parcelCount ?? '',
+        availableParcels: selected.parcelInfo?.availableParcels ?? '',
+        areaPerParcel: selected.parcelInfo?.areaPerParcel ?? selected.parcelInfo?.parcelArea ?? '',
+        pricePerParcel: selected.parcelInfo?.pricePerParcel ?? '',
+        hasLandTitle: selected.documents?.hasLandTitle ?? selected.hasLandTitle ?? (Array.isArray(selected.documents?.available) && selected.documents.available.includes('landTitle')),
+        otherDocuments: selected.documents?.notes ?? '',
+        prefinancingAvailable: selected.prefinancing?.available ?? false,
+        downPayment: selected.prefinancing?.downPayment ?? '',
+        downPaymentNegotiable: selected.prefinancing?.downPaymentNegotiable ?? false,
+        monthlyInstallment: selected.prefinancing?.monthlyInstallment ?? '',
+        financingDuration: selected.prefinancing?.durationMonths ?? '',
+        financingNotes: selected.prefinancing?.notes ?? '',
+        minStay: selected.minStay ?? '',
+        maxStay: selected.maxStay ?? '',
+        checkInTime: hourToTime(selected.checkInHour, '14:00'),
+        checkOutTime: hourToTime(selected.checkOutHour, '11:00'),
+        contactName: selected.contact?.name || owner?.name || '',
+        contactPhone: selected.contact?.phone || owner?.phone || '',
+        contactWhatsapp: selected.contact?.whatsapp || '',
+        contactEmail: selected.contact?.email || '',
+        agencyName: selected.contact?.agencyName || '',
+        publishNow: (selected.status || 'available') === 'available',
+      })
+    } else {
+      const owner = owners?.find((o) => o.id === (lockedOwnerId || owners?.[0]?.id))
+      reset({
+        category: 'houses',
+        title: '',
+        transactionType: 'rent',
+        propertyType: 'apartment',
+        region: '',
+        municipality: '',
+        neighborhood: '',
+        landmark: '',
         unitLabel: '',
         unitCount: '1',
         description: '',
         surface: '',
-        nbRooms: '',
+        bedrooms: '',
+        bathrooms: '',
+        livingRooms: '',
+        kitchens: '',
+        selfContainedRooms: '',
+        externalBathrooms: '',
+        floor: '',
+        furnished: true,
+        condition: 'good',
+        marriedCouplesOnly: false,
+        maxGuests: '',
+        amenitiesText: '',
         ownerId: lockedOwnerId || owners?.[0]?.id || '',
         commissionRate: '10',
-        rentAmount: '',
-        status: 'vacant',
+        priceAmount: '',
+        currency: 'GNF',
+        period: 'monthly',
+        deposit: '',
+        advanceMonths: 3,
+        depositMonths: 2,
+        agencyFeeMonths: 1,
+        agencyFeePercent: 5,
+        notaryFeePercent: 5,
+        negotiable: false,
+        weeklyRate: '',
+        monthlyRate: '',
+        parcelled: false,
+        totalParcels: '',
+        availableParcels: '',
+        areaPerParcel: '',
+        pricePerParcel: '',
+        hasLandTitle: false,
+        otherDocuments: '',
+        prefinancingAvailable: false,
+        downPayment: '',
+        downPaymentNegotiable: false,
+        monthlyInstallment: '',
+        financingDuration: '',
+        financingNotes: '',
+        minStay: '',
+        maxStay: '',
+        checkInTime: '14:00',
+        checkOutTime: '11:00',
+        contactName: owner?.name || '',
+        contactPhone: owner?.phone || '',
+        contactWhatsapp: '',
+        contactEmail: '',
+        agencyName: '',
+        publishNow: true,
         newOwnerName: '',
         newOwnerPhone: '',
         newOwnerEmail: '',
       })
     }
   }, [open, selected, lockedOwnerId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const watchedCategory = watch('category')
+  const watchedPropertyType = watch('propertyType')
+  const targetCollection = selected
+    ? resolveTargetCollection(selected)
+    : watchedCategory === 'daily_rentals'
+      ? 'daily_rentals'
+      : watchedPropertyType === 'land'
+        ? 'lands'
+        : 'houses'
+  const isManagedProperty = targetCollection === 'managed_properties'
+  const isLand = targetCollection === 'lands'
+  const isDaily = targetCollection === 'daily_rentals'
+  const propertyTypeOptions = selected
+    ? PROPERTY_TYPE_OPTIONS.filter((o) => (isLand ? o.value === 'land' : o.value !== 'land'))
+    : isDaily
+      ? PROPERTY_TYPE_OPTIONS.filter((o) => o.value !== 'land')
+      : PROPERTY_TYPE_OPTIONS
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files || [])
+    const remaining = MAX_IMAGES - existingImageUrls.length - imageFiles.length
+    if (files.length > remaining) {
+      notify(`Maximum ${MAX_IMAGES} photos par bien — ${files.length - remaining} photo(s) ignorée(s)`, 'error')
+    }
+    const accepted = files.slice(0, Math.max(0, remaining))
+    if (accepted.length) {
+      setImageFiles((prev) => [...prev, ...accepted])
+    }
+    e.target.value = ''
+  }
+
+  const removeNewImage = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const removeExistingImage = (index) => {
+    setExistingImageUrls((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const onSubmit = async (data) => {
     setSaving(true)
@@ -77,23 +427,178 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         onOwnerCreated?.(newOwner)
       }
 
+      const uploadedUrls = await Promise.all(
+        imageFiles.map((file) => uploadToCloudinary(file))
+      )
+      const allImageUrls = [...existingImageUrls, ...uploadedUrls]
+      const imageFields = {
+        imageUrl: allImageUrls[0] || '',
+        images: { cover: allImageUrls[0] || '', gallery: allImageUrls },
+      }
+
+      if (isManagedProperty) {
+        const payload = {
+          title: data.title || data.address,
+          type: data.type,
+          address: data.address,
+          city: data.city,
+          description: data.description,
+          surface: Number(data.surface) || 0,
+          nbRooms: Number(data.nbRooms) || 0,
+          ownerId,
+          commissionRate: Number(data.commissionRate) || 0,
+          rentAmount: Number(data.rentAmount) || 0,
+          status: data.status,
+          active: data.status !== 'inactive',
+          published: true,
+          verified: selected ? selected.verified : false,
+          ...imageFields,
+        }
+
+        if (selected) {
+          const updated = { ...payload, unitLabel: data.unitLabel || '' }
+          await editManagedProperty(selected.id, updated, 'managed_properties')
+          onSaved({ ...selected, ...updated })
+          notify('Bien modifié avec succès', 'success')
+        } else {
+          const saved = await addProperty({ ...payload, unitLabel: data.unitLabel || '' })
+          onSaved(saved)
+          notify('Bien ajouté avec succès', 'success')
+        }
+        setOpen(false)
+        setSaving(false)
+        return
+      }
+
+      const transaction = isDaily ? 'daily_rent' : data.transactionType
+      const period = isDaily ? 'nightly' : transaction === 'sale' ? 'total' : data.period
+
+      const features = isLand
+        ? { ...(selected?.features || {}), area: Number(data.surface) || 0 }
+        : {
+            ...(selected?.features || {}),
+            area: Number(data.surface) || 0,
+            bedrooms: Number(data.bedrooms) || 0,
+            bathrooms: Number(data.bathrooms) || 0,
+            ...(data.livingRooms !== '' ? { livingRooms: Number(data.livingRooms) || 0 } : {}),
+            ...(data.kitchens !== '' ? { kitchens: Number(data.kitchens) || 0 } : {}),
+            ...(data.selfContainedRooms !== '' ? { selfContainedRooms: Number(data.selfContainedRooms) || 0 } : {}),
+            ...(data.externalBathrooms !== '' ? { externalBathrooms: Number(data.externalBathrooms) || 0 } : {}),
+            ...(data.floor ? { floor: Number(data.floor) } : {}),
+            furnished: isDaily ? true : !!data.furnished,
+            condition: data.condition || 'good',
+            ...(isDaily && data.maxGuests !== '' ? { maxGuests: Number(data.maxGuests) || 0 } : {}),
+            ...(data.marriedCouplesOnly ? { marriedCouplesOnly: true } : {}),
+          }
+
+      const municipality = data.municipality || data.region
+      const generatedTitle = [
+        PROPERTY_TYPE_OPTIONS.find((o) => o.value === data.propertyType)?.label || 'Logement',
+        data.neighborhood || municipality || data.region,
+      ]
+        .filter(Boolean)
+        .join(' - ')
+
       const payload = {
-        type: data.type,
-        address: data.address,
-        city: data.city,
-        description: data.description,
-        surface: Number(data.surface) || 0,
-        nbRooms: Number(data.nbRooms) || 0,
+        title: data.title?.trim() || selected?.title || generatedTitle,
+        category: PLURAL_TO_SINGULAR_CATEGORY[targetCollection] || 'house',
+        type: { transaction, property: data.propertyType },
+        location: {
+          ...(selected?.location || {}),
+          region: data.region,
+          municipality,
+          ...(data.neighborhood ? { neighborhood: data.neighborhood } : {}),
+          ...(data.landmark ? { landmark: data.landmark } : {}),
+        },
+        features,
+        price: {
+          ...(selected?.price || {}),
+          amount: Number(data.priceAmount) || 0,
+          currency: data.currency || 'GNF',
+          period,
+          ...(data.deposit ? { deposit: Number(data.deposit) } : {}),
+          ...(data.advanceMonths !== '' ? { advanceMonths: Number(data.advanceMonths) } : {}),
+          ...(data.depositMonths !== '' ? { depositMonths: Number(data.depositMonths) } : {}),
+          ...(data.agencyFeeMonths !== '' ? { agencyFeeMonths: Number(data.agencyFeeMonths) } : {}),
+          ...(data.agencyFeePercent !== '' ? { agencyFeePercent: Number(data.agencyFeePercent) } : {}),
+          ...(data.notaryFeePercent !== '' ? { notaryFeePercent: Number(data.notaryFeePercent) } : {}),
+          negotiable: !!data.negotiable,
+        },
+        amenities: (data.amenitiesText || '').split(',').map((amenity) => amenity.trim()).filter(Boolean),
+        ...(isDaily ? {
+          additionalRates: {
+            ...(selected?.additionalRates || {}),
+            ...(data.weeklyRate !== '' ? { weekly: Number(data.weeklyRate) } : {}),
+            ...(data.monthlyRate !== '' ? { monthly: Number(data.monthlyRate) } : {}),
+          },
+        } : {}),
+        ...(isLand ? {
+          parcelInfo: {
+            ...(selected?.parcelInfo || {}),
+            isParcelled: !!data.parcelled,
+            ...(data.parcelled ? {
+              totalParcels: Number(data.totalParcels) || 0,
+              availableParcels: Number(data.availableParcels) || Number(data.totalParcels) || 0,
+              areaPerParcel: Number(data.areaPerParcel) || 0,
+              pricePerParcel: Number(data.pricePerParcel) || 0,
+            } : {}),
+          },
+          documents: {
+            ...(selected?.documents || {}),
+            hasLandTitle: !!data.hasLandTitle,
+            available: Array.from(new Set([
+              ...((Array.isArray(selected?.documents?.available) ? selected.documents.available : []).filter((document) => document !== 'landTitle')),
+              ...(data.hasLandTitle ? ['landTitle'] : []),
+            ])),
+            ...(data.otherDocuments ? { notes: data.otherDocuments.trim() } : {}),
+          },
+          prefinancing: {
+            ...(selected?.prefinancing || {}),
+            available: !!data.prefinancingAvailable,
+            ...(data.prefinancingAvailable ? {
+              downPayment: Number(data.downPayment) || 0,
+              downPaymentNegotiable: !!data.downPaymentNegotiable,
+              monthlyInstallment: Number(data.monthlyInstallment) || 0,
+              durationMonths: Number(data.financingDuration) || 0,
+              ...(data.financingNotes ? { notes: data.financingNotes.trim() } : {}),
+            } : {}),
+          },
+        } : {}),
+        ...(isDaily && data.minStay ? { minStay: Number(data.minStay) } : {}),
+        ...(isDaily && data.maxStay ? { maxStay: Number(data.maxStay) } : {}),
+        ...(isDaily && data.checkInTime
+          ? { checkInHour: Number(data.checkInTime.split(':')[0]) }
+          : {}),
+        ...(isDaily && data.checkOutTime
+          ? { checkOutHour: Number(data.checkOutTime.split(':')[0]) }
+          : {}),
+        contact: {
+          ...(selected?.contact || {}),
+          agencyName: data.agencyName || '',
+          name: data.contactName || '',
+          phone: data.contactPhone || '',
+          whatsapp: data.contactWhatsapp || data.contactPhone || '',
+          email: data.contactEmail || '',
+        },
+        description: data.description || '',
         ownerId,
         commissionRate: Number(data.commissionRate) || 0,
-        rentAmount: Number(data.rentAmount) || 0,
-        status: data.status,
+        status: data.publishNow !== false ? 'available' : 'draft',
+        published: data.publishNow !== false,
+        verified: selected ? selected.verified : false,
+        isAvailable: data.publishNow !== false,
+        ...imageFields,
       }
 
       if (selected) {
         const updated = { ...payload, unitLabel: data.unitLabel || '' }
-        await editManagedProperty(selected.id, updated)
-        onSaved({ ...selected, ...updated })
+        const saved = await updateProperty(selected.id, updated, targetCollection)
+        // Baisse de prix ou retrait : les personnes qui suivent l'annonce sont prévenues
+        void notifyFavoritesOfChange(targetCollection, selected.id, {
+          price: Number(selected.price?.amount ?? selected.price) || 0,
+          visible: isListingOnline(selected),
+        })
+        onSaved({ ...selected, ...updated, ...saved })
         notify('Bien modifié avec succès', 'success')
       } else {
         const unitCount = Math.max(1, Number(data.unitCount) || 1)
@@ -102,17 +607,19 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
         if (unitCount > 1) {
           for (let i = 1; i <= unitCount; i += 1) {
             const reference = `BIEN-${base}-${String(i).padStart(2, '0')}`
-            const saved = await addManagedProperty({
-              ...payload,
-              unitLabel: `Appt ${i}`,
-              reference,
-            })
+            const saved = await addProperty(
+              { ...payload, unitLabel: `Appt ${i}`, reference },
+              ownerId
+            )
             onSaved(saved)
           }
           notify(`${unitCount} appartements créés avec succès`, 'success')
         } else {
           const reference = `BIEN-${base}`
-          const saved = await addManagedProperty({ ...payload, unitLabel: data.unitLabel || '', reference })
+          const saved = await addProperty(
+            { ...payload, unitLabel: data.unitLabel || '', reference },
+            ownerId
+          )
           onSaved(saved)
           notify('Bien ajouté avec succès', 'success')
         }
@@ -124,13 +631,21 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
     setSaving(false)
   }
 
+  const inputClass =
+    'w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/15'
+  const labelClass = 'mb-1.5 block text-xs font-semibold text-gray-700'
+
   return (
     <DrawerForm
       open={open}
       setOpen={setOpen}
       onSubmit={handleSubmit(onSubmit)}
       title={selected ? 'Modifier le bien' : 'Ajouter un bien'}
-      description={selected ? 'Mettez à jour les informations du bien' : 'Enregistrer un nouveau bien géré'}
+      variant="detail"
+      eyebrow={selected ? "Modification de l'annonce" : 'Nouvelle annonce'}
+      description={
+        selected ? 'Mettez à jour les informations du bien' : 'Enregistrer un nouveau bien'
+      }
       footerButtons={
         <>
           {saving ? (
@@ -144,14 +659,14 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
             <>
               <button
                 type="button"
-                className="rounded border border-gray-300 bg-white px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
                 onClick={() => setOpen(false)}
               >
                 Annuler
               </button>
               <button
                 type="submit"
-                className="ml-3 inline-flex items-center gap-2 rounded px-6 py-2 text-sm font-semibold text-white hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed"
                 style={{ backgroundColor: colors.primary }}
               >
                 <RiCheckLine className="h-4 w-4" />
@@ -163,226 +678,605 @@ export default function PropertyDrawerForm({ open, setOpen, selected, owners, lo
       }
     >
       <div className="space-y-5 px-6 py-6 sm:p-8">
-        <div className="grid grid-cols-2 gap-4">
+        {!selected && (
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Type de bien
-            </label>
+            <label className={labelClass}>Catégorie</label>
             <select
-              {...register('type')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              {...register('category', {
+                onChange: (e) => {
+                  if (e.target.value === 'daily_rentals' && watch('propertyType') === 'land') {
+                    setValue('propertyType', 'apartment')
+                  }
+                },
+              })}
+              className={inputClass}
             >
-              {PROPERTY_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {CATEGORY_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Statut
-            </label>
-            <select
-              {...register('status')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-            >
-              <option value="vacant">Vacant</option>
-              <option value="occupied">Occupé</option>
-              <option value="inactive">Inactif</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-            Adresse *
-          </label>
-          <input
-            type="text"
-            {...register('address', { required: 'Requis' })}
-            className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-            placeholder="Ex: Kaloum, rue KA-025"
-          />
-          {errors.address && <p className="mt-1 text-xs font-semibold text-red-500">{errors.address.message}</p>}
-        </div>
-
-        {selected ? (
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Étiquette de l'unité
-            </label>
-            <input
-              type="text"
-              {...register('unitLabel')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-              placeholder="Ex: Appt 3"
-            />
             <p className="mt-1 text-xs text-gray-400">
-              Utile si ce bien fait partie d'un immeuble à plusieurs appartements.
-            </p>
-          </div>
-        ) : (
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Nombre d'appartements identiques à créer
-            </label>
-            <input
-              type="number"
-              min="1"
-              {...register('unitCount')}
-              className="w-full max-w-32 rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-              placeholder="1"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Pour un immeuble de plusieurs appartements, indiquez le nombre à créer d'un coup (ex: 20). Chacun
-              sera étiqueté "Appt 1", "Appt 2"... et modifiable individuellement ensuite (loyer, statut, locataire).
+              Détermine où le bien sera publié sur le site public. Ce choix ne pourra plus être
+              changé après la création.
             </p>
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Ville
-            </label>
-            <input
-              type="text"
-              {...register('city')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-              placeholder="Conakry"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Surface (m²)
-            </label>
-            <input
-              type="number"
-              {...register('surface')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Pièces
-            </label>
-            <input
-              type="number"
-              {...register('nbRooms')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-            Description
-          </label>
-          <textarea
-            rows={2}
-            {...register('description')}
-            className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-          />
-        </div>
-
-        {!lockedOwnerId && (
-          <div className="border-t border-gray-100 pt-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Propriétaire</p>
-              <button
-                type="button"
-                onClick={() => setCreatingOwner((v) => !v)}
-                className="text-xs font-semibold"
-                style={{ color: colors.primary }}
-              >
-                {creatingOwner ? 'Choisir un propriétaire existant' : '+ Nouveau propriétaire'}
-              </button>
+        {isManagedProperty ? (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Type de bien</label>
+                <select {...register('type')} className={inputClass}>
+                  {PROPERTY_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Statut</label>
+                <select {...register('status')} className={inputClass}>
+                  <option value="vacant">Vacant</option>
+                  <option value="occupied">Occupé</option>
+                  <option value="inactive">Inactif</option>
+                </select>
+              </div>
             </div>
 
-            {creatingOwner ? (
-              <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Adresse *</label>
+              <input
+                type="text"
+                {...register('address', { required: 'Requis' })}
+                className={inputClass}
+                placeholder="Ex: Kaloum, rue KA-025"
+              />
+              {errors.address && (
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.address.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <label className={labelClass}>Ville</label>
+                <input type="text" {...register('city')} className={inputClass} placeholder="Conakry" />
+              </div>
+              <div>
+                <label className={labelClass}>Surface (m²)</label>
+                <input type="number" {...register('surface')} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Pièces</label>
+                <input type="number" {...register('nbRooms')} className={inputClass} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
+              <div>
+                <label className={labelClass}>Loyer mensuel (GNF) *</label>
+                <input
+                  type="number"
+                  {...register('rentAmount', { required: 'Requis' })}
+                  className={inputClass}
+                  placeholder="Ex: 1500000"
+                />
+                {errors.rentAmount && (
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.rentAmount.message}</p>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Commission agence (%)</label>
+                <input type="number" {...register('commissionRate')} className={inputClass} placeholder="Ex: 10" />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              {!isDaily && (
                 <div>
-                  <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-                    Nom *
-                  </label>
-                  <input
-                    type="text"
-                    {...register('newOwnerName', { required: creatingOwner ? 'Requis' : false })}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-                  />
-                  {errors.newOwnerName && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.newOwnerName.message}</p>
-                  )}
+                  <label className={labelClass}>Transaction</label>
+                  <select {...register('transactionType')} className={inputClass}>
+                    {(TRANSACTION_OPTIONS[targetCollection] || TRANSACTION_OPTIONS.houses).map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-                    Téléphone *
-                  </label>
-                  <input
-                    type="text"
-                    {...register('newOwnerPhone', { required: creatingOwner ? 'Requis' : false })}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-                    placeholder="+224 6XX XX XX XX"
-                  />
-                  {errors.newOwnerPhone && (
-                    <p className="mt-1 text-xs font-semibold text-red-500">{errors.newOwnerPhone.message}</p>
-                  )}
-                </div>
-                <div className="col-span-2">
-                  <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    {...register('newOwnerEmail')}
-                    className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-                  />
-                </div>
+              )}
+              <div>
+                <label className={labelClass}>Type de bien</label>
+                <select {...register('propertyType')} className={inputClass}>
+                  {propertyTypeOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Titre de l&apos;annonce</label>
+              <input
+                type="text"
+                {...register('title')}
+                className={inputClass}
+                placeholder="Ex. Appartement lumineux à Kipé"
+              />
+            </div>
+
+            <FormSectionHeading>Localisation</FormSectionHeading>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Commune *</label>
+                <select
+                  {...register('municipality', {
+                    required: 'Requis',
+                    onChange: (e) => {
+                      const region =
+                        REGIONS.find((r) => r.communes.some((c) => c.label === e.target.value))
+                          ?.name || ''
+                      setValue('region', region, { shouldValidate: true })
+                    },
+                  })}
+                  className={inputClass}
+                >
+                  <option value="">Sélectionner une commune</option>
+                  {REGIONS.map((r) => (
+                    <optgroup key={r.name} label={r.name}>
+                      {r.communes.map((c) => (
+                        <option key={c.value} value={c.label}>
+                          {c.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                {errors.municipality && (
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
+                    {errors.municipality.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Région</label>
+                <input
+                  type="text"
+                  readOnly
+                  {...register('region', { required: 'Requis' })}
+                  className={`${inputClass} cursor-not-allowed text-gray-500`}
+                  placeholder="Déterminée selon la commune"
+                />
+                {errors.region && (
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.region.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Quartier</label>
+                <input type="text" {...register('neighborhood')} className={inputClass} placeholder="Ex: Kipé" />
+              </div>
+              <div>
+                <label className={labelClass}>Repère (optionnel)</label>
+                <input type="text" {...register('landmark')} className={inputClass} placeholder="Ex: près du marché" />
+              </div>
+            </div>
+
+            {selected ? (
+              <div>
+                <label className={labelClass}>Étiquette de l'unité</label>
+                <input type="text" {...register('unitLabel')} className={inputClass} placeholder="Ex: Appt 3" />
               </div>
             ) : (
-              <select
-                {...register('ownerId', { required: !creatingOwner ? 'Requis' : false })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-              >
-                {owners?.length === 0 && <option value="">Aucun propriétaire — créez-en un</option>}
-                {owners?.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name} — {o.phone}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className={labelClass}>Nombre d'appartements identiques à créer</label>
+                <input
+                  type="number"
+                  min="1"
+                  {...register('unitCount')}
+                  className={`max-w-32 ${inputClass}`}
+                  placeholder="1"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Pour un immeuble de plusieurs appartements, indiquez le nombre à créer d'un coup
+                  (ex: 20). Chacun sera étiqueté "Appt 1", "Appt 2"... et modifiable individuellement
+                  ensuite.
+                </p>
+              </div>
             )}
-          </div>
-        )}
 
-        <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Loyer mensuel (GNF) *
-            </label>
-            <input
-              type="number"
-              {...register('rentAmount', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-              placeholder="Ex: 1500000"
-            />
-            {errors.rentAmount && (
-              <p className="mt-1 text-xs font-semibold text-red-500">{errors.rentAmount.message}</p>
+            <FormSectionHeading>Caractéristiques du bien</FormSectionHeading>
+
+            <div className={`grid gap-4 ${isLand ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'}`}>
+              <div>
+                <label className={labelClass}>Surface (m²)</label>
+                <input type="number" {...register('surface')} className={inputClass} />
+              </div>
+              {!isLand && (
+                <>
+                  <div>
+                    <label className={labelClass}>Chambres</label>
+                    <input type="number" {...register('bedrooms')} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Salles de bain</label>
+                    <input type="number" {...register('bathrooms')} className={inputClass} />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!isLand && !isDaily && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Salons</label>
+                  <input type="number" min="0" {...register('livingRooms')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Cuisines</label>
+                  <input type="number" min="0" {...register('kitchens')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Chambres autonomes</label>
+                  <input type="number" min="0" {...register('selfContainedRooms')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Douches extérieures</label>
+                  <input type="number" min="0" {...register('externalBathrooms')} className={inputClass} />
+                </div>
+              </div>
             )}
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
-              Commission agence (%)
-            </label>
-            <input
-              type="number"
-              {...register('commissionRate')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
-              placeholder="Ex: 10"
-            />
-          </div>
-        </div>
+
+            {isLand && (
+              <section className="space-y-4 rounded-xl border border-gray-200 p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Informations sur le terrain</h3>
+                  <p className="mt-1 text-xs text-gray-500">Parcelles, documents et modalités de financement.</p>
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" {...register('hasLandTitle')} className="h-4 w-4" />
+                  Titre foncier disponible
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" {...register('parcelled')} className="h-4 w-4" />
+                  Terrain vendu par parcelles
+                </label>
+                {watch('parcelled') && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className={labelClass}>Nombre total de parcelles</label><input type="number" min="1" {...register('totalParcels')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Parcelles disponibles</label><input type="number" min="0" {...register('availableParcels')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Surface par parcelle (m²)</label><input type="number" min="0" {...register('areaPerParcel')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Prix par parcelle</label><input type="number" min="0" {...register('pricePerParcel')} className={inputClass} /></div>
+                  </div>
+                )}
+                <div>
+                  <label className={labelClass}>Autres documents ou précisions</label>
+                  <textarea rows={2} {...register('otherDocuments')} className={inputClass} />
+                </div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-800">
+                  <input type="checkbox" {...register('prefinancingAvailable')} className="h-4 w-4" />
+                  Préfinancement disponible
+                </label>
+                {watch('prefinancingAvailable') && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className={labelClass}>Apport initial</label><input type="number" min="0" {...register('downPayment')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Mensualité</label><input type="number" min="0" {...register('monthlyInstallment')} className={inputClass} /></div>
+                    <div><label className={labelClass}>Durée (mois)</label><input type="number" min="0" {...register('financingDuration')} className={inputClass} /></div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-800"><input type="checkbox" {...register('downPaymentNegotiable')} className="h-4 w-4" />Apport négociable</label>
+                    <div className="col-span-2"><label className={labelClass}>Conditions de financement</label><textarea rows={2} {...register('financingNotes')} className={inputClass} /></div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {!isLand && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                  <label className={labelClass}>Étage</label>
+                  <input type="number" {...register('floor')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>État</label>
+                  <select {...register('condition')} className={inputClass}>
+                    {CONDITION_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {!isDaily && (
+                  <div className="flex items-end pb-3">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <input type="checkbox" {...register('furnished')} className="h-4 w-4" />
+                      Meublé
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isDaily && (
+              <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
+                <div>
+                  <label className={labelClass}>Voyageurs maximum</label>
+                  <input type="number" min="1" {...register('maxGuests')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Séjour min (nuits)</label>
+                  <input type="number" min="1" {...register('minStay')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Séjour max (nuits)</label>
+                  <input type="number" min="1" {...register('maxStay')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Heure d'arrivée</label>
+                  <input type="time" {...register('checkInTime')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Heure de départ</label>
+                  <input type="time" {...register('checkOutTime')} className={inputClass} />
+                </div>
+              </div>
+            )}
+
+            <FormSectionHeading>Description et équipements</FormSectionHeading>
+
+            <div>
+              <label className={labelClass}>Équipements et commodités</label>
+              <input
+                type="text"
+                {...register('amenitiesText')}
+                className={inputClass}
+                placeholder="Climatisation, parking, groupe électrogène"
+              />
+              <p className="mt-1 text-xs text-gray-500">Séparez les équipements par des virgules.</p>
+            </div>
+
+            <div>
+              <label className={labelClass}>Description</label>
+              <textarea rows={2} {...register('description')} className={inputClass} />
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Photos{' '}
+                <span className="font-normal text-gray-400">
+                  ({existingImageUrls.length + imageFiles.length}/{MAX_IMAGES})
+                </span>
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                {existingImageUrls.map((url, i) => (
+                  <div key={`existing-${i}`} className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
+                    <img src={url} alt="Aperçu" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(i)}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
+                    >
+                      <RiCloseLine className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {imageFiles.map((file, i) => (
+                  <div key={`new-${i}`} className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200">
+                    <img src={URL.createObjectURL(file)} alt="Aperçu" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewImage(i)}
+                      className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"
+                    >
+                      <RiCloseLine className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {existingImageUrls.length + imageFiles.length < MAX_IMAGES && (
+                  <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
+                    <RiImageAddLine className="h-6 w-6 text-gray-400" />
+                    <input type="file" accept="image/*" multiple onChange={handleImageChange} className="hidden" />
+                  </label>
+                )}
+              </div>
+            </div>
+
+            {!lockedOwnerId && (
+              <div className="border-t border-gray-100 pt-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Propriétaire</p>
+                  <button
+                    type="button"
+                    onClick={() => setCreatingOwner((v) => !v)}
+                    className="text-xs font-semibold"
+                    style={{ color: colors.primary }}
+                  >
+                    {creatingOwner ? 'Choisir un propriétaire existant' : '+ Nouveau propriétaire'}
+                  </button>
+                </div>
+
+                {creatingOwner ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Nom *</label>
+                      <input
+                        type="text"
+                        {...register('newOwnerName', { required: creatingOwner ? 'Requis' : false })}
+                        className={inputClass}
+                      />
+                      {errors.newOwnerName && (
+                        <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.newOwnerName.message}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className={labelClass}>Téléphone *</label>
+                      <input
+                        type="text"
+                        {...register('newOwnerPhone', { required: creatingOwner ? 'Requis' : false })}
+                        className={inputClass}
+                        placeholder="+224 6XX XX XX XX"
+                      />
+                      {errors.newOwnerPhone && (
+                        <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.newOwnerPhone.message}</p>
+                      )}
+                    </div>
+                    <div className="col-span-2">
+                      <label className={labelClass}>Email</label>
+                      <input type="email" {...register('newOwnerEmail')} className={inputClass} />
+                    </div>
+                  </div>
+                ) : (
+                  <select
+                    {...register('ownerId', { required: !creatingOwner ? 'Requis' : false })}
+                    className={inputClass}
+                  >
+                    {owners?.length === 0 && <option value="">Aucun propriétaire — créez-en un</option>}
+                    {owners?.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name} — {o.phone}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            <FormSectionHeading>Contact affiché sur l&apos;annonce</FormSectionHeading>
+
+            <div className="border-t border-gray-100 pt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Contact affiché sur l'annonce
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClass}>Nom de l'agence (optionnel)</label>
+                  <input type="text" {...register('agencyName')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Nom du contact *</label>
+                  <input
+                    type="text"
+                    {...register('contactName', { required: 'Requis' })}
+                    className={inputClass}
+                  />
+                  {errors.contactName && (
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.contactName.message}</p>
+                  )}
+                </div>
+                <div>
+                  <label className={labelClass}>Téléphone *</label>
+                  <input
+                    type="text"
+                    {...register('contactPhone', { required: 'Requis' })}
+                    className={inputClass}
+                    placeholder="+224 6XX XX XX XX"
+                  />
+                  {errors.contactPhone && (
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.contactPhone.message}</p>
+                  )}
+                </div>
+                <div>
+                  <label className={labelClass}>WhatsApp (optionnel)</label>
+                  <input type="text" {...register('contactWhatsapp')} className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Email (optionnel)</label>
+                  <input type="email" {...register('contactEmail')} className={inputClass} />
+                </div>
+              </div>
+            </div>
+
+            <FormSectionHeading>Conditions financières</FormSectionHeading>
+
+            <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-5">
+              <div>
+                <label className={labelClass}>Prix *</label>
+                <input
+                  type="number"
+                  {...register('priceAmount', { required: 'Requis' })}
+                  className={inputClass}
+                  placeholder="Ex: 1500000"
+                />
+                {errors.priceAmount && (
+                  <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.priceAmount.message}</p>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Devise</label>
+                <select {...register('currency')} className={inputClass}>
+                  {currencyOptions.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {!isDaily && watch('transactionType') !== 'sale' && (
+                <div>
+                  <label className={labelClass}>Période</label>
+                  <select {...register('period')} className={inputClass}>
+                    {PERIOD_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className={labelClass}>{isDaily ? 'Caution de séjour' : 'Caution fixe (optionnel)'}</label>
+                <input type="number" {...register('deposit')} className={inputClass} />
+              </div>
+              {!isDaily && watch('transactionType') !== 'sale' && (
+                <>
+                  <div><label className={labelClass}>Loyer d&apos;avance (mois)</label><input type="number" min="0" {...register('advanceMonths')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Caution (mois)</label><input type="number" min="0" {...register('depositMonths')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Frais d&apos;agence (mois)</label><input type="number" min="0" {...register('agencyFeeMonths')} className={inputClass} /></div>
+                </>
+              )}
+              {watch('transactionType') === 'sale' && (
+                <>
+                  <div><label className={labelClass}>Frais d&apos;agence (%)</label><input type="number" min="0" {...register('agencyFeePercent')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Frais de notaire (%)</label><input type="number" min="0" {...register('notaryFeePercent')} className={inputClass} /></div>
+                </>
+              )}
+              <div>
+                <label className={labelClass}>Commission de gestion (%)</label>
+                <input type="number" {...register('commissionRate')} className={inputClass} placeholder="Ex: 10" />
+              </div>
+              {isDaily && (
+                <>
+                  <div><label className={labelClass}>Tarif semaine</label><input type="number" min="0" {...register('weeklyRate')} className={inputClass} /></div>
+                  <div><label className={labelClass}>Tarif mois</label><input type="number" min="0" {...register('monthlyRate')} className={inputClass} /></div>
+                </>
+              )}
+              <div className="flex items-end pb-3">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <input type="checkbox" {...register('negotiable')} className="h-4 w-4" />
+                  Prix négociable
+                </label>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-5">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <input type="checkbox" {...register('publishNow')} className="h-4 w-4" />
+                Publier immédiatement sur le site public
+              </label>
+              <p className="mt-1 text-xs text-gray-400">
+                Décoché, le bien est enregistré en brouillon et n'apparaît pas dans les recherches.
+              </p>
+            </div>
+          </>
+        )}
       </div>
     </DrawerForm>
   )

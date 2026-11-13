@@ -2,10 +2,11 @@ import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 import WorkersPage from '@/components/Users/Workers/WorkersPage'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 function Workers() {
   return (
@@ -16,20 +17,20 @@ function Workers() {
 }
 
 const WorkersIndexPage = () => (
-  <Page name="Ouvriers | BâtiServices Admin">
+  <Page name="Ouvriers | BâtiMoo Admin">
     <Workers />
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+})(async ({ user: AuthUser }) => {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'workers'))) {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(WorkersIndexPage)

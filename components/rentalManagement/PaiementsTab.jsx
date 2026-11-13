@@ -6,10 +6,13 @@ import { notify } from '@/utils/toast'
 import { formatGNF, currentPeriod, formatPeriodLabel } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 import { getRentPayments, addRentPayment, deleteRentPayment } from '@/lib/services/rentPayments'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const METHODS = [
   { value: 'especes', label: 'Espèces' },
@@ -18,16 +21,20 @@ const METHODS = [
   { value: 'autre', label: 'Autre' },
 ]
 
+const PAGE_SIZE = 10
+
 function statusForPeriod(due, paid, period) {
   const isFuture = period > currentPeriod()
-  if (paid <= 0) return isFuture ? { label: '—', bg: '#F3F4F6', color: '#9CA3AF' } : { label: 'Impayé', bg: '#FEE2E2', color: '#991B1B' }
-  if (isFuture) return { label: 'Avance', bg: '#DBEAFE', color: '#1E40AF' }
-  if (paid < due) return { label: 'Partiel', bg: '#FEF3C7', color: '#92400E' }
-  return { label: 'Payé', bg: '#D1FAE5', color: '#065F46' }
+  if (paid <= 0) return isFuture ? { label: '—', tone: 'gray' } : { label: 'Impayé', tone: 'error' }
+  if (isFuture) return { label: 'Avance', tone: 'primary' }
+  if (paid < due) return { label: 'Partiel', tone: 'warning' }
+  return { label: 'Payé', tone: 'success' }
 }
 
 export default function PaiementsTab({ ownerId }) {
   const colors = useColors()
+  const canPayments = useCanManage('properties', 'payments')
+  const canDelete = useCanManage('properties', 'delete')
   const [properties, setProperties] = useState([])
   const [leases, setLeases] = useState([])
   const [payments, setPayments] = useState([])
@@ -37,6 +44,7 @@ export default function PaiementsTab({ ownerId }) {
   const [propertyFilter, setPropertyFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState(currentPeriod())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const {
     register,
@@ -72,12 +80,17 @@ export default function PaiementsTab({ ownerId }) {
     load()
   }, [ownerId])
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [propertyFilter, periodFilter])
+
   const propertyById = (id) => properties.find((p) => p.id === id)
   const leaseById = (id) => leases.find((l) => l.id === id)
 
   const activeLeases = leases.filter((l) => propertyFilter === 'all' || l.propertyId === propertyFilter)
 
   const openAdd = (prefill = {}) => {
+    if (!canPayments) return
     reset({
       leaseId: prefill.leaseId || activeLeases[0]?.id || '',
       period: prefill.period || periodFilter,
@@ -97,6 +110,7 @@ export default function PaiementsTab({ ownerId }) {
   }, [watchedLeaseId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSubmit = async (data) => {
+    if (!canPayments) return
     setSaving(true)
     try {
       const lease = leaseById(data.leaseId)
@@ -121,6 +135,7 @@ export default function PaiementsTab({ ownerId }) {
   }
 
   const handleDelete = async (payment) => {
+    if (!canDelete) return
     try {
       await deleteRentPayment(payment.id)
       setPayments((prev) => prev.filter((p) => p.id !== payment.id))
@@ -136,6 +151,7 @@ export default function PaiementsTab({ ownerId }) {
     if (periodFilter && p.period !== periodFilter) return false
     return true
   })
+  const visiblePayments = filteredPayments.slice(0, visibleCount)
 
   return (
     <>
@@ -149,7 +165,7 @@ export default function PaiementsTab({ ownerId }) {
             <select
               value={propertyFilter}
               onChange={(e) => setPropertyFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">Tous les biens</option>
               {properties.map((p) => (
@@ -163,17 +179,19 @@ export default function PaiementsTab({ ownerId }) {
               type="month"
               value={periodFilter}
               onChange={(e) => setPeriodFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <button
-              onClick={() => openAdd()}
-              disabled={activeLeases.length === 0}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Enregistrer un paiement
-            </button>
+            {canPayments && (
+              <button
+                onClick={() => openAdd()}
+                disabled={activeLeases.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Enregistrer un paiement
+              </button>
+            )}
           </div>
         </div>
 
@@ -205,23 +223,20 @@ export default function PaiementsTab({ ownerId }) {
                           <p className="truncate text-sm font-semibold text-gray-900">
                             {lease.tenantName} — {property?.reference}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-mono text-xs text-gray-500">
                             {formatGNF(paid)} / {formatGNF(due)}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          <span
-                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{ backgroundColor: status.bg, color: status.color }}
-                          >
-                            {status.label}
-                          </span>
-                          <button
-                            onClick={() => openAdd({ leaseId: lease.id, period: periodFilter, amountDue: due })}
-                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                          >
-                            Encaisser
-                          </button>
+                          <StatusPill tone={status.tone}>{status.label}</StatusPill>
+                          {canPayments && (
+                            <button
+                              onClick={() => openAdd({ leaseId: lease.id, period: periodFilter, amountDue: due })}
+                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                            >
+                              Encaisser
+                            </button>
+                          )}
                         </div>
                       </div>
                     )
@@ -238,77 +253,82 @@ export default function PaiementsTab({ ownerId }) {
                 <p className="text-sm text-gray-400">Aucun paiement pour ce filtre</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      <th className="py-2 pr-4">Date</th>
-                      <th className="py-2 pr-4">Bien / Locataire</th>
-                      <th className="py-2 pr-4">Mois</th>
-                      <th className="py-2 pr-4">Montant</th>
-                      <th className="py-2 pr-4">Méthode</th>
-                      <th className="py-2 pr-4" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredPayments.map((payment) => {
-                      const lease = leaseById(payment.leaseId)
-                      const property = propertyById(payment.propertyId)
-                      const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period)
-                      return (
-                        <tr key={payment.id}>
-                          <td className="py-3 pr-4 text-gray-500">
-                            {payment.paymentDate ? firebaseDateFormat(new Date(payment.paymentDate)) : '—'}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-700">
-                            {property?.reference} — {lease?.tenantName || '—'}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-700">
-                            {formatPeriodLabel(payment.period)}
-                            <span
-                              className="ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                              style={{ backgroundColor: status.bg, color: status.color }}
-                            >
-                              {status.label}
-                            </span>
-                          </td>
-                          <td className="py-3 pr-4 font-semibold" style={{ color: colors.primary }}>
-                            {formatGNF(payment.amountPaid)}
-                          </td>
-                          <td className="py-3 pr-4 text-gray-500">
-                            {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
-                          </td>
-                          <td className="py-3 pr-4">
-                            {deleteConfirm === payment.id ? (
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleDelete(payment)}
-                                  className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
-                                >
-                                  Oui
-                                </button>
-                                <button
-                                  onClick={() => setDeleteConfirm(null)}
-                                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                                >
-                                  Non
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setDeleteConfirm(payment.id)}
-                                className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                                title="Supprimer"
-                              >
-                                <RiDeleteBinLine className="h-4 w-4" />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[680px] text-left text-sm">
+                    <thead style={{ backgroundColor: colors.gray50 }}>
+                      <tr>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Date</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Bien / Locataire</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Mois</th>
+                        <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Montant</th>
+                        <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Méthode</th>
+                        <th className="px-6 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {visiblePayments.map((payment) => {
+                        const lease = leaseById(payment.leaseId)
+                        const property = propertyById(payment.propertyId)
+                        const status = statusForPeriod(payment.amountDue, payment.amountPaid, payment.period)
+                        return (
+                          <tr key={payment.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-3 font-mono text-gray-500">
+                              {payment.paymentDate ? firebaseDateFormat(new Date(payment.paymentDate)) : '—'}
+                            </td>
+                            <td className="px-6 py-3 text-gray-700">
+                              {property?.reference} — {lease?.tenantName || '—'}
+                            </td>
+                            <td className="px-6 py-3 font-mono text-gray-700">
+                              {formatPeriodLabel(payment.period)}
+                              <span className="ml-2 inline-block align-middle">
+                                <StatusPill tone={status.tone}>{status.label}</StatusPill>
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
+                              {formatGNF(payment.amountPaid)}
+                            </td>
+                            <td className="hidden px-6 py-3 text-gray-500 lg:table-cell">
+                              {METHODS.find((m) => m.value === payment.method)?.label || payment.method}
+                            </td>
+                            <td className="px-6 py-3">
+                              {canDelete && (
+                                deleteConfirm === payment.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleDelete(payment)}
+                                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                                      style={{ backgroundColor: colors.error }}
+                                    >
+                                      Oui
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteConfirm(null)}
+                                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                                    >
+                                      Non
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setDeleteConfirm(payment.id)}
+                                    className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                                    title="Supprimer"
+                                  >
+                                    <RiDeleteBinLine className="h-4 w-4" />
+                                  </button>
+                                )
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {visibleCount < filteredPayments.length && (
+                  <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+                )}
               </div>
             )}
           </>
@@ -354,12 +374,12 @@ export default function PaiementsTab({ ownerId }) {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Bail *
             </label>
             <select
               {...register('leaseId', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {activeLeases.map((l) => (
                 <option key={l.id} value={l.id}>
@@ -370,61 +390,61 @@ export default function PaiementsTab({ ownerId }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Mois concerné *
             </label>
             <input
               type="month"
               {...register('period', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <p className="mt-1 text-xs text-gray-400">Choisir un mois futur pour enregistrer une avance.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Montant dû (GNF)
               </label>
               <input
                 type="number"
                 {...register('amountDue')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Montant payé (GNF) *
               </label>
               <input
                 type="number"
                 {...register('amountPaid', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.amountPaid && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.amountPaid.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.amountPaid.message}</p>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Date du paiement *
               </label>
               <input
                 type="date"
                 {...register('paymentDate', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Méthode
               </label>
               <select
                 {...register('method')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {METHODS.map((m) => (
                   <option key={m.value} value={m.value}>
@@ -436,13 +456,13 @@ export default function PaiementsTab({ ownerId }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Note
             </label>
             <textarea
               rows={2}
               {...register('note')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>

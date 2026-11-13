@@ -14,11 +14,12 @@ import {
   RiPieChartLine,
   RiToolsLine,
   RiBillLine,
+  RiCheckboxCircleLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 
 import Page from '@/components/Page'
@@ -37,6 +38,7 @@ import EntretienTab from '@/components/rentalManagement/EntretienTab'
 import DepensesTab from '@/components/rentalManagement/DepensesTab'
 import { getPropertyOwnerById, editPropertyOwner, deletePropertyOwner } from '@/lib/services/propertyOwners'
 import { getPropertiesByOwner } from '@/lib/services/managedProperties'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const TABS = [
   { value: 'biens', label: 'Biens', icon: RiHome4Line },
@@ -48,19 +50,28 @@ const TABS = [
   { value: 'depenses', label: 'Dépenses', icon: RiBillLine },
 ]
 
-function StatCard({ label, value, color, bgColor }) {
-  return (
-    <div className="rounded-xl border border-gray-100 p-4 shadow-sm" style={{ backgroundColor: bgColor || '#F9FAFB' }}>
-      <p className="text-xs font-bold uppercase tracking-wider text-gray-500">{label}</p>
-      <p className="mt-1 text-xl font-extrabold" style={{ color }}>
+function OwnerDetail() {
+  const colors = useColors()
+
+  const StatCard = ({ icon: Icon, label, value, iconBg, iconColor }) => (
+    <div
+      className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+      style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+    >
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon className="h-4 w-4" style={{ color: iconColor }} />
+      </div>
+      <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+        {label}
+      </p>
+      <p className="font-mono text-xl font-semibold tracking-tight" style={{ color: colors.gray900 }}>
         {value}
       </p>
     </div>
   )
-}
-
-function OwnerDetail() {
-  const colors = useColors()
   const router = useRouter()
   const { ownerId } = router.query
 
@@ -177,17 +188,36 @@ function OwnerDetail() {
                 </div>
                 <button
                   onClick={openEditOwner}
-                  className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+                  style={{ borderColor: colors.primary, color: colors.primary }}
                 >
                   <RiEditLine className="h-4 w-4" />
                   Modifier
                 </button>
               </div>
 
-              <div className="mt-6 grid grid-cols-3 gap-4">
-                <StatCard label="Biens gérés" value={properties.length} color={colors.primary} bgColor={colors.primaryVeryLight} />
-                <StatCard label="Occupés" value={occupiedCount} color="#065F46" bgColor="#ECFDF5" />
-                <StatCard label="Loyers cumulés / mois" value={formatGNF(totalRent)} color="#92400E" bgColor="#FFFBEB" />
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+                <StatCard
+                  icon={RiHome4Line}
+                  label="Biens gérés"
+                  value={properties.length}
+                  iconBg={colors.primaryVeryLight}
+                  iconColor={colors.primary}
+                />
+                <StatCard
+                  icon={RiCheckboxCircleLine}
+                  label="Occupés"
+                  value={occupiedCount}
+                  iconBg="#ECFDF5"
+                  iconColor={colors.success}
+                />
+                <StatCard
+                  icon={RiMoneyDollarCircleLine}
+                  label="Loyers cumulés / mois"
+                  value={formatGNF(totalRent)}
+                  iconBg={colors.primaryVeryLight}
+                  iconColor={colors.primary}
+                />
               </div>
 
               <div className="mt-4 border-t border-gray-100 pt-4">
@@ -196,7 +226,8 @@ function OwnerDetail() {
                     <span className="text-xs text-gray-500">Confirmer la suppression ?</span>
                     <button
                       onClick={handleDeleteOwner}
-                      className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                      style={{ backgroundColor: colors.error }}
                     >
                       Oui, supprimer
                     </button>
@@ -296,45 +327,45 @@ function OwnerDetail() {
           >
             <div className="space-y-5 px-6 py-6 sm:p-8">
               <div>
-                <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
                   Nom *
                 </label>
                 <input
                   type="text"
                   {...register('name', { required: 'Requis' })}
-                  className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                {errors.name && <p className="mt-1 text-xs font-semibold text-red-500">{errors.name.message}</p>}
+                {errors.name && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.name.message}</p>}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
                   Téléphone *
                 </label>
                 <input
                   type="text"
                   {...register('phone', { required: 'Requis' })}
-                  className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                {errors.phone && <p className="mt-1 text-xs font-semibold text-red-500">{errors.phone.message}</p>}
+                {errors.phone && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.phone.message}</p>}
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
                   Email
                 </label>
                 <input
                   type="email"
                   {...register('email')}
-                  className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+                <label className="mb-2 block text-sm font-semibold text-gray-900">
                   Notes
                 </label>
                 <textarea
                   rows={2}
                   {...register('notes')}
-                  className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                  className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -346,20 +377,20 @@ function OwnerDetail() {
 }
 
 const OwnerDetailPage = () => (
-  <Page name="Propriétaire | BâtiServices Admin">
+  <Page name="Propriétaire | BâtiMoo Admin">
     <OwnerDetail />
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+})(async ({ user: AuthUser }) => {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'properties'))) {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(OwnerDetailPage)

@@ -25,149 +25,11 @@ export const quartier = [
   { label: 'Cosa', value: 'Cosa' },
   { label: 'Bambeto', value: 'Bambeto' },
 ]
-export const houseType = [
-  { value: 'house', label: 'Maison' },
-  { value: 'apartment', label: 'Appartement' },
-  { value: 'studio', label: 'Studio' },
-  { value: 'villa', label: 'Villa' },
-  { value: 'duplex', label: 'Duplex' },
-  { value: 'building', label: 'Immeuble' },
-  { value: 'shop', label: 'Magasin' },
-  { value: 'office', label: 'Bureau' },
-  { value: 'warehouse', label: 'Entrepôt' },
-]
-
-export const offerType = [
-  { value: 'rent', label: 'Louer' },
-  { value: 'buy', label: 'Vendre' },
-  { value: 'bail', label: 'Bail' },
-]
-
-export const commodites = [
-  { label: 'Terrasse', value: 'Terrasse' },
-  { label: 'Jardin', value: 'Jardin' },
-  { label: 'Picine', value: 'Picine' },
-  { label: "Balcon", value: 'Balcon' },
-  { label: 'Autre', value: 'Autre' },
-
-]
-
-export const furnishingOptions = [
-  { label: 'non-meublé', value: 'non-meublé' },
-  { label: 'meublé', value: 'meublé' },
-  { label: 'semi-meublé', value: 'semi-meublé' },
-]
-
 export const currencyOptions = [
   { label: 'GNF', value: 'GNF' },
   { label: 'USD', value: 'USD' },
   { label: 'EUR', value: 'EUR' },
 ]
-
-export const townOptions = [
-  { label: 'Conakry', value: 'conakry' }
-]
-
-
-
-
-
-
-
-export const getCategoriesOptions = (categories) => {
-  return categories.map(category => {
-    return { label: category.name, value: category.id }
-  })
-}
-
-export const towns = {
-
-  "Kaloum": [
-    { label: "Almamya", value: "Almamya" },
-    { label: "Boulbinet", value: "Boulbinet" },
-    { label: "Coronthie", value: "Coronthie" },
-    { label: "kaloum", value: "Kaloum" },
-    { label: "Kouléwondy", value: "Kouléwondy" },
-    { label: "Manquepas", value: "Manquepas" },
-    { label: "Sandervalia", value: "Sandervalia" },
-    { label: "Sans-fil", value: "Sans-fil" },
-    { label: "Témitaye", value: "Témitaye" },
-    { label: "Tombo", value: "Tombo" },
-  ]
-  ,
-
-  "Dixinn": [
-    { label: "Belle-vues", value: "Belle-vues" },
-    { label: "Camayenne", value: "Camayenne" },
-    { label: "Cameroun", value: "Cameroun" },
-    { label: "Dixinn", value: "Dixinn" },
-    { label: "Hafia", value: "Hafia" },
-    { label: "Kénien", value: "Kénien" },
-    { label: "Landréah", label: "Landréah" },
-    { label: "Minière", value: "Minière" },
-  ]
-  ,
-
-  "Matoto": [
-    { label: "Béanzin", value: "Béanzin" },
-    { label: "Camp Alpha Yaya Diallo", value: "Camp Alpha Yaya Diallo" },
-    { label: "Cité de l'air", value: "Cité de l'air" },
-    { label: "Dabompa", value: "Dabompa" },
-    { label: "Dabondy", value: "Dabondy" },
-    { label: "Dar-es-salam", value: "Dar-es-salam" },
-    { label: "Gbéssia", value: "Gbéssia" },
-    { label: "Kissosso", value: "Kissosso" },
-    { label: "Matoto", value: "Matoto" },
-    { label: "Enta", value: "Enta" },
-    { label: "Aviation", value: "Aviation" }
-  ]
-  ,
-
-  "Ratoma": [
-    { label: "Cobaya-Fossidè", value: "Fossidè" },
-    { label: "Hamdalaye", value: "Hamdalaye" },
-    { label: "Kaporo", value: "Kaporo" },
-    {
-      label: "Kipé", value: "Kipé"
-    },
-    { label: "Cosa", value: "Cosa", },
-    { label: "Koloma", value: "Koloma" },
-    { label: "Lambandji", value: "Lambandji" },
-    { label: "Nongo", value: "Nongo" },
-    { label: "Ratoma", value: "Ratoma" },
-    { label: "demoudoula", value: "demoula" },
-    { label: "Bomboli", value: "Bomboli" },
-    { label: "Simanbossia", value: "Simanbossia" },
-    { label: "Simbaya", value: "Simbaya" },
-    { label: "Sonfonia", value: "Sonfonia" },
-    { label: "Taouyah", value: "Taouyah" },
-    { label: "Wanindara", value: "Wanindara" },
-    { label: "Yattayah", value: "Yattayah" },
-  ]
-  ,
-
-  "Matam": [
-    { label: "Boussoura", value: "Boussoura" },
-    { label: "Carrière", value: "Carrière" },
-    { label: "Domino", value: "Domino" },
-    { label: "Hermakönon", value: "Hermakönon" },
-    { label: "Coléah", value: "Coléah" },
-    { label: "Imprimerie", value: "Imprimerie" },
-    { label: "Lanséboudji", value: "Lanséboudji" },
-    { label: "Madina", value: "Madina" },
-    { label: "Mafanco", value: "Mafanco" },
-    { label: "Touguiwondy", value: "Touguiwondy" }
-  ]
-  ,
-
-  "Coyah": [
-    { label: "Coyah-Centre", value: "Coyah-Centre" },
-    { label: "Kouriah", value: "Kouriah" },
-    { label: "Manéah", value: "Manéah" },
-    { label: "Wonkifong", value: "Wonkifong" }
-  ]
-
-}
 
 export const CONAKRY_COMMUNES = [
   { label: "Kaloum", value: "kaloum" },
@@ -185,17 +47,7 @@ export const CONAKRY_COMMUNES = [
   { label: "Kassa", value: "kassa" },
 ]
 
-export const QUARTIER_TYPES = [
-  { label: "Résidentiel", value: "résidentiel" },
-  { label: "Commercial", value: "commercial" },
-  { label: "Administratif", value: "administratif" },
-  { label: "Industriel", value: "industriel" },
-  { label: "Mixte", value: "mixte" },
-  { label: "Touristique", value: "touristique" },
-  { label: "Militaire", value: "militaire" },
-]
-
-export const CONAKRY_QUARTIERS = {
+const CONAKRY_QUARTIERS = {
   kaloum: [
     { label: "Almamya", value: "almamya", type: "commercial" },
     { label: "Boulbinet", value: "boulbinet", type: "résidentiel" },
@@ -318,9 +170,99 @@ export const CONAKRY_QUARTIERS = {
   ],
 }
 
-/** Retourne les quartiers d'une commune donnée */
-export const getQuartiersByCommune = (communeValue) => {
-  return CONAKRY_QUARTIERS[communeValue] || []
-}
+// Les listes ci-dessous reprennent à l'identique les constantes du site public
+// (habitatgnweb/src/lib/constants/communes.ts, devenir-agent/page.tsx,
+// devenir-ouvrier/page.tsx) pour que les comptes créés depuis l'admin aient
+// exactement la même forme que ceux créés par les utilisateurs eux-mêmes.
 
+export const REGIONS = [
+  { name: 'Conakry', communes: CONAKRY_COMMUNES },
+  {
+    name: 'Boke',
+    communes: [
+      { label: 'Boké', value: 'boke' },
+      { label: 'Fria', value: 'fria' },
+      { label: 'Kamsar', value: 'kamsar' },
+    ],
+  },
+  {
+    name: 'Kindia',
+    communes: [
+      { label: 'Kindia', value: 'kindia' },
+      { label: 'Coyah', value: 'coyah' },
+      { label: 'Dubréka', value: 'dubreka' },
+    ],
+  },
+  {
+    name: 'Mamou',
+    communes: [
+      { label: 'Mamou', value: 'mamou' },
+      { label: 'Pita', value: 'pita' },
+      { label: 'Dalaba', value: 'dalaba' },
+    ],
+  },
+  { name: 'Labe', communes: [{ label: 'Labé', value: 'labe' }] },
+  {
+    name: 'Faranah',
+    communes: [
+      { label: 'Faranah', value: 'faranah' },
+      { label: 'Kissidougou', value: 'kissidougou' },
+    ],
+  },
+  {
+    name: 'Kankan',
+    communes: [
+      { label: 'Kankan', value: 'kankan' },
+      { label: 'Siguiri', value: 'siguiri' },
+    ],
+  },
+  {
+    name: "N'Zerekore",
+    communes: [
+      { label: "N'Zérékoré", value: 'nzerekore' },
+      { label: 'Macenta', value: 'macenta' },
+      { label: 'Guéckédou', value: 'gueckedou' },
+    ],
+  },
+]
+
+// Groupes {label, options} pour un sélecteur multi-commune (ouvrier) — même
+// forme que LOCATION_GROUPS côté site public.
+const LOCATION_GROUPS = REGIONS.map((r) => ({
+  label: r.name === 'Conakry' ? 'Conakry (Communes)' : r.name,
+  options: r.communes,
+}))
+
+// Liste plate, toutes régions confondues — pour un sélecteur commune unique (agent).
+export const ALL_COMMUNES = LOCATION_GROUPS.flatMap((group) => group.options)
+
+export const AGENT_PROPERTY_TYPES = [
+  { label: 'Location', value: 'location' },
+  { label: 'Location journalière', value: 'journaliere' },
+  { label: 'Vente', value: 'vente' },
+  { label: 'Terrain', value: 'terrain' },
+]
+
+export const WORKER_SPECIALTIES = [
+  { value: 'plomberie', label: 'Plomberie' },
+  { value: 'electricite', label: 'Électricité' },
+  { value: 'peinture', label: 'Peinture' },
+  { value: 'menuiserie', label: 'Menuiserie' },
+  { value: 'maconnerie', label: 'Maçonnerie' },
+  { value: 'climatisation', label: 'Climatisation' },
+  { value: 'nettoyage', label: 'Nettoyage' },
+  { value: 'jardinage', label: 'Jardinage' },
+  { value: 'carrelage', label: 'Carrelage' },
+  { value: 'serrurerie', label: 'Serrurerie' },
+  { value: 'autre', label: 'Autre' },
+]
+
+export const WORKER_PRICE_RANGES = [
+  'Moins de 50 000 GNF',
+  '50 000 - 100 000 GNF',
+  '100 000 - 200 000 GNF',
+  '200 000 - 500 000 GNF',
+  'Plus de 500 000 GNF',
+  'Sur devis',
+]
 

@@ -1,11 +1,30 @@
-import { db } from '@/lib/firebase/client_config'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { auth, db } from '@/lib/firebase/client_config'
+import { doc, getDoc } from 'firebase/firestore'
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from 'firebase/auth'
 import { fetchWithPost } from '../../utils/fetch'
+import { notifySiteUser } from '@/lib/services/accountNotifications'
 
-export const userRef = (userId) => doc(db, `users/${userId}`)
+const userRef = (userId) => doc(db, `users/${userId}`)
 
 export const desableUserFirestore = async (userId, isAvailable) => {
-  await updateDoc(userRef(userId), { isAvailable: isAvailable })
+  // Account availability is written by the authenticated Admin SDK route.
+  // Notify the account only after a successful reactivation.
+  if (isAvailable) await notifySiteUser('account_reactivated', { userId })
+}
+
+// Modules délégués à un manager (voir lib/constants/managerModules.js et
+// firestore.rules — isAdminOrManager). Sans effet sur un compte admin.
+export const updateUserPermissions = async (userId, permissions) => {
+  const response = await fetchWithPost('/api/updateManagerPermissions', {
+    uid: userId,
+    permissions,
+  })
+  if (response.code === 0) throw new Error(response.message || 'Impossible de mettre à jour les permissions')
+  return response
 }
 
 export const getUserAvailability = async (userId) => {
@@ -15,28 +34,80 @@ export const getUserAvailability = async (userId) => {
 }
 
 export const desableUser = async (userId, desableAccount) => {
-  try {
-    fetch('/api/userActivity/desableUser', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        id: userId,
-        desableAccount: desableAccount,
-      }),
-    })
-  } catch (error) {
-    console.log('error: ', error)
+  const idToken = await auth.currentUser?.getIdToken()
+  const response = await fetch('/api/userActivity/desableUser', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(idToken ? { Authorization: idToken } : {}),
+    },
+    body: JSON.stringify({
+      id: userId,
+      desableAccount,
+    }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new Error(payload.error || payload.message || "Impossible de modifier l'accès au compte")
   }
+  return payload
+}
+
+// Réinitialisation par un admin du mot de passe d'un manager (pas besoin de
+// connaître l'ancien) — voir pages/api/resetManagerPassword.ts.
+export const resetManagerPassword = async (uid, newPassword) => {
+  const response = await fetchWithPost('/api/resetManagerPassword', { uid, newPassword })
+  if (response.code === 0) throw new Error(response.message)
+  return response
+}
+
+// Changement par un utilisateur (admin ou manager) de son propre mot de
+// passe — nécessite l'ancien pour ré-authentifier, exigence de Firebase pour
+// toute opération sensible sur le compte courant (pas de route API : tout se
+// passe côté client avec le SDK Firebase Auth).
+export const changeOwnPassword = async (currentPassword, newPassword) => {
+  const user = auth.currentUser
+  if (!user?.email) throw new Error('Aucun utilisateur connecté')
+  const credential = EmailAuthProvider.credential(user.email, currentPassword)
+  await reauthenticateWithCredential(user, credential)
+  await updatePassword(user, newPassword)
 }
 
 export const createAccount = async (data) => {
-  //creating account
+  const { passWord } = data
+  const type = data.userRole?.value || 'manager'
 
-  const { firstname, lastname, passWord } = data
-  const name = `${firstname} ${lastname}`
-  /* 
+  let name = `${data.firstname || ''} ${data.lastname || ''}`.trim()
+  let roleFields = {}
+
+  if (type === 'agent') {
+    name = data.fullName
+    roleFields = {
+      accountType: data.agentAccountType,
+      agencyName: data.agentAccountType === 'agence' ? data.agencyName : undefined,
+      commune: data.agentCommune,
+      propertyTypes: data.propertyTypes || [],
+      message: data.message || '',
+    }
+  } else if (type === 'worker') {
+    name = data.fullName
+    const specialties =
+      data.workerAccountType === 'enterprise'
+        ? (data.specialties || []).map((s) => (s === 'autre' ? data.otherSpecialty : s))
+        : [data.workerSpecialty === 'autre' ? data.otherSpecialty : data.workerSpecialty].filter(Boolean)
+    roleFields = {
+      accountType: data.workerAccountType,
+      whatsapp: data.whatsapp || '',
+      specialties,
+      communes: data.communes || [],
+      description: data.description || '',
+      experienceYears: data.experienceYears ? Number(data.experienceYears) : undefined,
+      priceRange: data.priceRange || undefined,
+      imageUrl: data.imageUrl || '',
+    }
+  }
+
+  /*
     The API returns { uid: '...' } confirmed by previous step.
     We construct the object to return to the UI.
   */
@@ -46,21 +117,23 @@ export const createAccount = async (data) => {
     passWord: passWord,
     phoneNumber: data.phoneNumber,
     agence: data.agence,
-    type: data.userRole?.value // Assuming userRole is a select object
+    type,
+    ...roleFields,
   })
 
-  if (response.code == 0) throw new Error()
+  if (response.code == 0) throw new Error(response.message || 'Erreur lors de la création du compte')
 
   return {
     id: response.uid,
     uid: response.uid,
     email: data.email,
     name,
-    firstname,
-    lastname,
+    firstname: data.firstname,
+    lastname: data.lastname,
     phoneNumber: data.phoneNumber,
     agence: data.agence,
-    type: data.userRole?.value || 'manager',
+    type,
+    ...roleFields,
     image_url: '',
     isAvailable: true,
     provider: 'email',

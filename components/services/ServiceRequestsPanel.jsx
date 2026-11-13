@@ -1,137 +1,115 @@
-import { Fragment, useEffect, useState } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
+import { useEffect, useState } from 'react'
 import {
   RiPhoneLine,
   RiMailLine,
-  RiMore2Fill,
   RiSearchLine,
   RiInboxLine,
+  RiWhatsappLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import PaginationButton from '@/components/Orders/PaginationButton'
+import StatusPill from '@/components/ui/StatusPill'
+import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice, whatsappUrl } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { REQUEST_STATUSES } from './statusConfig'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange }) {
-  const colors = useColors()
-  const [updating, setUpdating] = useState(false)
+// Statuts finaux : la demande ne peut plus changer d'état
+const FINAL_STATUSES = ['completed', 'cancelled']
+
+/** Date saisie « 2026-10-25 » -> « 25 oct. 2026 » ; autre valeur inchangée. */
+const readableValue = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const date = new Date(`${value}T12:00:00`)
+  return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle }) {
   if (!request) return null
 
-  const change = async (status) => {
-    setUpdating(true)
-    await onStatusChange(request, status)
-    setUpdating(false)
-  }
+  const currentStatus = request.status || 'pending'
+  const statusMeta = REQUEST_STATUSES.find((s) => s.value === currentStatus) || REQUEST_STATUSES[0]
+
+  // Champs renseignés uniquement ; la description occupe toute la largeur
+  const fields = detailFields
+    .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.accessor === 'description' }))
+    .filter((f) => f.value)
+  const whatsapp = whatsappUrl(request.phone)
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-200"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-150"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-gray-500 bg-opacity-75" />
-        </Transition.Child>
+    <AdminModal
+      open={open}
+      onClose={() => setOpen(false)}
+      eyebrow={serviceTitle}
+      title={request.name || 'Client'}
+      meta={
+        <>
+          <StatusPill tone={statusMeta.tone}>{statusMeta.label}</StatusPill>
+          <span>Reçue le {firebaseDateFormat(request.createdAt)}</span>
+        </>
+      }
+      footer={
+        <>
+          {whatsapp && (
+            <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+              WhatsApp
+            </ModalButton>
+          )}
+          {request.phone && (
+            <ModalButton variant="primary" href={`tel:${request.phone}`} icon={RiPhoneLine}>
+              Appeler
+            </ModalButton>
+          )}
+        </>
+      }
+    >
+      <ModalSection title="Client">
+        <ModalFields
+          fields={[
+            { label: 'Téléphone', value: request.phone },
+            { label: 'Email', value: request.email },
+          ]}
+        />
+      </ModalSection>
 
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-200"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-150"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all">
-                <div className="border-b border-gray-200 px-5 py-4">
-                  <Dialog.Title className="text-sm font-bold text-gray-900">
-                    {request.name}
-                  </Dialog.Title>
-                  <p className="mt-0.5 text-xs text-gray-500">Détail de la demande</p>
-                </div>
+      {fields.length > 0 && (
+        <ModalSection title="Détails de la demande">
+          <ModalFields fields={fields.filter((f) => !f.long)} />
+          {fields
+            .filter((f) => f.long)
+            .map((f) => (
+              <div key={f.label} className="mt-4">
+                <ModalNote label={f.label}>{f.value}</ModalNote>
+              </div>
+            ))}
+        </ModalSection>
+      )}
 
-                <div className="max-h-96 overflow-y-auto p-5">
-                  <div className="space-y-2.5">
-                    {detailFields.map((f) => {
-                      const value = f.render ? f.render(request) : request[f.accessor]
-                      if (!value) return null
-                      return (
-                        <div key={f.label} className="text-sm">
-                          <span className="font-semibold text-gray-500">{f.label} </span>
-                          <span className="text-gray-800">{value}</span>
-                        </div>
-                      )
-                    })}
-                    <div className="text-sm">
-                      <span className="font-semibold text-gray-500">Demande reçue </span>
-                      <span className="text-gray-800">{firebaseDateFormat(request.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    Changer le statut
-                  </p>
-                  <div className="space-y-1">
-                    {REQUEST_STATUSES.map((s) => {
-                      const active = (request.status || 'pending') === s.value
-                      return (
-                        <button
-                          key={s.value}
-                          disabled={active || updating}
-                          onClick={() => change(s.value)}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: active ? colors.primary : colors.gray300 }}
-                          />
-                          {s.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {request.phone && (
-                    <a
-                      href={`tel:${request.phone}`}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: colors.primary }}
-                    >
-                      <RiPhoneLine className="h-4 w-4" />
-                      Appeler {request.name?.split(' ')[0]}
-                    </a>
-                  )}
-                </div>
-
-                <div className="border-t border-gray-200 p-2">
-                  <button
-                    onClick={() => setOpen(false)}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-50"
-                  >
-                    Fermer
-                  </button>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
-        </div>
-      </Dialog>
-    </Transition.Root>
+      {canProcess && (
+        <ModalSection title="Statut de la demande">
+          <StatusChoice
+            options={REQUEST_STATUSES}
+            value={currentStatus}
+            onChange={(status) => onStatusChange(request, status)}
+            locked={FINAL_STATUSES.includes(currentStatus)}
+            lockedMessage={
+              currentStatus === 'completed'
+                ? 'Demande terminée : plus aucune action à faire.'
+                : 'Demande annulée : plus aucune action à faire.'
+            }
+          />
+        </ModalSection>
+      )}
+    </AdminModal>
   )
 }
 
 export default function ServiceRequestsPanel({
+  title,
   description,
   fetchRequests,
   updateStatus,
@@ -141,6 +119,7 @@ export default function ServiceRequestsPanel({
   searchPlaceholder,
 }) {
   const colors = useColors()
+  const canProcess = useCanManage('services', 'process')
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
@@ -168,6 +147,7 @@ export default function ServiceRequestsPanel({
   }, [statusFilter, searchTerm])
 
   const handleStatusChange = async (request, status) => {
+    if (!canProcess) return
     try {
       await updateStatus(request.id, status)
       setRequests((prev) => prev.map((r) => (r.id === request.id ? { ...r, status } : r)))
@@ -197,6 +177,8 @@ export default function ServiceRequestsPanel({
         setOpen={setDetailOpen}
         detailFields={detailFields}
         onStatusChange={handleStatusChange}
+        canProcess={canProcess}
+        serviceTitle={title}
       />
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -258,20 +240,26 @@ export default function ServiceRequestsPanel({
       ) : (
         <div className="overflow-hidden rounded-lg border border-gray-200">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[680px]">
               <thead style={{ backgroundColor: colors.gray50 }}>
                 <tr>
-                  {['Client', 'Contact', ...columns.map((c) => c.header), 'Statut', 'Actions'].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
+                  {[
+                    { label: 'Client' },
+                    { label: 'Contact' },
+                    ...columns.map((c) => ({ label: c.header, secondary: true })),
+                    { label: 'Statut' },
+                    { label: 'Actions' },
+                  ].map((col) => (
+                    <th
+                      key={col.label}
+                      scope="col"
+                      className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                        col.secondary ? 'hidden lg:table-cell' : ''
+                      }`}
+                    >
+                      {col.label}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -281,15 +269,15 @@ export default function ServiceRequestsPanel({
                     REQUEST_STATUSES.find((s) => s.value === status)?.label || status
                   return (
                     <tr key={request.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <p className="text-sm font-semibold text-gray-900">{request.name}</p>
-                        <p className="mt-0.5 text-xs text-gray-400">
+                        <p className="mt-0.5 font-mono text-xs text-gray-400">
                           {firebaseDateFormat(request.createdAt)}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         {request.phone && (
-                          <p className="flex items-center gap-1 text-xs text-gray-500">
+                          <p className="flex items-center gap-1 font-mono text-xs text-gray-500">
                             <RiPhoneLine className="h-3.5 w-3.5" /> {request.phone}
                           </p>
                         )}
@@ -300,36 +288,27 @@ export default function ServiceRequestsPanel({
                         )}
                       </td>
                       {columns.map((c) => (
-                        <td key={c.header} className="px-6 py-4 text-xs text-gray-600">
+                        <td
+                          key={c.header}
+                          className={`hidden px-6 py-4 text-xs text-gray-600 lg:table-cell${c.mono ? ' font-mono' : ''}`}
+                        >
                           {c.render(request) || '—'}
                         </td>
                       ))}
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{
-                              backgroundColor:
-                                status === 'cancelled'
-                                  ? colors.gray400
-                                  : status === 'done'
-                                  ? colors.primary
-                                  : colors.gray700,
-                            }}
-                          />
+                      <td className="px-6 py-3">
+                        <StatusPill tone={REQUEST_STATUSES.find((s) => s.value === status)?.tone || 'gray'}>
                           {statusLabel}
-                        </span>
+                        </StatusPill>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-3">
                         <button
                           onClick={() => {
                             setDetailTarget(request)
                             setDetailOpen(true)
                           }}
-                          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                          title="Détail"
+                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                         >
-                          <RiMore2Fill className="h-4 w-4" />
+                          Voir
                         </button>
                       </td>
                     </tr>

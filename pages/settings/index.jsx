@@ -1,20 +1,24 @@
 import { useState } from 'react'
-import { RiContactsLine, RiPriceTag3Line } from 'react-icons/ri'
+import { RiContactsLine, RiPriceTag3Line, RiVipCrownLine, RiShieldKeyholeLine } from 'react-icons/ri'
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
 import Header from '@/components/Header'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 import { useColors } from '@/contexts/ColorContext'
-import ContactTab from '@/components/siteSettings/ContactTab'
-import ServicePricingTab from '@/components/settings/ServicePricingTab'
+import ContactTab from '../../components/siteSettings/ContactTab'
+import ServicePricingTab from '@/components/Settings/ServicePricingTab'
+import SubscriptionsTab from '@/components/Settings/SubscriptionsTab'
+import TeamPermissionsTab from '@/components/Settings/TeamPermissionsTab'
 
 const TABS = [
   { value: 'contact', label: 'Contact', icon: RiContactsLine },
   { value: 'pricing', label: 'Tarifs des services', icon: RiPriceTag3Line },
+  { value: 'subscriptions', label: 'Abonnements', icon: RiVipCrownLine },
+  { value: 'team', label: 'Équipe & permissions', icon: RiShieldKeyholeLine },
 ]
 
 function Settings() {
@@ -25,7 +29,7 @@ function Settings() {
     <Scaffold>
       <Header title="Paramètres" />
 
-      <div className="mb-6 flex gap-2 border-b border-gray-200">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-gray-200">
         {TABS.map((tab) => {
           const active = activeTab === tab.value
           return (
@@ -48,25 +52,27 @@ function Settings() {
 
       {activeTab === 'contact' && <ContactTab />}
       {activeTab === 'pricing' && <ServicePricingTab />}
+      {activeTab === 'subscriptions' && <SubscriptionsTab />}
+      {activeTab === 'team' && <TeamPermissionsTab />}
     </Scaffold>
   )
 }
 
 const SettingsPage = () => (
-  <Page name="Paramètres | BâtiServices Admin">
+  <Page name="Paramètres | BâtiMoo Admin">
     <Settings />
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
+})(async ({ user: AuthUser }) => {
   if (AuthUser.claims.userType !== 'admin') {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(SettingsPage)

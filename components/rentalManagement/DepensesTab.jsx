@@ -7,13 +7,19 @@ import { formatGNF, currentPeriod, formatPeriodLabel } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import DrawerForm from '@/components/DrawerForm'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getPropertyExpenses, addPropertyExpense, deletePropertyExpense } from '@/lib/services/propertyExpenses'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const CATEGORIES = ['Taxe', 'Assurance', 'Réparation', 'Autre']
 
+const PAGE_SIZE = 10
+
 export default function DepensesTab({ ownerId }) {
   const colors = useColors()
+  const canPayments = useCanManage('properties', 'payments')
+  const canDelete = useCanManage('properties', 'delete')
   const [expenses, setExpenses] = useState([])
   const [properties, setProperties] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -21,6 +27,7 @@ export default function DepensesTab({ ownerId }) {
   const [saving, setSaving] = useState(false)
   const [propertyFilter, setPropertyFilter] = useState('all')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const {
     register,
@@ -48,9 +55,14 @@ export default function DepensesTab({ ownerId }) {
     load()
   }, [ownerId])
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [propertyFilter])
+
   const propertyById = (id) => properties.find((p) => p.id === id)
 
   const openAdd = () => {
+    if (!canPayments) return
     reset({
       propertyId: properties[0]?.id || '',
       period: currentPeriod(),
@@ -63,6 +75,7 @@ export default function DepensesTab({ ownerId }) {
   }
 
   const onSubmit = async (data) => {
+    if (!canPayments) return
     setSaving(true)
     try {
       const payload = {
@@ -84,6 +97,7 @@ export default function DepensesTab({ ownerId }) {
   }
 
   const handleDelete = async (expense) => {
+    if (!canDelete) return
     try {
       await deletePropertyExpense(expense.id)
       setExpenses((prev) => prev.filter((e) => e.id !== expense.id))
@@ -96,6 +110,7 @@ export default function DepensesTab({ ownerId }) {
 
   const filtered = expenses.filter((e) => propertyFilter === 'all' || e.propertyId === propertyFilter)
   const total = filtered.reduce((sum, e) => sum + (e.amount || 0), 0)
+  const visible = filtered.slice(0, visibleCount)
 
   return (
     <>
@@ -109,7 +124,7 @@ export default function DepensesTab({ ownerId }) {
             <select
               value={propertyFilter}
               onChange={(e) => setPropertyFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">Tous les biens</option>
               {properties.map((p) => (
@@ -119,15 +134,17 @@ export default function DepensesTab({ ownerId }) {
                 </option>
               ))}
             </select>
-            <button
-              onClick={openAdd}
-              disabled={properties.length === 0}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
-              style={{ backgroundColor: colors.primary }}
-            >
-              <RiAddLine className="h-4 w-4" />
-              Ajouter une dépense
-            </button>
+            {canPayments && (
+              <button
+                onClick={openAdd}
+                disabled={properties.length === 0}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-md disabled:opacity-50"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiAddLine className="h-4 w-4" />
+                Ajouter une dépense
+              </button>
+            )}
           </div>
         </div>
 
@@ -141,60 +158,68 @@ export default function DepensesTab({ ownerId }) {
             <p className="text-sm text-gray-400">Aucune dépense enregistrée</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="py-2 pr-4">Date</th>
-                  <th className="py-2 pr-4">Bien</th>
-                  <th className="py-2 pr-4">Libellé</th>
-                  <th className="py-2 pr-4">Catégorie</th>
-                  <th className="py-2 pr-4">Mois</th>
-                  <th className="py-2 pr-4">Montant</th>
-                  <th className="py-2 pr-4" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((expense) => (
-                  <tr key={expense.id}>
-                    <td className="py-3 pr-4 text-gray-500">
-                      {expense.date ? firebaseDateFormat(new Date(expense.date)) : '—'}
-                    </td>
-                    <td className="py-3 pr-4 text-gray-700">{propertyById(expense.propertyId)?.reference || '—'}</td>
-                    <td className="py-3 pr-4 text-gray-700">{expense.label}</td>
-                    <td className="py-3 pr-4 text-gray-500">{expense.category}</td>
-                    <td className="py-3 pr-4 text-gray-500">{formatPeriodLabel(expense.period)}</td>
-                    <td className="py-3 pr-4 font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
-                    <td className="py-3 pr-4">
-                      {deleteConfirm === expense.id ? (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleDelete(expense)}
-                            className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
-                          >
-                            Oui
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(null)}
-                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                          >
-                            Non
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteConfirm(expense.id)}
-                          className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-red-200 hover:text-red-500"
-                          title="Supprimer"
-                        >
-                          <RiDeleteBinLine className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Date</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Bien</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Libellé</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Catégorie</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Mois</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Montant</th>
+                    <th className="px-6 py-3" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {visible.map((expense) => (
+                    <tr key={expense.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-3 font-mono text-gray-500">
+                        {expense.date ? firebaseDateFormat(new Date(expense.date)) : '—'}
+                      </td>
+                      <td className="px-6 py-3 text-gray-700">{propertyById(expense.propertyId)?.reference || '—'}</td>
+                      <td className="px-6 py-3 text-gray-700">{expense.label}</td>
+                      <td className="hidden px-6 py-3 text-gray-500 lg:table-cell">{expense.category}</td>
+                      <td className="hidden px-6 py-3 font-mono text-gray-500 lg:table-cell">{formatPeriodLabel(expense.period)}</td>
+                      <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold text-gray-900">{formatGNF(expense.amount)}</td>
+                      <td className="px-6 py-3">
+                        {canDelete && (
+                          deleteConfirm === expense.id ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleDelete(expense)}
+                                className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+                                style={{ backgroundColor: colors.error }}
+                              >
+                                Oui
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                              >
+                                Non
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm(expense.id)}
+                              className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:bg-red-50"
+                              title="Supprimer"
+                            >
+                              <RiDeleteBinLine className="h-4 w-4" />
+                            </button>
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+            )}
           </div>
         )}
       </div>
@@ -238,12 +263,12 @@ export default function DepensesTab({ ownerId }) {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Bien *
             </label>
             <select
               {...register('propertyId', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -255,26 +280,26 @@ export default function DepensesTab({ ownerId }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Libellé *
             </label>
             <input
               type="text"
               {...register('label', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Taxe foncière 2026"
             />
-            {errors.label && <p className="mt-1 text-xs font-semibold text-red-500">{errors.label.message}</p>}
+            {errors.label && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.label.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Catégorie
               </label>
               <select
                 {...register('category')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -284,37 +309,37 @@ export default function DepensesTab({ ownerId }) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Montant (GNF) *
               </label>
               <input
                 type="number"
                 {...register('amount', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              {errors.amount && <p className="mt-1 text-xs font-semibold text-red-500">{errors.amount.message}</p>}
+              {errors.amount && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.amount.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Date
               </label>
               <input
                 type="date"
                 {...register('date', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Mois imputé *
               </label>
               <input
                 type="month"
                 {...register('period', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>

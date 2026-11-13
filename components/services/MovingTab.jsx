@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
-import { getMovingRequests, updateMovingRequestStatus } from '@/lib/services/movingRequests'
+import { getServiceRequestsByCategory, updateServiceRequestStatus } from '@/lib/services/serviceRequests'
 
 const columns = [
   {
@@ -9,6 +9,7 @@ const columns = [
   },
   {
     header: 'Date prévue',
+    mono: true,
     render: (r) => r.movingDate || null,
   },
 ]
@@ -16,19 +17,23 @@ const columns = [
 const detailFields = [
   { label: 'Départ', accessor: 'departure' },
   { label: 'Arrivée', accessor: 'arrival' },
+  { label: 'Étage & accès départ', accessor: 'floorAccessDeparture' },
+  { label: 'Étage & accès arrivée', accessor: 'floorAccessArrival' },
   { label: 'Date de déménagement', accessor: 'movingDate' },
-  { label: 'Offre sélectionnée', accessor: 'selectedPackage' },
-  { label: 'Notes', accessor: 'notes' },
+  { label: 'Nombre de pièces', accessor: 'rooms' },
+  { label: 'Objets fragiles à signaler', render: (r) => (r.fragileItems ? 'Oui' : null) },
+  { label: 'Description', accessor: 'description' },
 ]
 
 export default function MovingTab() {
-  const fetchRequests = useCallback(() => getMovingRequests(), [])
+  const fetchRequests = useCallback(() => getServiceRequestsByCategory('demenagement'), [])
 
   return (
     <ServiceRequestsPanel
+      title="Déménagement"
       description="Demandes envoyées depuis le formulaire de déménagement du site public"
       fetchRequests={fetchRequests}
-      updateStatus={updateMovingRequestStatus}
+      updateStatus={updateServiceRequestStatus}
       columns={columns}
       detailFields={detailFields}
       searchFn={(r, lower) =>

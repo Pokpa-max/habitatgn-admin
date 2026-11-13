@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 import { useForm } from 'react-hook-form'
-import { useAuthUser } from 'next-firebase-auth'
-import {
+import { useUser } from 'next-firebase-auth'
+import { Timestamp } from 'firebase/firestore'
+import { RiFlag2Line,
   RiAddLine,
   RiSearchLine,
   RiEditLine,
@@ -11,10 +13,13 @@ import {
   RiCloseCircleLine,
   RiImageAddLine,
   RiCloseLine,
+  RiRocketLine,
+  RiMore2Fill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import ConfirmModal from '@/components/ConfirmModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
@@ -24,31 +29,61 @@ import {
   addProduct,
   updateProduct,
   toggleProductActive,
+  setProductBoost,
   deleteProduct,
 } from '@/lib/services/products'
 import { uploadToCloudinary } from '@/utils/cloudinary'
 import { CONAKRY_COMMUNES } from '../../_data'
+import { useCanManage } from '@/hooks/useCanManage'
 
 const PAGE_SIZE = 10
+const MAX_IMAGES = 4
 
-export const PRODUCT_CATEGORIES = [
-  { value: 'furniture', label: 'Meubles' },
-  { value: 'electronics', label: 'Électronique' },
-  { value: 'appliances', label: 'Électroménager' },
-  { value: 'decoration', label: 'Décoration' },
+// Mêmes catégories que le site (src/lib/marketplaceRules.ts) : boutique
+// réservée à la maison et à la construction
+const PRODUCT_CATEGORIES = [
   { value: 'materials', label: 'Matériaux de construction' },
-  { value: 'tools', label: 'Outillage' },
-  { value: 'autre', label: 'Autre' },
+  { value: 'hardware', label: 'Quincaillerie & outillage' },
+  { value: 'tiling', label: 'Carrelage & revêtements' },
+  { value: 'paint', label: 'Peinture' },
+  { value: 'plumbing', label: 'Plomberie & sanitaire' },
+  { value: 'electrical', label: 'Électricité & luminaire' },
+  { value: 'energy', label: 'Énergie (solaire, groupes électrogènes)' },
+  { value: 'climate', label: 'Climatisation & ventilation' },
+  { value: 'carpentry', label: 'Menuiserie (portes, fenêtres)' },
+  { value: 'security', label: 'Sécurité (serrures, caméras)' },
+  { value: 'appliances', label: 'Électroménager' },
+  { value: 'furniture', label: 'Meubles' },
+  { value: 'decor', label: 'Décoration' },
 ]
+
+// Anciennes catégories : seulement pour afficher d'anciens produits
+const LEGACY_CATEGORY_LABELS = {
+  computing: 'Informatique (ancienne)',
+  phones: 'Téléphones (ancienne)',
+  vehicles: 'Véhicules (ancienne)',
+  fashion: 'Mode (ancienne)',
+  other: 'Divers (ancienne)',
+  electronics: 'Électronique (ancienne)',
+  decoration: 'Décoration',
+  tools: 'Outillage',
+  autre: 'Autre (ancienne)',
+}
 
 export default function MarketplaceProductsPage() {
   const colors = useColors()
-  const AuthUser = useAuthUser()
+  const AuthUser = useUser()
+  const canProcess = useCanManage('marketplace', 'process')
+  const canDelete = useCanManage('marketplace', 'delete')
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const router = useRouter()
   const [statusFilter, setStatusFilter] = useState('all')
+  useEffect(() => {
+    if (router.query.filtre === 'signales') setStatusFilter('reported')
+  }, [router.query.filtre])
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   // Drawer / Form state
@@ -61,6 +96,46 @@ export default function MarketplaceProductsPage() {
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+
+  // Sélection multiple / actions groupées
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkActing, setBulkActing] = useState(false)
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
+
+  // Menu d'actions groupées (par ligne)
+  const [menuOpenId, setMenuOpenId] = useState(null)
+  const [menuAnchor, setMenuAnchor] = useState(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!menuOpenId) return
+      const target = event.target
+      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
+        setMenuOpenId(null)
+        setMenuAnchor(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenId])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+  }, [searchTerm, categoryFilter, statusFilter])
+
+  const openMenu = (event, productId) => {
+    event.stopPropagation()
+    if (menuOpenId === productId) {
+      setMenuOpenId(null)
+      setMenuAnchor(null)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const left = Math.max(16, Math.min(rect.right - 224, window.innerWidth - 240 - 16))
+    const top = Math.min(rect.bottom + 8, window.innerHeight - 260 - 16)
+    setMenuOpenId(productId)
+    setMenuAnchor({ left, top })
+  }
 
   const {
     register,
@@ -118,8 +193,13 @@ export default function MarketplaceProductsPage() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || [])
-    if (files.length) {
-      setImageFiles((prev) => [...prev, ...files])
+    const remaining = MAX_IMAGES - existingImageUrls.length - imageFiles.length
+    if (files.length > remaining) {
+      notify(`Maximum ${MAX_IMAGES} photos par produit — ${files.length - remaining} photo(s) ignorée(s)`, 'error')
+    }
+    const accepted = files.slice(0, Math.max(0, remaining))
+    if (accepted.length) {
+      setImageFiles((prev) => [...prev, ...accepted])
     }
     e.target.value = ''
   }
@@ -133,6 +213,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const onSubmit = async (data) => {
+    if (!canProcess) return
     setSaving(true)
     try {
       const uploadedUrls = await Promise.all(
@@ -170,6 +251,7 @@ export default function MarketplaceProductsPage() {
   }
 
   const handleToggleStatus = async (prod) => {
+    if (!canProcess) return
     const nextStatus = !prod.active
     try {
       await toggleProductActive(prod.id, nextStatus)
@@ -185,8 +267,33 @@ export default function MarketplaceProductsPage() {
     }
   }
 
+  const isProductBoosted = (prod) => {
+    const until = prod?.boostedUntil
+    if (!until) return false
+    const untilDate = typeof until?.toDate === 'function' ? until.toDate() : new Date(until)
+    return untilDate.getTime() > Date.now()
+  }
+
+  const handleSetProductBoost = async (prod, days) => {
+    if (!canProcess) return
+    setMenuOpenId(null)
+    setMenuAnchor(null)
+    try {
+      const boostedUntil = days
+        ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+        : null
+      await setProductBoost(prod.id, boostedUntil)
+      setProducts((prev) =>
+        prev.map((p) => (p.id === prod.id ? { ...p, boostedUntil } : p))
+      )
+      notify(days ? `Produit mis en avant pour ${days} jours` : 'Mise en avant retirée', 'success')
+    } catch (e) {
+      notify('Erreur lors de la mise à jour de la mise en avant', 'error')
+    }
+  }
+
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return
+    if (!deleteTarget || !canDelete) return
     try {
       await deleteProduct(deleteTarget.id)
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id))
@@ -203,7 +310,8 @@ export default function MarketplaceProductsPage() {
     const matchStatus =
       statusFilter === 'all' ||
       (statusFilter === 'active' && p.active) ||
-      (statusFilter === 'inactive' && !p.active)
+      (statusFilter === 'inactive' && !p.active) ||
+      (statusFilter === 'reported' && p.reportCount > 0)
 
     if (!matchCategory || !matchStatus) return false
     if (!searchTerm) return true
@@ -221,6 +329,62 @@ export default function MarketplaceProductsPage() {
   const activeCount = products.filter((p) => p.active).length
   const inactiveCount = products.filter((p) => !p.active).length
 
+  const canBulkSelect = canProcess || canDelete
+  const selectableIds = canBulkSelect ? visible.map((p) => p.id) : []
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const handleBulkSetActive = async (nextStatus) => {
+    if (!canProcess) return
+    const targets = products.filter((p) => selectedIds.has(p.id))
+    if (targets.length === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all(targets.map((p) => toggleProductActive(p.id, nextStatus)))
+      const targetIds = new Set(targets.map((p) => p.id))
+      setProducts((prev) =>
+        prev.map((p) => (targetIds.has(p.id) ? { ...p, active: nextStatus } : p))
+      )
+      notify(
+        `${targets.length} produit${targets.length > 1 ? 's' : ''} ${nextStatus ? 'activé(s)' : 'désactivé(s)'}`,
+        'success'
+      )
+      setSelectedIds(new Set())
+    } catch (e) {
+      notify('Erreur lors de la mise à jour groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
+  const handleBulkDelete = async () => {
+    if (!canDelete) return
+    const targetIds = new Set(selectedIds)
+    if (targetIds.size === 0) return
+    setBulkActing(true)
+    try {
+      await Promise.all([...targetIds].map((id) => deleteProduct(id)))
+      setProducts((prev) => prev.filter((p) => !targetIds.has(p.id)))
+      notify(`${targetIds.size} produit${targetIds.size > 1 ? 's' : ''} supprimé(s)`, 'success')
+      setSelectedIds(new Set())
+      setBulkDeleteModalOpen(false)
+    } catch (e) {
+      notify('Erreur lors de la suppression groupée', 'error')
+    }
+    setBulkActing(false)
+  }
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 md:px-8">
       {/* Modal de suppression */}
@@ -230,6 +394,15 @@ export default function MarketplaceProductsPage() {
         title="Supprimer le produit"
         message={`Êtes-vous sûr de vouloir supprimer définitivement "${deleteTarget?.title}" de la Marketplace ? Cette action est irréversible.`}
         confirmFunction={handleDeleteConfirm}
+      />
+
+      {/* Modal de suppression groupée */}
+      <ConfirmModal
+        open={bulkDeleteModalOpen}
+        setOpen={setBulkDeleteModalOpen}
+        title="Supprimer les produits sélectionnés"
+        message={`Êtes-vous sûr de vouloir supprimer définitivement ${selectedIds.size} produit${selectedIds.size > 1 ? 's' : ''} de la Marketplace ? Cette action est irréversible.`}
+        confirmFunction={handleBulkDelete}
       />
 
       {/* Drawer d'ajout / modification */}
@@ -273,7 +446,7 @@ export default function MarketplaceProductsPage() {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Titre du produit *
             </label>
             <input
@@ -281,11 +454,11 @@ export default function MarketplaceProductsPage() {
               {...register('title', {
                 required: 'Le titre du produit est requis',
               })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="ex: Machine a laver, Canapé 3 places"
             />
             {errors.title && (
-              <p className="mt-1 text-xs font-semibold text-red-500">
+              <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                 {errors.title.message}
               </p>
             )}
@@ -293,12 +466,12 @@ export default function MarketplaceProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Catégorie *
               </label>
               <select
                 {...register('category')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {PRODUCT_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
@@ -309,17 +482,17 @@ export default function MarketplaceProductsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Prix (GNF) *
               </label>
               <input
                 type="number"
                 {...register('price', { required: 'Le prix est requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="ex: 2500000"
               />
               {errors.price && (
-                <p className="mt-1 text-xs font-semibold text-red-500">
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>
                   {errors.price.message}
                 </p>
               )}
@@ -328,12 +501,12 @@ export default function MarketplaceProductsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Commune
               </label>
               <select
                 {...register('commune')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Sélectionner une commune</option>
                 {CONAKRY_COMMUNES.map((c) => (
@@ -345,21 +518,24 @@ export default function MarketplaceProductsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Téléphone
               </label>
               <input
                 type="text"
                 {...register('phone')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="ex: +224 626610357"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
-              Images du produit
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
+              Images du produit{' '}
+              <span className="font-normal text-gray-400">
+                ({existingImageUrls.length + imageFiles.length}/{MAX_IMAGES})
+              </span>
             </label>
             <div className="flex flex-wrap items-center gap-3">
               {existingImageUrls.map((url, i) => (
@@ -400,27 +576,29 @@ export default function MarketplaceProductsPage() {
                   </button>
                 </div>
               ))}
-              <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
-                <RiImageAddLine className="h-6 w-6 text-gray-400" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
+              {existingImageUrls.length + imageFiles.length < MAX_IMAGES && (
+                <label className="flex h-16 w-16 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100">
+                  <RiImageAddLine className="h-6 w-6 text-gray-400" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Description
             </label>
             <textarea
               rows={3}
               {...register('description')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Description détaillée des caractéristiques du produit..."
             />
           </div>
@@ -430,7 +608,8 @@ export default function MarketplaceProductsPage() {
               type="checkbox"
               id="active"
               {...register('active')}
-              className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              className="h-4 w-4 rounded border-gray-300 focus:ring-0 focus:ring-offset-0"
+              style={{ accentColor: colors.primary }}
             />
             <label
               htmlFor="active"
@@ -444,75 +623,81 @@ export default function MarketplaceProductsPage() {
 
       {/* Cartes d'aperçu Marketplace */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Total Produits
-            </span>
+        {[
+          {
+            icon: RiShoppingBag3Line,
+            label: 'Total Produits',
+            value: products.length,
+            iconBg: colors.primaryVeryLight,
+            iconColor: colors.primary,
+          },
+          {
+            icon: RiCheckboxCircleLine,
+            label: 'Actifs',
+            value: activeCount,
+            filled: true,
+          },
+          {
+            icon: RiCloseCircleLine,
+            label: 'Inactifs',
+            value: inactiveCount,
+            iconBg: '#FEF2F2',
+            iconColor: colors.error,
+          },
+        ].map((card) => (
+          <div
+            key={card.label}
+            className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            style={
+              card.filled
+                ? { backgroundColor: colors.primary }
+                : { backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }
+            }
+          >
             <div
               className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ backgroundColor: colors.primaryVeryLight }}
+              style={{ backgroundColor: card.filled ? 'rgba(255,255,255,0.2)' : card.iconBg }}
             >
-              <RiShoppingBag3Line
+              <card.icon
                 className="h-4 w-4"
-                style={{ color: colors.primary }}
+                style={{ color: card.filled ? '#FFFFFF' : card.iconColor }}
               />
             </div>
+            <p
+              className="text-xs font-semibold"
+              style={{ color: card.filled ? 'rgba(255,255,255,0.85)' : colors.gray500 }}
+            >
+              {card.label}
+            </p>
+            <p
+              className="font-mono text-xl font-semibold tracking-tight"
+              style={{ color: card.filled ? '#FFFFFF' : colors.gray900 }}
+            >
+              {card.value}
+            </p>
           </div>
-          <p className="mt-2 text-2xl font-extrabold text-gray-900">
-            {products.length}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Actifs
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50">
-              <RiCheckboxCircleLine className="h-4 w-4 text-emerald-600" />
-            </div>
-          </div>
-          <p className="mt-2 text-2xl font-extrabold text-emerald-900">
-            {activeCount}
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Inactifs
-            </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
-              <RiCloseCircleLine className="h-4 w-4 text-red-600" />
-            </div>
-          </div>
-          <p className="mt-2 text-2xl font-extrabold text-red-900">
-            {inactiveCount}
-          </p>
-        </div>
+        ))}
       </div>
 
       {/* En-tête de section & Recherche */}
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
-              Produits Marketplace
-            </h2>
-            <p className="mt-0.5 text-xs text-gray-500">
+            <p className="text-sm text-gray-500">
               Gérez les produits en vente sur la plateforme
             </p>
           </div>
 
-          <button
-            onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
-            style={{ backgroundColor: colors.primary }}
-          >
-            <RiAddLine className="h-4 w-4" />
-            Ajouter un produit
-          </button>
+          {canProcess && (
+            <button
+              onClick={handleOpenAdd}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
+              style={{ backgroundColor: colors.orangeAccent }}
+            >
+              <RiAddLine className="h-4 w-4" />
+              Ajouter un produit
+            </button>
+          )}
         </div>
 
         {/* Barre de Recherche & Filtres */}
@@ -550,9 +735,59 @@ export default function MarketplaceProductsPage() {
               <option value="all">Tous les statuts</option>
               <option value="active">Actif</option>
               <option value="inactive">Inactif</option>
+              <option value="reported">
+                Signalés ({products.filter((p) => p.reportCount > 0).length})
+              </option>
             </select>
           </div>
         </div>
+
+        {/* Actions groupées */}
+        {selectedIds.size > 0 && (
+          <div
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border p-3"
+            style={{ borderColor: colors.primary, backgroundColor: colors.primaryVeryLight }}
+          >
+            <span className="text-sm font-semibold" style={{ color: colors.primary }}>
+              {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              {canProcess && (
+                <>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkSetActive(true)}
+                    className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                    style={{ borderColor: colors.success, color: colors.success, backgroundColor: 'transparent' }}
+                  >
+                    Activer
+                  </button>
+                  <button
+                    type="button"
+                    disabled={bulkActing}
+                    onClick={() => handleBulkSetActive(false)}
+                    className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                    style={{ borderColor: colors.warning, color: colors.warning, backgroundColor: 'transparent' }}
+                  >
+                    Désactiver
+                  </button>
+                </>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  disabled={bulkActing}
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-60"
+                  style={{ borderColor: colors.error, color: colors.error, backgroundColor: 'transparent' }}
+                >
+                  Supprimer
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Tableau des Produits */}
         {isLoading ? (
@@ -569,24 +804,38 @@ export default function MarketplaceProductsPage() {
         ) : (
           <div className="overflow-hidden rounded-lg border border-gray-200">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[680px]">
                 <thead style={{ backgroundColor: colors.gray50 }}>
                   <tr>
+                    <th scope="col" className="w-8 px-4 py-2.5">
+                      {selectableIds.length > 0 && (
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 cursor-pointer rounded"
+                          style={{ accentColor: colors.primary }}
+                          title="Tout sélectionner"
+                        />
+                      )}
+                    </th>
                     {[
-                      'Produit',
-                      'Catégorie',
-                      'Commune',
-                      'Prix (GNF)',
-                      'Téléphone',
-                      'Statut',
-                      'Actions',
-                    ].map((h) => (
+                      { label: 'Produit' },
+                      { label: 'Catégorie', secondary: true },
+                      { label: 'Commune', secondary: true },
+                      { label: 'Prix (GNF)' },
+                      { label: 'Téléphone' },
+                      { label: 'Statut' },
+                      { label: 'Actions' },
+                    ].map((col) => (
                       <th
-                        key={h}
+                        key={col.label}
                         scope="col"
-                        className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                        className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                          col.secondary ? 'hidden lg:table-cell' : ''
+                        }`}
                       >
-                        {h}
+                        {col.label}
                       </th>
                     ))}
                   </tr>
@@ -595,11 +844,22 @@ export default function MarketplaceProductsPage() {
                   {visible.map((prod) => {
                     const catLabel =
                       PRODUCT_CATEGORIES.find((c) => c.value === prod.category)
-                        ?.label || prod.category
+                        ?.label || LEGACY_CATEGORY_LABELS[prod.category] || prod.category
 
                     return (
                       <tr key={prod.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
+                        <td className="w-8 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          {canBulkSelect && (
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(prod.id)}
+                              onChange={() => toggleSelect(prod.id)}
+                              className="h-4 w-4 cursor-pointer rounded"
+                              style={{ accentColor: colors.primary }}
+                            />
+                          )}
+                        </td>
+                        <td className="px-6 py-3">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
                               {prod.imageUrls?.[0] ? (
@@ -618,6 +878,12 @@ export default function MarketplaceProductsPage() {
                               <p className="text-sm font-semibold text-gray-900">
                                 {prod.title}
                               </p>
+                              {prod.reportCount > 0 && (
+                                <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                                  <RiFlag2Line className="h-3 w-3" />
+                                  Signalé {prod.reportCount} fois
+                                </span>
+                              )}
                               {prod.description && (
                                 <p className="text-xs text-gray-400 line-clamp-1">
                                   {prod.description}
@@ -626,74 +892,42 @@ export default function MarketplaceProductsPage() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                        <td className="hidden px-6 py-3 lg:table-cell">
+                          <span
+                            className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                            style={{ backgroundColor: colors.gray100, color: colors.gray600 }}
+                          >
                             {catLabel}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
+                        <td className="hidden px-6 py-3 text-xs text-gray-500 lg:table-cell">
                           {prod.commune || '—'}
                         </td>
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-gray-900">
+                        <td className="whitespace-nowrap px-6 py-3">
+                          <span className="font-mono text-sm font-bold text-gray-900">
                             {formatGNF(prod.price)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-xs text-gray-500">
+                        <td className="px-6 py-3 font-mono text-xs text-gray-500">
                           {prod.phone || '—'}
                         </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                            style={{
-                              backgroundColor: prod.active
-                                ? colors.primaryVeryLight
-                                : colors.gray100,
-                              color: prod.active
-                                ? colors.primaryDark
-                                : colors.gray600,
-                            }}
-                          >
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{
-                                backgroundColor: prod.active
-                                  ? colors.primary
-                                  : colors.gray500,
-                              }}
-                            />
+                        <td className="px-6 py-3">
+                          <StatusPill tone={prod.active ? 'success' : 'error'}>
                             {prod.active ? 'Actif' : 'Inactif'}
-                          </span>
+                          </StatusPill>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
+                        <td
+                          className="px-6 py-4 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-end" data-menu-root>
                             <button
-                              onClick={() => handleOpenEdit(prod)}
-                              className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                              title="Modifier"
+                              type="button"
+                              onClick={(event) => openMenu(event, prod.id)}
+                              className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
+                              title="Actions"
                             >
-                              <RiEditLine className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleToggleStatus(prod)}
-                              className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                              title={prod.active ? 'Désactiver' : 'Activer'}
-                            >
-                              {prod.active ? (
-                                <RiCloseCircleLine className="h-4 w-4 text-amber-600" />
-                              ) : (
-                                <RiCheckboxCircleLine className="h-4 w-4 text-emerald-600" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setDeleteTarget(prod)
-                                setDeleteModalOpen(true)
-                              }}
-                              className="rounded-lg border border-gray-200 p-1.5 text-red-500 hover:border-red-300 hover:bg-red-50"
-                              title="Supprimer"
-                            >
-                              <RiDeleteBinLine className="h-4 w-4" />
+                              <RiMore2Fill className="h-4 w-4" />
                             </button>
                           </div>
                         </td>
@@ -711,6 +945,98 @@ export default function MarketplaceProductsPage() {
           </div>
         )}
       </div>
+
+      {menuOpenId && menuAnchor && (() => {
+        const prod = products.find((p) => p.id === menuOpenId)
+        if (!prod) return null
+        return (
+          <div
+            className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
+            style={{ left: menuAnchor.left, top: menuAnchor.top }}
+            data-menu-root
+          >
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleOpenEdit(prod)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiEditLine className="h-4 w-4 text-gray-400" />
+                Modifier
+              </button>
+            )}
+            {canProcess && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  handleToggleStatus(prod)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                {prod.active ? (
+                  <RiCloseCircleLine className="h-4 w-4" style={{ color: colors.warning }} />
+                ) : (
+                  <RiCheckboxCircleLine className="h-4 w-4" style={{ color: colors.success }} />
+                )}
+                {prod.active ? 'Désactiver' : 'Activer'}
+              </button>
+            )}
+
+            {canProcess && (isProductBoosted(prod) ? (
+              <button
+                type="button"
+                onClick={() => handleSetProductBoost(prod, null)}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiRocketLine className="h-4 w-4 text-gray-400" />
+                Retirer la mise en avant
+              </button>
+            ) : (
+              <div className="px-3 py-1.5">
+                <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  <RiRocketLine className="h-3.5 w-3.5" />
+                  Mettre en avant
+                </p>
+                <div className="flex gap-1.5">
+                  {[7, 15, 30].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => handleSetProductBoost(prod, days)}
+                      className="flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    >
+                      {days}j
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpenId(null)
+                  setMenuAnchor(null)
+                  setDeleteTarget(prod)
+                  setDeleteModalOpen(true)
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
+                style={{ color: colors.error }}
+              >
+                <RiDeleteBinLine className="h-4 w-4" />
+                Supprimer
+              </button>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }

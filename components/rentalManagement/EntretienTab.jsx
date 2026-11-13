@@ -6,6 +6,7 @@ import { notify } from '@/utils/toast'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import {
@@ -17,9 +18,9 @@ import {
 const CATEGORIES = ['Plomberie', 'Électricité', 'Peinture', 'Autre']
 
 const STATUS_CONFIG = {
-  ouvert: { label: 'Ouvert', bg: '#FEE2E2', color: '#991B1B' },
-  en_cours: { label: 'En cours', bg: '#FEF3C7', color: '#92400E' },
-  résolu: { label: 'Résolu', bg: '#D1FAE5', color: '#065F46' },
+  ouvert: { label: 'Ouvert', tone: 'warning' },
+  en_cours: { label: 'En cours', tone: 'primary' },
+  résolu: { label: 'Résolu', tone: 'success' },
 }
 
 export default function EntretienTab({ ownerId }) {
@@ -138,7 +139,7 @@ export default function EntretienTab({ ownerId }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">Tous les statuts</option>
               <option value="ouvert">Ouvert</option>
@@ -177,12 +178,7 @@ export default function EntretienTab({ ownerId }) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-gray-900">{ticket.title}</p>
-                        <span
-                          className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                        >
-                          {statusCfg.label}
-                        </span>
+                        <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
                       </div>
                       <p className="mt-0.5 text-xs text-gray-500">
                         {property?.reference} — {property?.address}
@@ -229,23 +225,23 @@ export default function EntretienTab({ ownerId }) {
                       className="mt-4 flex flex-wrap items-end gap-3 border-t border-gray-100 pt-4"
                     >
                       <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+                        <label className="mb-2 block text-sm font-semibold text-gray-900">
                           Coût de la réparation (GNF)
                         </label>
                         <input
                           type="number"
                           {...resolveForm.register('cost')}
-                          className="w-40 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                          className="w-40 rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-700">
+                        <label className="mb-2 block text-sm font-semibold text-gray-900">
                           Date de résolution
                         </label>
                         <input
                           type="date"
                           {...resolveForm.register('resolvedDate', { required: true })}
-                          className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                          className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                       <button
@@ -310,12 +306,12 @@ export default function EntretienTab({ ownerId }) {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Bien *
             </label>
             <select
               {...register('propertyId', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -327,26 +323,26 @@ export default function EntretienTab({ ownerId }) {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Titre *
             </label>
             <input
               type="text"
               {...register('title', { required: 'Requis' })}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ex: Fuite d'eau salle de bain"
             />
-            {errors.title && <p className="mt-1 text-xs font-semibold text-red-500">{errors.title.message}</p>}
+            {errors.title && <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.title.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Catégorie
               </label>
               <select
                 {...register('category')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -356,25 +352,25 @@ export default function EntretienTab({ ownerId }) {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Date de signalement *
               </label>
               <input
                 type="date"
                 {...register('reportedDate', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Description
             </label>
             <textarea
               rows={3}
               {...register('description')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>

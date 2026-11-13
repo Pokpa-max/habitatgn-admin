@@ -6,15 +6,19 @@ import { notify } from '@/utils/toast'
 import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { getManagedProperties, getPropertiesByOwner, editManagedProperty } from '@/lib/services/managedProperties'
 import { getLeases, addLease, editLease } from '@/lib/services/leases'
 
 const STATUS_CONFIG = {
-  active: { label: 'Actif', bg: '#D1FAE5', color: '#065F46' },
-  ended: { label: 'Terminé', bg: '#F3F4F6', color: '#374151' },
-  terminated: { label: 'Résilié', bg: '#FEE2E2', color: '#991B1B' },
+  active: { label: 'Actif', tone: 'success' },
+  ended: { label: 'Terminé', tone: 'gray' },
+  terminated: { label: 'Résilié', tone: 'error' },
 }
+
+const PAGE_SIZE = 10
 
 export default function BauxTab({ ownerId }) {
   const colors = useColors()
@@ -25,6 +29,7 @@ export default function BauxTab({ ownerId }) {
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
   const [propertyFilter, setPropertyFilter] = useState('all')
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const {
     register,
@@ -51,6 +56,10 @@ export default function BauxTab({ ownerId }) {
     }
     load()
   }, [ownerId])
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [propertyFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
 
@@ -138,6 +147,7 @@ export default function BauxTab({ ownerId }) {
   }
 
   const filtered = leases.filter((l) => propertyFilter === 'all' || l.propertyId === propertyFilter)
+  const visible = filtered.slice(0, visibleCount)
 
   return (
     <>
@@ -153,7 +163,7 @@ export default function BauxTab({ ownerId }) {
             <select
               value={propertyFilter}
               onChange={(e) => setPropertyFilter(e.target.value)}
-              className="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="rounded-xl border-0 bg-gray-100 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">Tous les biens</option>
               {properties.map((p) => (
@@ -191,71 +201,71 @@ export default function BauxTab({ ownerId }) {
             <p className="text-sm text-gray-400">Aucun bail enregistré</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  <th className="py-2 pr-4">Bien</th>
-                  <th className="py-2 pr-4">Locataire</th>
-                  <th className="py-2 pr-4">Loyer</th>
-                  <th className="py-2 pr-4">Début</th>
-                  <th className="py-2 pr-4">Statut</th>
-                  <th className="py-2 pr-4" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((lease) => {
-                  const property = propertyById(lease.propertyId)
-                  const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
-                  return (
-                    <tr key={lease.id}>
-                      <td className="py-3 pr-4 text-gray-700">
-                        {property
-                          ? `${property.reference} — ${property.address}${property.unitLabel ? ` (${property.unitLabel})` : ''}`
-                          : '—'}
-                      </td>
-                      <td className="py-3 pr-4 text-gray-700">
-                        {lease.tenantName}
-                        <p className="text-xs text-gray-400">{lease.tenantPhone}</p>
-                      </td>
-                      <td className="py-3 pr-4 font-semibold" style={{ color: colors.primary }}>
-                        {formatGNF(lease.rentAmount)}
-                      </td>
-                      <td className="py-3 pr-4 text-gray-500">
-                        {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span
-                          className="rounded-full px-2.5 py-1 text-xs font-semibold"
-                          style={{ backgroundColor: statusCfg.bg, color: statusCfg.color }}
-                        >
-                          {statusCfg.label}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openEdit(lease)}
-                            className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
-                            title="Modifier"
-                          >
-                            <RiEditLine className="h-4 w-4" />
-                          </button>
-                          {lease.status === 'active' && (
+          <div className="overflow-hidden rounded-lg border border-gray-200">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead style={{ backgroundColor: colors.gray50 }}>
+                  <tr>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Bien</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Locataire</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Loyer</th>
+                    <th className="hidden px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 lg:table-cell">Début</th>
+                    <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700">Statut</th>
+                    <th className="px-6 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {visible.map((lease) => {
+                    const property = propertyById(lease.propertyId)
+                    const statusCfg = STATUS_CONFIG[lease.status] || STATUS_CONFIG.active
+                    return (
+                      <tr key={lease.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-3 text-gray-700">
+                          {property
+                            ? `${property.reference} — ${property.address}${property.unitLabel ? ` (${property.unitLabel})` : ''}`
+                            : '—'}
+                        </td>
+                        <td className="px-6 py-3 text-gray-700">
+                          {lease.tenantName}
+                          <p className="font-mono text-xs text-gray-400">{lease.tenantPhone}</p>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-3 font-mono font-semibold" style={{ color: colors.primary }}>
+                          {formatGNF(lease.rentAmount)}
+                        </td>
+                        <td className="hidden px-6 py-3 font-mono text-gray-500 lg:table-cell">
+                          {lease.startDate ? firebaseDateFormat(new Date(lease.startDate)) : '—'}
+                        </td>
+                        <td className="px-6 py-3">
+                          <StatusPill tone={statusCfg.tone}>{statusCfg.label}</StatusPill>
+                        </td>
+                        <td className="px-6 py-3">
+                          <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => endLease(lease, 'ended')}
-                              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                              onClick={() => openEdit(lease)}
+                              className="rounded-lg border border-gray-200 p-2 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                              title="Modifier"
                             >
-                              Clôturer
+                              <RiEditLine className="h-4 w-4" />
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                            {lease.status === 'active' && (
+                              <button
+                                onClick={() => endLease(lease, 'ended')}
+                                className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                              >
+                                Clôturer
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {visibleCount < filtered.length && (
+              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+            )}
           </div>
         )}
       </div>
@@ -299,13 +309,13 @@ export default function BauxTab({ ownerId }) {
       >
         <div className="space-y-5 px-6 py-6 sm:p-8">
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Bien *
             </label>
             <select
               {...register('propertyId', { required: 'Requis' })}
               disabled={!!selected}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50"
             >
               {properties.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -318,105 +328,105 @@ export default function BauxTab({ ownerId }) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Nom du locataire *
               </label>
               <input
                 type="text"
                 {...register('tenantName', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.tenantName && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.tenantName.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.tenantName.message}</p>
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Téléphone *
               </label>
               <input
                 type="text"
                 {...register('tenantPhone', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="+224 6XX XX XX XX"
               />
               {errors.tenantPhone && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.tenantPhone.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.tenantPhone.message}</p>
               )}
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Email
             </label>
             <input
               type="email"
               {...register('tenantEmail')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Loyer mensuel (GNF) *
               </label>
               <input
                 type="number"
                 {...register('rentAmount', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.rentAmount && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.rentAmount.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.rentAmount.message}</p>
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Caution (GNF)
               </label>
               <input
                 type="number"
                 {...register('depositAmount')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Date de début *
               </label>
               <input
                 type="date"
                 {...register('startDate', { required: 'Requis' })}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
               {errors.startDate && (
-                <p className="mt-1 text-xs font-semibold text-red-500">{errors.startDate.message}</p>
+                <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.startDate.message}</p>
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-gray-900">
                 Date de fin
               </label>
               <input
                 type="date"
                 {...register('endDate')}
-                className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+                className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-semibold uppercase tracking-wide text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-gray-900">
               Notes
             </label>
             <textarea
               rows={2}
               {...register('notes')}
-              className="w-full rounded-md border border-gray-200 px-3 py-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none"
+              className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>

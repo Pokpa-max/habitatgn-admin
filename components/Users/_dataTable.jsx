@@ -6,6 +6,7 @@ export const columnsUser = [
   {
     Header: 'Profil',
     accessor: 'image_url',
+    secondary: true,
     Cell: (data) => (
       <div className="flex items-center justify-center">
         {data ? (
@@ -47,15 +48,15 @@ export const columnsUser = [
       switch (data) {
         case 'admin':
           label = 'Administrateur'
-          colorClass = 'bg-purple-100 text-purple-800'
+          colorClass = 'bg-primary-light text-primary-dark'
           break
         case 'manager':
           label = 'Manager'
-          colorClass = 'bg-green-100 text-green-800'
+          colorClass = 'bg-gray-200 text-gray-700'
           break
         case 'customer':
           label = 'Client'
-          colorClass = 'bg-blue-100 text-blue-800'
+          colorClass = 'bg-gray-100 text-gray-800'
           break
         default:
           label = data || 'Inconnu'
@@ -82,8 +83,9 @@ export const columnsUser = [
   {
     Header: 'Date de création',
     accessor: 'createdAt',
+    secondary: true,
     Cell: (data) => (
-      <p className="px-3 text-sm text-gray-500">
+      <p className="px-3 font-mono text-sm text-gray-500">
         {firebaseDateFormat(data)}
       </p>
     ),

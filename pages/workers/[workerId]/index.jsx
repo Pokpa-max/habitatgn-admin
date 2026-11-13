@@ -9,11 +9,14 @@ import {
   RiStarFill,
   RiDeleteBinLine,
   RiImageFill,
+  RiMoneyDollarCircleLine,
+  RiVipCrownLine,
+  RiShieldCheckFill,
 } from 'react-icons/ri'
 import {
   AuthAction,
-  withAuthUser,
-  withAuthUserTokenSSR,
+  withUser,
+  withUserTokenSSR,
 } from 'next-firebase-auth'
 
 import Page from '@/components/Page'
@@ -24,13 +27,31 @@ import Loader from '@/components/Loader'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import ConfirmModal from '@/components/ConfirmModal'
 import PaginationButton from '@/components/Orders/PaginationButton'
-import { getWorkerById } from '@/lib/services/workers'
+import {
+  getWorkerById,
+  hideWorkerFromPublic,
+  restoreWorkerVisibility,
+  updateWorkerPlan,
+  toggleWorkerCertification,
+  setWorkerSubscriptionSuspended,
+} from '@/lib/services/workers'
 import {
   desableUser,
   desableUserFirestore,
   getUserAvailability,
 } from '@/lib/services/managers'
 import { getWorkerReviews, deleteWorkerReview } from '@/lib/services/workerReviews'
+import {
+  getWorkerPayments,
+  getWorkerSubscriptionAmount,
+  recordWorkerPayment,
+  computeWorkerPaymentStatus,
+} from '@/lib/services/workerPayments'
+import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Workers/paymentStatusConfig'
+import RecordPaymentModal from '@/components/Users/Workers/RecordPaymentModal'
+import { firebaseDateFormat } from '@/utils/date'
+import { formatGNF } from '@/utils/format'
+import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 
 const PAGE_SIZE = 10
 
@@ -46,6 +67,12 @@ function WorkerDetail() {
   const [isLoading, setIsLoading] = useState(true)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [reviewToDelete, setReviewToDelete] = useState(null)
+  const [payments, setPayments] = useState([])
+  const [subscriptionAmount, setSubscriptionAmount] = useState(0)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [planValue, setPlanValue] = useState('free')
+  const [planExpiresAtValue, setPlanExpiresAtValue] = useState('')
+  const [savingPlan, setSavingPlan] = useState(false)
 
   useEffect(() => {
     if (!workerId) return
@@ -54,13 +81,26 @@ function WorkerDetail() {
       try {
         const workerData = await getWorkerById(workerId)
         setWorker(workerData)
-        const [available, reviewsData] = await Promise.all([
+        setPlanValue(workerData?.plan || 'free')
+        const expiresAt = workerData?.planExpiresAt
+        setPlanExpiresAtValue(
+          expiresAt
+            ? (typeof expiresAt?.toDate === 'function' ? expiresAt.toDate() : new Date(expiresAt))
+                .toISOString()
+                .slice(0, 10)
+            : ''
+        )
+        const [available, reviewsData, paymentsData, amount] = await Promise.all([
           getUserAvailability(workerData?.userId),
           getWorkerReviews(workerId),
+          getWorkerPayments(workerId),
+          getWorkerSubscriptionAmount(),
         ])
         setIsAvailable(available)
         setReviews(reviewsData)
         setVisibleReviewsCount(PAGE_SIZE)
+        setPayments(paymentsData)
+        setSubscriptionAmount(amount)
       } catch (e) {
         notify('Erreur lors du chargement', 'error')
       }
@@ -69,11 +109,75 @@ function WorkerDetail() {
     load()
   }, [workerId])
 
+  const paymentStatus = worker
+    ? computeWorkerPaymentStatus(
+        worker.suspendedByAdmin ? { ...worker, status: 'approved' } : worker,
+        payments
+      )
+    : null
+
+  const handleRecordPayment = async (amount, paidAt, monthsCovered) => {
+    try {
+      await recordWorkerPayment(workerId, amount, paidAt, monthsCovered)
+      const refreshed = await getWorkerPayments(workerId)
+      setPayments(refreshed)
+      notify('Paiement enregistré', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
+
+  const handleSavePlan = async () => {
+    setSavingPlan(true)
+    try {
+      await updateWorkerPlan(workerId, planValue, planExpiresAtValue || null)
+      setWorker((prev) => ({ ...prev, plan: planValue, planExpiresAt: planExpiresAtValue || null }))
+      notify('Plan mis à jour avec succès', 'success')
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+    setSavingPlan(false)
+  }
+
+  const handleToggleCertification = async () => {
+    const nextCertified = !worker.isCertified
+    try {
+      await toggleWorkerCertification(workerId, nextCertified)
+      setWorker((prev) => ({ ...prev, isCertified: nextCertified }))
+      notify(
+        nextCertified
+          ? 'Badge Certifié attribué avec succès'
+          : 'Badge Certifié retiré',
+        'success'
+      )
+    } catch (e) {
+      notify('Une erreur est survenue', 'error')
+    }
+  }
+
+  const handleToggleSubscriptionSuspension = async () => {
+    const suspended = !worker.subscriptionSuspended
+    try {
+      await setWorkerSubscriptionSuspended(workerId, suspended)
+      setWorker((prev) => ({ ...prev, subscriptionSuspended: suspended }))
+      notify(suspended ? 'Abonnement suspendu' : 'Abonnement réactivé', 'success')
+    } catch (e) {
+      notify('Impossible de modifier le statut de l’abonnement', 'error')
+    }
+  }
+
   const handleToggleBlock = async () => {
     const nextAvailable = !isAvailable
     try {
       await desableUser(worker.userId, !nextAvailable)
       await desableUserFirestore(worker.userId, nextAvailable)
+
+      if (nextAvailable) {
+        await restoreWorkerVisibility(workerId)
+      } else {
+        await hideWorkerFromPublic(workerId)
+      }
+
       setIsAvailable(nextAvailable)
       notify('Action effectuée avec succès', 'success')
       setBlockModalOpen(false)
@@ -125,9 +229,9 @@ function WorkerDetail() {
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <button
           onClick={() => router.back()}
-          className="mb-4 flex items-center text-sm text-gray-600 hover:text-gray-900"
+          className="group mb-5 inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
         >
-          <RiArrowLeftLine className="mr-1.5 h-4 w-4" />
+          <RiArrowLeftLine className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
           Retour
         </button>
 
@@ -153,6 +257,13 @@ function WorkerDetail() {
           cancelFuction={() => {}}
         />
 
+        <RecordPaymentModal
+          open={paymentModalOpen}
+          setOpen={setPaymentModalOpen}
+          defaultAmount={subscriptionAmount}
+          onConfirm={handleRecordPayment}
+        />
+
         {/* Profil */}
         <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -167,7 +278,19 @@ function WorkerDetail() {
                 )}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{worker.name}</h1>
+                <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                  {worker.name}
+                  {worker.isCertified && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-blue-200 px-2.5 py-0.5 text-xs font-semibold text-blue-700"
+                      style={{ backgroundColor: '#EFF6FF' }}
+                      title="Ouvrier certifié BâtiMoo"
+                    >
+                      <RiShieldCheckFill className="h-4 w-4 text-blue-600" />
+                      Certifié
+                    </span>
+                  )}
+                </h1>
                 <p className="mt-0.5 text-xs uppercase tracking-wide text-gray-400">
                   {worker.accountType === 'enterprise' ? 'Entreprise' : 'Particulier'}
                   {worker.experienceYears ? ` · ${worker.experienceYears} ans d'expérience` : ''}
@@ -225,6 +348,146 @@ function WorkerDetail() {
               {worker.description}
             </p>
           )}
+        </div>
+
+        {/* Abonnement */}
+        {(worker.status === 'approved' || worker.suspendedByAdmin) && paymentStatus && (
+          <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gray-500">
+                  Abonnement
+                </h2>
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={{
+                      backgroundColor: PAYMENT_STATUS_CONFIG[paymentStatus.status].bg,
+                      color: PAYMENT_STATUS_CONFIG[paymentStatus.status].color,
+                    }}
+                  >
+                    {worker.subscriptionSuspended
+                      ? 'Suspendu'
+                      : paymentStatus.status === 'overdue'
+                      ? 'Expiré'
+                      : paymentStatus.status === 'trial'
+                      ? 'Essai'
+                      : PAYMENT_STATUS_CONFIG[paymentStatus.status].label}
+                  </span>
+                  <p className="text-xs text-gray-500">
+                    {paymentStatus.status === 'trial'
+                      ? `Essai gratuit jusqu'au ${firebaseDateFormat(paymentStatus.trialEndAt)}`
+                      : paymentStatus.nextDueAt
+                      ? `Prochaine échéance : ${firebaseDateFormat(paymentStatus.nextDueAt)}`
+                      : ''}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPaymentModalOpen(true)}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md active:translate-y-px"
+                style={{ backgroundColor: colors.primary }}
+              >
+                <RiMoneyDollarCircleLine className="h-4 w-4" />
+                Enregistrer un paiement
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleSubscriptionSuspension}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                {worker.subscriptionSuspended ? 'Réactiver abonnement' : 'Suspendre abonnement'}
+              </button>
+            </div>
+
+            <div className="mt-5 border-t border-gray-100 pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                Historique des paiements
+              </p>
+              {payments.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {payments.map((p) => (
+                    <div key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+                      <span className="text-gray-600">
+                        {firebaseDateFormat(p.paidAt)}
+                        {p.monthsCovered > 1 && (
+                          <span className="ml-2 text-xs text-gray-400">
+                            ({p.monthsCovered} mois)
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-semibold text-gray-900">{formatGNF(p.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">Aucun paiement enregistré</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Plan payant & Certification (badges sur le site public) */}
+        <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <RiVipCrownLine className="h-4 w-4 text-gray-400" />
+              <h2 className="text-sm font-bold uppercase tracking-wide text-gray-500">
+                Plan & Certification
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleCertification}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
+                worker.isCertified
+                  ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <RiShieldCheckFill className={`h-4 w-4 ${worker.isCertified ? 'text-blue-600' : 'text-gray-400'}`} />
+              {worker.isCertified ? 'Certifié (Cliquer pour retirer)' : 'Accorder le badge Certifié'}
+            </button>
+          </div>
+          <p className="mb-4 text-xs text-gray-500">
+            Détermine le plan d'affichage et le badge certifié affichés sur le profil public (distinct de l'abonnement de
+            référencement ci-dessus).
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Plan
+              </label>
+              <select
+                value={planValue}
+                onChange={(e) => setPlanValue(e.target.value)}
+                className="rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="free">Gratuit</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                Expire le (optionnel)
+              </label>
+              <input
+                type="date"
+                value={planExpiresAtValue}
+                onChange={(e) => setPlanExpiresAtValue(e.target.value)}
+                className="rounded-2xl border-0 bg-gray-100 px-4 py-2.5 text-sm text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={handleSavePlan}
+              disabled={savingPlan}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md disabled:opacity-60"
+              style={{ backgroundColor: colors.primary }}
+            >
+              {savingPlan ? <Loader /> : 'Enregistrer'}
+            </button>
+          </div>
         </div>
 
         {/* Réalisations */}
@@ -300,20 +563,20 @@ function WorkerDetail() {
 }
 
 const WorkerDetailPage = () => (
-  <Page name="Ouvrier | BâtiServices Admin">
+  <Page name="Ouvrier | BâtiMoo Admin">
     <WorkerDetail />
   </Page>
 )
 
-export const getServerSideProps = withAuthUserTokenSSR({
+export const getServerSideProps = withUserTokenSSR({
   whenUnauthed: AuthAction.REDIRECT_TO_LOGIN,
-})(async ({ AuthUser }) => {
-  if (AuthUser.claims.userType !== 'admin') {
+})(async ({ user: AuthUser }) => {
+  if (!(await hasManagerModuleAccess(AuthUser.id, AuthUser.claims.userType, 'workers'))) {
     return { notFound: true }
   }
   return { props: {} }
 })
 
-export default withAuthUser({
+export default withUser({
   whenUnauthedAfterInit: AuthAction.REDIRECT_TO_LOGIN,
 })(WorkerDetailPage)

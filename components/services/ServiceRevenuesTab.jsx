@@ -12,18 +12,21 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import StatusPill from '@/components/ui/StatusPill'
+import PaginationButton from '@/components/Orders/PaginationButton'
 import { formatGNF } from '@/utils/format'
-import { getMovingRequests } from '@/lib/services/movingRequests'
-import { getRentalManagementRequests } from '@/lib/services/rentalManagementRequests'
-import { getLegalSecurityRequests } from '@/lib/services/legalSecurityRequests'
+import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
 import { getManagedProperties } from '@/lib/services/managedProperties'
+
+const PAGE_SIZE = 10
 
 export default function ServiceRevenuesTab() {
   const colors = useColors()
   const [isLoading, setIsLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState('all') // 'week' | 'month' | 'year' | 'all'
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const emptyPeriod = { platform: 0, gross: 0 }
   const [periodTotals, setPeriodTotals] = useState({
@@ -86,13 +89,14 @@ export default function ServiceRevenuesTab() {
     const loadRevenues = async () => {
       setIsLoading(true)
       try {
-        const [moving, rental, legal, payments, properties] = await Promise.all([
-          getMovingRequests(),
-          getRentalManagementRequests(),
-          getLegalSecurityRequests(),
+        const [allRequests, payments, properties] = await Promise.all([
+          getAllServiceRequests(),
           getRentPayments(),
           getManagedProperties(),
         ])
+        const moving = allRequests.filter((r) => r.category === 'demenagement')
+        const rental = allRequests.filter((r) => r.category === 'gestion-locative')
+        const legal = allRequests.filter((r) => r.category === 'securisation-fonciere')
         const propertiesById = Object.fromEntries(properties.map((p) => [p.id, p]))
 
         // Calculs Déménagement
@@ -100,7 +104,7 @@ export default function ServiceRevenuesTab() {
         let movingDoneCount = 0
         const movingItems = moving.map((r) => {
           const amount = Number(r.price || r.estimatedPrice || r.amount || 0)
-          if (r.status === 'done' || r.status === 'completed') {
+          if (r.status === 'completed') {
             movingRev += amount
             movingDoneCount++
           }
@@ -112,7 +116,7 @@ export default function ServiceRevenuesTab() {
             phone: r.phone || '—',
             amount: amount,
             grossAmount: amount,
-            status: r.status === 'done' ? 'Payé' : 'En attente',
+            status: r.status === 'completed' ? 'Payé' : 'En attente',
             date: r.createdAt,
           }
         })
@@ -144,7 +148,7 @@ export default function ServiceRevenuesTab() {
 
         rental.forEach((r) => {
           const amount = Number(r.amount || r.fee || 0)
-          if (r.status === 'done') {
+          if (r.status === 'completed') {
             rentalRev += amount
             rentalGross += amount
             rentalDoneCount++
@@ -158,7 +162,7 @@ export default function ServiceRevenuesTab() {
               phone: r.phone || '—',
               amount: amount,
               grossAmount: amount,
-              status: r.status === 'done' ? 'Payé' : 'En attente',
+              status: r.status === 'completed' ? 'Payé' : 'En attente',
               date: r.createdAt,
             })
           }
@@ -169,7 +173,7 @@ export default function ServiceRevenuesTab() {
         let legalDoneCount = 0
         const legalItems = legal.map((r) => {
           const amount = Number(r.price || r.fee || r.amount || 0)
-          if (r.status === 'done') {
+          if (r.status === 'completed') {
             legalRev += amount
             legalDoneCount++
           }
@@ -181,7 +185,7 @@ export default function ServiceRevenuesTab() {
             phone: r.phone || '—',
             amount: amount,
             grossAmount: amount,
-            status: r.status === 'done' ? 'Payé' : 'En attente',
+            status: r.status === 'completed' ? 'Payé' : 'En attente',
             date: r.createdAt,
           }
         })
@@ -238,11 +242,16 @@ export default function ServiceRevenuesTab() {
     loadRevenues()
   }, [])
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE)
+  }, [activeFilter, periodFilter])
+
   const filteredItems = revenueItems.filter((item) => {
     const matchService = activeFilter === 'all' || item.serviceType === activeFilter
     const matchPeriod = isWithinPeriod(item.date, periodFilter)
     return matchService && matchPeriod
   })
+  const visibleItems = filteredItems.slice(0, visibleCount)
 
   return (
     <div className="space-y-6">
@@ -286,97 +295,106 @@ export default function ServiceRevenuesTab() {
         <>
           {/* Cartes de Synthèse par Période (Semaine, Mois, Année, Total) */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Semaine</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50">
-                  <RiCalendarEventLine className="h-5 w-5 text-emerald-600" />
+            {[
+              {
+                icon: RiCalendarEventLine,
+                label: 'Revenu Semaine',
+                value: formatGNF(periodTotals.week.platform),
+                subValue: `7 derniers jours · ${formatGNF(periodTotals.week.gross)} encaissé`,
+              },
+              {
+                icon: RiMoneyDollarCircleLine,
+                label: 'Revenu Mois',
+                value: formatGNF(periodTotals.month.platform),
+                subValue: `Ce mois-ci · ${formatGNF(periodTotals.month.gross)} encaissé`,
+              },
+              {
+                icon: RiWallet3Line,
+                label: 'Revenu Année',
+                value: formatGNF(periodTotals.year.platform),
+                subValue: `Cette année · ${formatGNF(periodTotals.year.gross)} encaissé`,
+              },
+              {
+                icon: RiMoneyDollarCircleLine,
+                label: 'Cumul Global',
+                value: formatGNF(periodTotals.all.platform),
+                subValue: `Tout l'historique · ${formatGNF(periodTotals.all.gross)} encaissé`,
+              },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+              >
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: colors.primaryVeryLight }}
+                >
+                  <card.icon className="h-4 w-4" style={{ color: colors.primary }} />
                 </div>
+                <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                  {card.label}
+                </p>
+                <p
+                  className="font-mono text-xl font-semibold tracking-tight"
+                  style={{ color: colors.gray900 }}
+                >
+                  {card.value}
+                </p>
+                <p className="text-[11.5px]" style={{ color: colors.gray500 }}>
+                  {card.subValue}
+                </p>
               </div>
-              <p className="mt-3 text-2xl font-extrabold text-emerald-900">
-                {formatGNF(periodTotals.week.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                7 derniers jours · {formatGNF(periodTotals.week.gross)} encaissé
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Mois</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ backgroundColor: colors.primaryVeryLight }}>
-                  <RiMoneyDollarCircleLine className="h-5 w-5" style={{ color: colors.primary }} />
-                </div>
-              </div>
-              <p className="mt-3 text-2xl font-extrabold" style={{ color: colors.gray900 }}>
-                {formatGNF(periodTotals.month.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Ce mois-ci · {formatGNF(periodTotals.month.gross)} encaissé
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Revenu Année</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50">
-                  <RiWallet3Line className="h-5 w-5 text-blue-600" />
-                </div>
-              </div>
-              <p className="mt-3 text-2xl font-extrabold text-blue-900">
-                {formatGNF(periodTotals.year.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Cette année · {formatGNF(periodTotals.year.gross)} encaissé
-              </p>
-            </div>
-
-            <div className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Cumul Global</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50">
-                  <RiMoneyDollarCircleLine className="h-5 w-5 text-amber-600" />
-                </div>
-              </div>
-              <p className="mt-3 text-2xl font-extrabold text-amber-900">
-                {formatGNF(periodTotals.all.platform)}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Tout l'historique · {formatGNF(periodTotals.all.gross)} encaissé
-              </p>
-            </div>
+            ))}
           </div>
 
           {/* Répartition par Service */}
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <RiTruckLine className="h-5 w-5 text-blue-600" />
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Déménagement</span>
+            {[
+              {
+                icon: RiTruckLine,
+                label: 'Déménagement',
+                value: formatGNF(stats.movingRevenue),
+                subValue: `${stats.movingCount} prestations`,
+              },
+              {
+                icon: RiHomeGearLine,
+                label: 'Gestion Locative',
+                value: formatGNF(stats.rentalRevenue),
+                subValue: `Commission sur ${stats.rentalCount} règlements · ${formatGNF(stats.rentalGross)} encaissé`,
+              },
+              {
+                icon: RiFileShieldLine,
+                label: 'Sécurisation Foncière',
+                value: formatGNF(stats.legalRevenue),
+                subValue: `${stats.legalCount} dossiers`,
+              },
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="flex flex-col gap-2.5 rounded-xl p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                style={{ backgroundColor: colors.white, border: `1px solid ${colors.gray100}` }}
+              >
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: colors.primaryVeryLight }}
+                >
+                  <card.icon className="h-4 w-4" style={{ color: colors.primary }} />
+                </div>
+                <p className="text-xs font-semibold" style={{ color: colors.gray500 }}>
+                  {card.label}
+                </p>
+                <p
+                  className="font-mono text-xl font-semibold tracking-tight"
+                  style={{ color: colors.gray900 }}
+                >
+                  {card.value}
+                </p>
+                <p className="text-[11.5px]" style={{ color: colors.gray500 }}>
+                  {card.subValue}
+                </p>
               </div>
-              <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.movingRevenue)}</p>
-              <p className="mt-0.5 text-xs text-gray-400">{stats.movingCount} prestations</p>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <RiHomeGearLine className="h-5 w-5 text-emerald-600" />
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Gestion Locative</span>
-              </div>
-              <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.rentalRevenue)}</p>
-              <p className="mt-0.5 text-xs text-gray-400">
-                Commission sur {stats.rentalCount} règlements · {formatGNF(stats.rentalGross)} encaissé
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-              <div className="flex items-center gap-2">
-                <RiFileShieldLine className="h-5 w-5 text-amber-600" />
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Sécurisation Foncière</span>
-              </div>
-              <p className="mt-2 text-xl font-extrabold text-gray-900">{formatGNF(stats.legalRevenue)}</p>
-              <p className="mt-0.5 text-xs text-gray-400">{stats.legalCount} dossiers</p>
-            </div>
+            ))}
           </div>
 
           {/* Tableau des transactions de services */}
@@ -418,56 +436,54 @@ export default function ServiceRevenuesTab() {
             ) : (
               <div className="overflow-hidden rounded-lg border border-gray-200">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[680px]">
                     <thead style={{ backgroundColor: colors.gray50 }}>
                       <tr>
-                        {['Service', 'Client / Contact', 'Montant', 'Statut', 'Date'].map((h) => (
+                        {[
+                          { label: 'Service' },
+                          { label: 'Client / Contact' },
+                          { label: 'Montant' },
+                          { label: 'Statut' },
+                          { label: 'Date', secondary: true },
+                        ].map((col) => (
                           <th
-                            key={h}
+                            key={col.label}
                             scope="col"
-                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700"
+                            className={`px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wide text-gray-700 ${
+                              col.secondary ? 'hidden lg:table-cell' : ''
+                            }`}
                           >
-                            {h}
+                            {col.label}
                           </th>
                         ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white">
-                      {filteredItems.map((item) => (
+                      {visibleItems.map((item) => (
                         <tr key={item.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <span className="text-sm font-semibold text-gray-900">{item.service}</span>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-3">
                             <p className="text-sm font-medium text-gray-800">{item.client}</p>
-                            <p className="text-xs text-gray-400">{item.phone}</p>
+                            <p className="font-mono text-xs text-gray-400">{item.phone}</p>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm font-bold text-gray-900">
+                          <td className="whitespace-nowrap px-6 py-3">
+                            <span className="font-mono text-sm font-bold text-gray-900">
                               {formatGNF(item.amount)}
                             </span>
                             {item.grossAmount !== undefined && (
-                              <p className="mt-0.5 text-[11px] text-gray-400">
+                              <p className="mt-0.5 font-mono text-[11px] text-gray-400">
                                 {formatGNF(item.grossAmount)} encaissé · {item.commissionRate}% commission
                               </p>
                             )}
                           </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
-                              style={{
-                                backgroundColor: item.status === 'Payé' ? colors.primaryVeryLight : colors.gray100,
-                                color: item.status === 'Payé' ? colors.primaryDark : colors.gray600,
-                              }}
-                            >
-                              <span
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ backgroundColor: item.status === 'Payé' ? colors.primary : colors.gray500 }}
-                              />
+                          <td className="px-6 py-3">
+                            <StatusPill tone={item.status === 'Payé' ? 'success' : 'warning'}>
                               {item.status}
-                            </span>
+                            </StatusPill>
                           </td>
-                          <td className="px-6 py-4 text-xs text-gray-500">
+                          <td className="hidden px-6 py-3 font-mono text-xs text-gray-500 lg:table-cell">
                             {item.date ? new Date(item.date?.seconds ? item.date.seconds * 1000 : item.date).toLocaleDateString('fr-FR') : '—'}
                           </td>
                         </tr>
@@ -475,6 +491,9 @@ export default function ServiceRevenuesTab() {
                     </tbody>
                   </table>
                 </div>
+                {visibleCount < filteredItems.length && (
+                  <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
+                )}
               </div>
             )}
           </div>
