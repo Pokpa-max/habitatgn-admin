@@ -23,6 +23,7 @@ import {
   withUser,
   withUserTokenSSR,
 } from 'next-firebase-auth'
+import { isListingOnline } from '@/lib/services/accountNotifications'
 
 // Chaque compteur « à traiter » de NotificationsContext -> phrase + page.
 const TODO_ITEMS = [
@@ -81,6 +82,34 @@ function useReportedProducts() {
       .then((snap) => {
         if (!cancelled)
           setCount(snap.docs.filter((d) => d.data().active !== false).length)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return count
+}
+
+/** Annonces (biens, terrains, nuitées) signalées par des visiteurs, encore en ligne. */
+function useReportedListings() {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    let cancelled = false
+    Promise.all(
+      ['houses', 'lands', 'daily_rentals'].map((name) =>
+        getDocs(query(collection(db, name), where('reportCount', '>', 0)))
+      )
+    )
+      .then((snaps) => {
+        if (cancelled) return
+        setCount(
+          snaps.reduce(
+            (total, snap) =>
+              total + snap.docs.filter((d) => isListingOnline(d.data())).length,
+            0
+          )
+        )
       })
       .catch(() => {})
     return () => {
@@ -162,6 +191,7 @@ function TodoPanel() {
   const notifications = useNotifications()
   const renewals = useProRenewals(AuthUser.claims?.userType === 'admin')
   const reportedProducts = useReportedProducts()
+  const reportedListings = useReportedListings()
 
   const items = [
     ...TODO_ITEMS.map((item) => ({
@@ -181,6 +211,13 @@ function TodoPanel() {
       many: 'formules Pro agents à renouveler (7 jours)',
       href: '/agents',
       count: renewals.agents,
+    },
+    {
+      key: 'reportedListings',
+      one: 'annonce signalée par un visiteur',
+      many: 'annonces signalées par des visiteurs',
+      href: '/signalements',
+      count: reportedListings,
     },
     {
       key: 'reportedProducts',

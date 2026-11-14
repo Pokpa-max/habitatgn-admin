@@ -20,6 +20,7 @@ import {
   RiCalendarTodoLine,
   RiFileUserLine,
   RiLockPasswordLine,
+  RiFlag2Line,
 } from 'react-icons/ri'
 import Link from 'next/link'
 import { useUser } from 'next-firebase-auth'
@@ -40,6 +41,7 @@ const navigation = [
   { section: 'À traiter', name: 'Réservations', href: '/reservations', icon: RiCalendarCheckLine, claims: ['admin', 'manager'], module: 'reservations', badgeKey: 'pendingBookings' },
   { section: 'À traiter', name: 'Demandes de service', href: '/services', icon: RiTruckLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingServiceRequests' },
   { section: 'À traiter', name: 'Messages', href: '/messages', icon: RiMailLine, claims: ['admin', 'manager'], module: 'messages', badgeKey: 'unreadMessages' },
+  { section: 'À traiter', name: 'Annonces signalées', href: '/signalements', icon: RiFlag2Line, claims: ['admin', 'manager'], module: 'properties' },
   { section: 'À traiter', name: 'Carrières', href: '/carrieres', icon: RiFileUserLine, claims: ['admin', 'manager'], module: 'careers', badgeKey: 'pendingCareerApplications' },
 
   { section: 'Professionnels', name: 'Agents', href: '/agents', icon: RiBriefcaseLine, claims: ['admin', 'manager'], module: 'agents', badgeKey: 'pendingAgents' },
