@@ -8,6 +8,7 @@ import {
   RiWallet3Line,
   RiCalendarEventLine,
   RiFilter3Line,
+  RiSearchEyeLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -45,6 +46,8 @@ export default function ServiceRevenuesTab() {
     rentalCount: 0,
     legalRevenue: 0,
     legalCount: 0,
+    searchRevenue: 0,
+    searchCount: 0,
   })
 
   const [revenueItems, setRevenueItems] = useState([])
@@ -97,6 +100,10 @@ export default function ServiceRevenuesTab() {
         const moving = allRequests.filter((r) => r.category === 'demenagement')
         const rental = allRequests.filter((r) => r.category === 'gestion-locative')
         const legal = allRequests.filter((r) => r.category === 'securisation-fonciere')
+        // Recherche immobilière : seules les formules payantes marquées « payé » dans la fiche
+        const paidSearches = allRequests.filter(
+          (r) => r.category === 'recherche-bien' && r.paymentStatus === 'paid' && Number(r.paymentAmount) > 0
+        )
         const propertiesById = Object.fromEntries(properties.map((p) => [p.id, p]))
 
         // Calculs Déménagement
@@ -190,7 +197,24 @@ export default function ServiceRevenuesTab() {
           }
         })
 
-        const allItems = [...movingItems, ...rentalItems, ...legalItems].sort(
+        let searchRev = 0
+        const searchItems = paidSearches.map((r) => {
+          const amount = Number(r.paymentAmount) || 0
+          searchRev += amount
+          return {
+            id: `search-${r.id}`,
+            service: `Recherche immobilière${r.serviceLevelLabel ? ` · ${r.serviceLevelLabel}` : ''}`,
+            serviceType: 'search',
+            client: r.name || 'Client',
+            phone: r.phone || '—',
+            amount,
+            grossAmount: amount,
+            status: 'Payé',
+            date: r.paidOn || r.createdAt,
+          }
+        })
+
+        const allItems = [...movingItems, ...rentalItems, ...legalItems, ...searchItems].sort(
           (a, b) => new Date(b.date || 0) - new Date(a.date || 0)
         )
 
@@ -230,6 +254,8 @@ export default function ServiceRevenuesTab() {
           rentalCount: rentalDoneCount,
           legalRevenue: legalRev,
           legalCount: legalDoneCount,
+          searchRevenue: searchRev,
+          searchCount: searchItems.length,
         })
 
         setRevenueItems(allItems)
@@ -349,7 +375,7 @@ export default function ServiceRevenuesTab() {
           </div>
 
           {/* Répartition par Service */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
               {
                 icon: RiTruckLine,
@@ -368,6 +394,12 @@ export default function ServiceRevenuesTab() {
                 label: 'Sécurisation Foncière',
                 value: formatGNF(stats.legalRevenue),
                 subValue: `${stats.legalCount} dossiers`,
+              },
+              {
+                icon: RiSearchEyeLine,
+                label: 'Recherche immobilière',
+                value: formatGNF(stats.searchRevenue),
+                subValue: `${stats.searchCount} formule${stats.searchCount > 1 ? 's' : ''} payée${stats.searchCount > 1 ? 's' : ''}`,
               },
             ].map((card) => (
               <div
@@ -411,6 +443,7 @@ export default function ServiceRevenuesTab() {
                     { value: 'moving', label: 'Déménagement' },
                     { value: 'rental', label: 'Gestion' },
                     { value: 'legal', label: 'Foncier' },
+                    { value: 'search', label: 'Recherche' },
                   ].map((f) => (
                     <button
                       key={f.value}
