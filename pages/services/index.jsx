@@ -50,7 +50,7 @@ function Services() {
       <div
         role="group"
         aria-label="Rubriques des demandes"
-        className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-3"
+        className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3"
       >
         {sections.map((section) => {
           const active = activeSection === section.value
@@ -61,7 +61,7 @@ function Services() {
               aria-pressed={active}
               aria-controls="service-content"
               onClick={() => setActiveSection(section.value)}
-              className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              className="flex min-h-12 items-center justify-between gap-3 rounded-lg border px-3 py-3 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 sm:px-4"
               style={
                 active
                   ? { borderColor: colors.primary, backgroundColor: colors.primaryVeryLight, color: colors.primary }
@@ -86,32 +86,46 @@ function Services() {
         })}
       </div>
 
-      <div
-        id="service-content"
-        role="region"
-        aria-label={activeSectionLabel}
-      >
+      <div id="service-content" role="region" aria-label={activeSectionLabel}>
         {activeSection === 'property' && (
           <>
-            <div className="mb-5 max-w-sm">
-              <label
-                htmlFor="property-request-category"
-                className="mb-1.5 block text-sm font-semibold text-gray-700"
-              >
+            <div className="mb-5">
+              <p className="mb-2 text-sm font-semibold text-gray-700">
                 Type de demande immobilière
-              </label>
-              <select
-                id="property-request-category"
-                value={activePropertyCategory}
-                onChange={(event) => setActivePropertyCategory(event.target.value)}
-                className="min-h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700"
+              </p>
+              <div
+                role="group"
+                aria-label="Type de demande immobilière"
+                className="grid grid-cols-2 gap-2 lg:grid-cols-4"
               >
                 {propertyCategories.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.label} — {category.badgeCount} en attente
-                  </option>
+                  <button
+                    key={category.value}
+                    type="button"
+                    aria-pressed={activePropertyCategory === category.value}
+                    aria-controls="service-content"
+                    aria-label={`${category.label}, ${category.badgeCount} demande${category.badgeCount === 1 ? '' : 's'} en attente`}
+                    onClick={() => setActivePropertyCategory(category.value)}
+                    className="flex min-h-12 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                    style={
+                      activePropertyCategory === category.value
+                        ? { borderColor: colors.primary, backgroundColor: colors.primaryVeryLight, color: colors.primary }
+                        : { borderColor: colors.gray200, backgroundColor: colors.white, color: colors.gray700 }
+                    }
+                  >
+                    <span>{category.label}</span>
+                    {category.badgeCount > 0 && (
+                      <span
+                        aria-hidden="true"
+                        className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                        style={{ backgroundColor: colors.orangeAccent }}
+                      >
+                        {category.badgeCount}
+                      </span>
+                    )}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             {activePropertyCategory === 'moving' && <MovingTab />}
             {activePropertyCategory === 'rental' && <RentalManagementTab />}
