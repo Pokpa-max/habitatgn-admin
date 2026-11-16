@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
 import {
+  deleteServiceRequest,
   getServiceRequestsByCategory,
   updateServiceRequestStatus,
 } from '@/lib/services/serviceRequests'
@@ -86,6 +87,7 @@ export default function PropertySearchTab() {
       description="Demandes d'achat et de location envoyées depuis le site public"
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}
+      deleteRequest={deleteServiceRequest}
       columns={columns}
       detailFields={detailFields}
       searchFn={(request, lower) =>
