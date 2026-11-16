@@ -5,6 +5,7 @@ import {
   RiSearchLine,
   RiInboxLine,
   RiWhatsappLine,
+  RiDeleteBinLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -15,6 +16,7 @@ import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusCh
 import { firebaseDateFormat } from '@/utils/date'
 import { REQUEST_STATUSES } from './statusConfig'
 import { useCanManage } from '@/hooks/useCanManage'
+import ConfirmModal from '@/components/ConfirmModal'
 
 const PAGE_SIZE = 10
 
@@ -28,7 +30,7 @@ const readableValue = (value) => {
   return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle }) {
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete }) {
   if (!request) return null
 
   const currentStatus = request.status || 'pending'
@@ -54,6 +56,11 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
       }
       footer={
         <>
+          {onDelete && (
+            <ModalButton variant="danger" onClick={() => onDelete(request)} icon={RiDeleteBinLine}>
+              Supprimer
+            </ModalButton>
+          )}
           {whatsapp && (
             <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
               WhatsApp
@@ -117,6 +124,8 @@ export default function ServiceRequestsPanel({
   detailFields,
   searchFn,
   searchPlaceholder,
+  /** Facultatif : active le bouton « Supprimer » (avec confirmation) */
+  deleteRequest,
 }) {
   const colors = useColors()
   const canProcess = useCanManage('services', 'process')
@@ -127,6 +136,8 @@ export default function ServiceRequestsPanel({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [detailTarget, setDetailTarget] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const canDelete = Boolean(deleteRequest) && canProcess
 
   useEffect(() => {
     const load = async () => {
@@ -158,6 +169,23 @@ export default function ServiceRequestsPanel({
     }
   }
 
+  const handleDelete = async () => {
+    if (!deleteTarget || !canDelete) return
+    try {
+      await deleteRequest(deleteTarget.id)
+      setRequests((prev) => prev.filter((r) => r.id !== deleteTarget.id))
+      if (detailTarget?.id === deleteTarget.id) {
+        setDetailOpen(false)
+        setDetailTarget(null)
+      }
+      notify('Demande supprimée', 'success')
+    } catch (e) {
+      notify('La suppression a échoué', 'error')
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
   const filtered = requests.filter((r) => {
     const matchStatus = statusFilter === 'all' || (r.status || 'pending') === statusFilter
     if (!matchStatus) return false
@@ -179,6 +207,29 @@ export default function ServiceRequestsPanel({
         onStatusChange={handleStatusChange}
         canProcess={canProcess}
         serviceTitle={title}
+        onDelete={
+          canDelete
+            ? (request) => {
+                // Une seule fenêtre à la fois : la fiche se ferme, la confirmation s'ouvre
+                setDetailOpen(false)
+                setDeleteTarget(request)
+              }
+            : undefined
+        }
+      />
+
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        setOpen={(open) => !open && setDeleteTarget(null)}
+        title="Supprimer cette demande ?"
+        description={
+          deleteTarget
+            ? `La demande de ${deleteTarget.name || 'ce client'} sera définitivement supprimée. Cette action est irréversible.`
+            : ''
+        }
+        confirmLabel="Supprimer"
+        tone="error"
+        confirmFunction={handleDelete}
       />
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -301,15 +352,27 @@ export default function ServiceRequestsPanel({
                         </StatusPill>
                       </td>
                       <td className="px-6 py-3">
-                        <button
-                          onClick={() => {
-                            setDetailTarget(request)
-                            setDetailOpen(true)
-                          }}
-                          className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                        >
-                          Voir
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              setDetailTarget(request)
+                              setDetailOpen(true)
+                            }}
+                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                          >
+                            Voir
+                          </button>
+                          {canDelete && (
+                            <button
+                              onClick={() => setDeleteTarget(request)}
+                              aria-label={`Supprimer la demande de ${request.name || 'ce client'}`}
+                              title="Supprimer"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                            >
+                              <RiDeleteBinLine className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
