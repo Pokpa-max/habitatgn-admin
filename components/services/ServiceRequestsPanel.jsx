@@ -30,7 +30,7 @@ const readableValue = (value) => {
   return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete }) {
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete, renderDetailExtra, onRequestUpdated }) {
   if (!request) return null
 
   const currentStatus = request.status || 'pending'
@@ -96,6 +96,8 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
         </ModalSection>
       )}
 
+      {renderDetailExtra && renderDetailExtra(request, onRequestUpdated)}
+
       {canProcess && (
         <ModalSection title="Statut de la demande">
           <StatusChoice
@@ -126,6 +128,8 @@ export default function ServiceRequestsPanel({
   searchPlaceholder,
   /** Facultatif : active le bouton « Supprimer » (avec confirmation) */
   deleteRequest,
+  /** Facultatif : section en plus dans la fiche (ex. paiement), reçoit (demande, miseÀJour) */
+  renderDetailExtra,
 }) {
   const colors = useColors()
   const canProcess = useCanManage('services', 'process')
@@ -169,6 +173,12 @@ export default function ServiceRequestsPanel({
     }
   }
 
+  /** Une section de la fiche a modifié la demande : liste et fiche à jour */
+  const handleRequestUpdated = (id, changes) => {
+    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ...changes } : r)))
+    setDetailTarget((prev) => (prev?.id === id ? { ...prev, ...changes } : prev))
+  }
+
   const handleDelete = async () => {
     if (!deleteTarget || !canDelete) return
     try {
@@ -207,6 +217,8 @@ export default function ServiceRequestsPanel({
         onStatusChange={handleStatusChange}
         canProcess={canProcess}
         serviceTitle={title}
+        renderDetailExtra={renderDetailExtra}
+        onRequestUpdated={handleRequestUpdated}
         onDelete={
           canDelete
             ? (request) => {
