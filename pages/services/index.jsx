@@ -4,6 +4,7 @@ import {
   RiHomeGearLine,
   RiFileShieldLine,
   RiMoneyDollarCircleLine,
+  RiSearchLine,
   RiToolsLine,
 } from 'react-icons/ri'
 import {
@@ -20,6 +21,7 @@ import { useNotifications } from '@/contexts/NotificationsContext'
 import MovingTab from '@/components/services/MovingTab'
 import RentalManagementTab from '@/components/services/RentalManagementTab'
 import LegalSecurityTab from '@/components/services/LegalSecurityTab'
+import PropertySearchTab from '@/components/services/PropertySearchTab'
 import ArtisanRequestsTab from '@/components/services/ArtisanRequestsTab'
 import ServiceRevenuesTab from '@/components/services/ServiceRevenuesTab'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
@@ -33,6 +35,7 @@ function Services() {
     { value: 'moving', label: 'Déménagement', icon: RiTruckLine, badgeCount: notifications.pendingMovingRequests },
     { value: 'rental', label: 'Demandes de gestion locative', icon: RiHomeGearLine, badgeCount: notifications.pendingRentalRequests },
     { value: 'legal', label: 'Sécurisation foncière', icon: RiFileShieldLine, badgeCount: notifications.pendingLegalRequests },
+    { value: 'property-search', label: 'Recherche immobilière', icon: RiSearchLine, badgeCount: notifications.pendingPropertySearchRequests },
     { value: 'artisan', label: 'Artisans / Autres demandes', icon: RiToolsLine, badgeCount: notifications.pendingArtisanRequests },
     { value: 'revenues', label: 'Revenus des services', icon: RiMoneyDollarCircleLine },
   ]
@@ -73,6 +76,7 @@ function Services() {
       {activeTab === 'moving' && <MovingTab />}
       {activeTab === 'rental' && <RentalManagementTab />}
       {activeTab === 'legal' && <LegalSecurityTab />}
+      {activeTab === 'property-search' && <PropertySearchTab />}
       {activeTab === 'artisan' && <ArtisanRequestsTab />}
       {activeTab === 'revenues' && <ServiceRevenuesTab />}
     </Scaffold>

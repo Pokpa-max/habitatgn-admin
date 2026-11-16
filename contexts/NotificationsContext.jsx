@@ -16,6 +16,7 @@ const CATEGORY_LABELS = {
   demenagement: 'de déménagement',
   'gestion-locative': 'de gestion locative',
   'securisation-fonciere': 'de sécurisation foncière',
+  'recherche-bien': 'de recherche immobilière',
 }
 
 const NotificationsContext = createContext({
@@ -25,6 +26,7 @@ const NotificationsContext = createContext({
   pendingMovingRequests: 0,
   pendingRentalRequests: 0,
   pendingLegalRequests: 0,
+  pendingPropertySearchRequests: 0,
   pendingArtisanRequests: 0,
   pendingServiceRequests: 0,
   pendingBookings: 0,
@@ -39,6 +41,7 @@ export function NotificationsProvider({ children }) {
   const [pendingMovingRequests, setPendingMovingRequests] = useState(0)
   const [pendingRentalRequests, setPendingRentalRequests] = useState(0)
   const [pendingLegalRequests, setPendingLegalRequests] = useState(0)
+  const [pendingPropertySearchRequests, setPendingPropertySearchRequests] = useState(0)
   const [pendingArtisanRequests, setPendingArtisanRequests] = useState(0)
   const [pendingBookings, setPendingBookings] = useState(0)
   const [pendingCareerApplications, setPendingCareerApplications] = useState(0)
@@ -210,6 +213,7 @@ export function NotificationsProvider({ children }) {
           setPendingMovingRequests(docs.filter((d) => d.category === 'demenagement').length)
           setPendingRentalRequests(docs.filter((d) => d.category === 'gestion-locative').length)
           setPendingLegalRequests(docs.filter((d) => d.category === 'securisation-fonciere').length)
+          setPendingPropertySearchRequests(docs.filter((d) => d.category === 'recherche-bien').length)
           setPendingArtisanRequests(docs.filter((d) => !MAIN_CATEGORIES.includes(d.category)).length)
 
           if (knownServiceRequestIds.current === null) {
@@ -325,7 +329,11 @@ export function NotificationsProvider({ children }) {
   }, [])
 
   const pendingServiceRequests =
-    pendingMovingRequests + pendingRentalRequests + pendingLegalRequests + pendingArtisanRequests
+    pendingMovingRequests +
+    pendingRentalRequests +
+    pendingLegalRequests +
+    pendingPropertySearchRequests +
+    pendingArtisanRequests
 
   return (
     <NotificationsContext.Provider
@@ -336,6 +344,7 @@ export function NotificationsProvider({ children }) {
         pendingMovingRequests,
         pendingRentalRequests,
         pendingLegalRequests,
+        pendingPropertySearchRequests,
         pendingArtisanRequests,
         pendingServiceRequests,
         pendingBookings,
