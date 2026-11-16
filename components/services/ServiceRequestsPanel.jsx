@@ -207,7 +207,15 @@ export default function ServiceRequestsPanel({
         onStatusChange={handleStatusChange}
         canProcess={canProcess}
         serviceTitle={title}
-        onDelete={canDelete ? setDeleteTarget : undefined}
+        onDelete={
+          canDelete
+            ? (request) => {
+                // Une seule fenêtre à la fois : la fiche se ferme, la confirmation s'ouvre
+                setDetailOpen(false)
+                setDeleteTarget(request)
+              }
+            : undefined
+        }
       />
 
       <ConfirmModal
