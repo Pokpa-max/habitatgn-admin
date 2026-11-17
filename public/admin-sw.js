@@ -11,8 +11,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'BâtiMoo Admin', {
       body: data.body || 'Nouvelle notification.',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/badge-96.png',
       data: { href: data.href || '/' },
       tag: data.tag || undefined,
       requireInteraction: true,

@@ -8,9 +8,17 @@ class MyDocument extends Document {
 
   render() {
     return (
-      <Html className="h-full debug-screens">
+      <Html lang="fr" className="h-full">
         <Head>
-          <meta property="example" content="example.com" />
+          {/* Application installable sur téléphone (écran d'accueil, plein écran) */}
+          <link rel="manifest" href="/manifest.webmanifest" />
+          <meta name="theme-color" content="#0A192F" />
+          <meta name="application-name" content="BâtiMoo Admin" />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-title" content="BâtiMoo Admin" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         </Head>
         <body className="h-full">
           <Main />
