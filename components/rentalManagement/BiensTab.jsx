@@ -26,6 +26,7 @@ import {
   getPropertiesByOwner,
   editManagedProperty,
   deleteManagedProperty,
+  createdAtMillis,
 } from '@/lib/services/managedProperties'
 import { getPropertyOwners } from '@/lib/services/propertyOwners'
 import { getLeasesByProperty } from '@/lib/services/leases'
@@ -386,7 +387,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     return untilDate.getTime() > Date.now()
   }
 
-  const filtered = properties.filter((p) => {
+  // Du plus récent au plus ancien, quel que soit le format de la date enregistrée
+  const filtered = [...properties].sort((a, b) => createdAtMillis(b.createdAt) - createdAtMillis(a.createdAt)).filter((p) => {
     const q = search.toLowerCase()
     if (!q) return true
     const owner = ownerById(p.ownerId)
