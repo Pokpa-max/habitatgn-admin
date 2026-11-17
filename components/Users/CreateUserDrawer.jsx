@@ -91,6 +91,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
       desabled: false,
       agentAccountType: 'particulier',
       workerAccountType: 'individual',
+      createLogin: false,
     },
     reValidateMode: 'onChange',
     shouldUnregister: true,
@@ -100,6 +101,9 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
   const agentAccountType = watch('agentAccountType')
   const workerAccountType = watch('workerAccountType')
   const workerSpecialty = watch('workerSpecialty')
+  // Ouvrier : compte de connexion facultatif (créable plus tard depuis la liste)
+  const createLogin = watch('createLogin')
+  const profileOnly = role === 'worker' && !createLogin
 
   React.useEffect(() => {
     if (open && defaultRole) {
@@ -138,6 +142,17 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
       }
 
       const newUser = await createAccount({ ...data, imageUrl })
+      if (role === 'worker' && !data.createLogin) {
+        // Profil seul : pas d'identifiants à transmettre
+        notify('Ouvrier ajouté : visible sur le site, sans compte de connexion', 'success')
+        reset()
+        setPhotoFile(null)
+        setPhotoPreview(null)
+        if (props.onCreate) props.onCreate(newUser)
+        setLoading(false)
+        setOpen(false)
+        return
+      }
       notify('Compte créé avec succès', 'success')
       setCreatedCredentials({
         email: data.email,
@@ -214,7 +229,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             ? 'Ajouter un Ouvrier'
             : 'Ajouter un Manager'
         }
-        description="Création de compte"
+        description={profileOnly ? "Profil visible sur le site, sans compte de connexion" : "Création de compte"}
         onSubmit={handleSubmit(CreatedAccountSubmit)}
         footerButtons={
           createdCredentials ? (
@@ -248,7 +263,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                 style={{ backgroundColor: colors.primary || '#0A4D9C' }}
               >
                 <RiCheckLine className="h-4 w-4" />
-                Créer le compte
+                {profileOnly ? "Ajouter l'ouvrier" : 'Créer le compte'}
               </button>
             </>
           )
@@ -354,16 +369,29 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             )}
           </div>
 
+          {role === 'worker' && (
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-gray-50 px-4 py-3">
+              <input type="checkbox" {...register('createLogin')} className="mt-0.5 h-4 w-4 rounded border-gray-300" />
+              <span>
+                <span className="block text-sm font-semibold text-gray-900">Créer aussi son compte de connexion</span>
+                <span className="block text-xs text-gray-500">
+                  Facultatif. Sans compte, l&apos;ouvrier est visible sur le site mais ne peut pas se connecter ;
+                  vous pourrez créer son compte à tout moment depuis la liste des ouvriers.
+                </span>
+              </span>
+            </label>
+          )}
+
           {/* Champs communs à tous les rôles */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-2 block text-sm font-semibold text-gray-900">
-                Email
+                Email{profileOnly && <span className="font-normal text-gray-400"> (facultatif)</span>}
               </label>
               <input
                 type="email"
                 {...register('email', {
-                  required: 'Champs requis',
+                  required: profileOnly ? false : 'Champs requis',
                   pattern: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
                 })}
                 className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
@@ -400,6 +428,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             </div>
           </div>
 
+          {!profileOnly && (
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-900">
               Mot de passe
@@ -436,6 +465,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
               <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.passWord.message}</p>
             )}
           </div>
+          )}
 
           {/* Manager / Admin : comptes internes, pas d'équivalent sur le site public */}
           {(role === 'manager' || role === 'admin' || !role) && (

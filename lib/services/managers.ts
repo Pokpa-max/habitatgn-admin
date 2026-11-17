@@ -111,10 +111,13 @@ export const createAccount = async (data) => {
     The API returns { uid: '...' } confirmed by previous step.
     We construct the object to return to the UI.
   */
+  // Ouvrier sans compte : profil public seulement (email facultatif, pas de mot de passe)
+  const withoutAccount = type === 'worker' && data.createLogin !== true
   const response = await fetchWithPost('/api/createUser', {
-    email: data.email,
+    email: data.email || '',
     name,
-    passWord: passWord,
+    passWord: withoutAccount ? undefined : passWord,
+    withoutAccount,
     phoneNumber: data.phoneNumber,
     agence: data.agence,
     type,
@@ -124,8 +127,11 @@ export const createAccount = async (data) => {
   if (response.code == 0) throw new Error(response.message || 'Erreur lors de la création du compte')
 
   return {
-    id: response.uid,
+    id: response.workerId || response.uid,
     uid: response.uid,
+    userId: response.uid || null,
+    hasAccount: !withoutAccount,
+    status: type === 'worker' ? 'approved' : undefined,
     email: data.email,
     name,
     firstname: data.firstname,
@@ -139,4 +145,11 @@ export const createAccount = async (data) => {
     provider: 'email',
     createdAt: new Date(), // Approximation for UI
   }
+}
+
+/** Crée le compte de connexion d'un ouvrier ajouté sans compte et le rattache à son profil. */
+export const createWorkerAccount = async (workerId, email, passWord) => {
+  const response = await fetchWithPost('/api/createWorkerAccount', { workerId, email, passWord })
+  if (response.code == 0) throw new Error(response.message || 'Erreur lors de la création du compte')
+  return response.uid
 }

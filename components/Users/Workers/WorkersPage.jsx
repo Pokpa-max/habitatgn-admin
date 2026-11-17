@@ -17,6 +17,7 @@ import {
   RiLockUnlockLine,
   RiLockPasswordLine,
   RiShieldCheckFill,
+  RiUserAddLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -51,6 +52,7 @@ import DesableConfirmModal from '@/components/DesableConfirm'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import AdminModal from '@/components/ui/AdminModal'
 import Pagination from '@/components/ui/Pagination'
+import CreateWorkerAccountModal from './CreateWorkerAccountModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
 
@@ -100,6 +102,7 @@ function ActionsModal({
   onToggleCertification,
   onRecordPayment,
   onResetPassword,
+  onCreateAccount,
   canProcess,
   canPayments,
   isAdmin,
@@ -183,6 +186,17 @@ function ActionsModal({
           />
         )}
 
+        {canProcess && !worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onCreateAccount}
+            icon={RiUserAddLine}
+            iconColor={colors.primary}
+            iconBg={colors.primaryVeryLight}
+            label="Créer son compte de connexion"
+          />
+        )}
+
         {isAdmin && status === 'approved' && worker.userId && (
           <ActionRow
             as="button"
@@ -219,6 +233,7 @@ export default function WorkersPage() {
   const [actionsTarget, setActionsTarget] = useState(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState(null)
+  const [accountTarget, setAccountTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [page, setPage] = useState(1)
@@ -565,9 +580,20 @@ export default function WorkersPage() {
           setPasswordTarget(actionsTarget)
           setPasswordModalOpen(true)
         }}
+        onCreateAccount={() => {
+          setActionsModalOpen(false)
+          setAccountTarget(actionsTarget)
+        }}
         canProcess={canProcess}
         canPayments={canPayments}
         isAdmin={isAdmin}
+      />
+
+      <CreateWorkerAccountModal
+        worker={accountTarget}
+        open={Boolean(accountTarget)}
+        setOpen={(value) => !value && setAccountTarget(null)}
+        onCreated={(id, changes) => setWorkers((prev) => prev.map((w) => (w.id === id ? { ...w, ...changes } : w)))}
       />
 
       <RecordPaymentModal
@@ -841,6 +867,14 @@ export default function WorkersPage() {
                               <p className="text-sm font-semibold text-gray-900">
                                 {worker.name}
                               </p>
+                              {!worker.userId && (
+                                <span
+                                  className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600"
+                                  title="Visible sur le site, sans compte de connexion"
+                                >
+                                  Sans compte
+                                </span>
+                              )}
                               {worker.isCertified && (
                                 <span
                                   className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border border-blue-200"
