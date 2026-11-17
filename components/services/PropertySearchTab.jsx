@@ -89,7 +89,8 @@ const paymentPill = (request) => {
   if (!isPaidSearch(request)) return null
   if (request.paymentStatus === 'paid') return <StatusPill tone="success">Payé</StatusPill>
   if (request.paymentStatus === 'partial') return <StatusPill tone="primary">Acompte reçu</StatusPill>
-  return <StatusPill tone="warning">À encaisser</StatusPill>
+  // Neutre : le jaune reste réservé au statut de la demande (« En attente »)
+  return <StatusPill tone="gray">À encaisser</StatusPill>
 }
 
 const todayInput = () => new Date().toISOString().slice(0, 10)

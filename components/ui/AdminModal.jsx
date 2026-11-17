@@ -164,7 +164,9 @@ export function Spinner({ className = 'h-4 w-4' }) {
 export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, loading, type = 'button', icon: Icon, children, form, className = '' }) {
   const colors = useColors()
   const base =
-    `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${className}`
+    `inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${
+      variant === 'quiet-danger' ? 'px-2 font-medium text-gray-500 transition-colors hover:text-red-600' : 'px-4 font-semibold'
+    } ${className}`
   const style =
     variant === 'primary'
       ? { backgroundColor: colors.primary, color: '#FFFFFF' }
@@ -173,8 +175,8 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
       : variant === 'whatsapp'
       ? { backgroundColor: colors.whatsapp, color: '#FFFFFF' }
       : variant === 'quiet-danger'
-      ? // Suppression discrète : texte rouge sur fond blanc, sans aplat de couleur
-        { backgroundColor: '#FFFFFF', color: colors.error, border: `1px solid ${colors.gray200}` }
+      ? // Suppression discrète : simple lien gris, rouge seulement au survol (classes ci-dessous)
+        undefined
       : { backgroundColor: '#FFFFFF', color: colors.gray700, border: `1px solid ${colors.gray200}` }
   const content = (
     <>
