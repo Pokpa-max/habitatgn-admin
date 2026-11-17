@@ -105,7 +105,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating,
               </ModalButton>
             )}
             {booking.guestPhone && (
-              <ModalButton variant="primary" href={`tel:${booking.guestPhone}`} icon={RiPhoneLine}>
+              <ModalButton href={`tel:${booking.guestPhone}`} icon={RiPhoneLine}>
                 Appeler le client
               </ModalButton>
             )}

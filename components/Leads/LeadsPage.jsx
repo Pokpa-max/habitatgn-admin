@@ -83,7 +83,7 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
             </ModalButton>
           )}
           {lead.phone && (
-            <ModalButton variant="primary" href={`tel:${lead.phone.replace(/\s+/g, '')}`} icon={RiPhoneLine}>
+            <ModalButton href={`tel:${lead.phone.replace(/\s+/g, '')}`} icon={RiPhoneLine}>
               Appeler
             </ModalButton>
           )}

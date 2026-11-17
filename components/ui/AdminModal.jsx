@@ -161,10 +161,10 @@ export function Spinner({ className = 'h-4 w-4' }) {
  * Avec `href`, rend un lien (externe si `external`).
  * `loading` : indicateur de chargement et bouton bloqué pendant l'action.
  */
-export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, loading, type = 'button', icon: Icon, children, form }) {
+export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, loading, type = 'button', icon: Icon, children, form, className = '' }) {
   const colors = useColors()
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50'
+    `inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${className}`
   const style =
     variant === 'primary'
       ? { backgroundColor: colors.primary, color: '#FFFFFF' }
@@ -172,6 +172,9 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
       ? { backgroundColor: colors.error, color: '#FFFFFF' }
       : variant === 'whatsapp'
       ? { backgroundColor: colors.whatsapp, color: '#FFFFFF' }
+      : variant === 'quiet-danger'
+      ? // Suppression discrète : texte rouge sur fond blanc, sans aplat de couleur
+        { backgroundColor: '#FFFFFF', color: colors.error, border: `1px solid ${colors.gray200}` }
       : { backgroundColor: '#FFFFFF', color: colors.gray700, border: `1px solid ${colors.gray200}` }
   const content = (
     <>

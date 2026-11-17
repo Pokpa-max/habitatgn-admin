@@ -57,7 +57,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
       footer={
         <>
           {onDelete && (
-            <ModalButton variant="danger" onClick={() => onDelete(request)} icon={RiDeleteBinLine}>
+            <ModalButton variant="quiet-danger" className="sm:mr-auto" onClick={() => onDelete(request)} icon={RiDeleteBinLine}>
               Supprimer
             </ModalButton>
           )}
@@ -67,7 +67,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
             </ModalButton>
           )}
           {request.phone && (
-            <ModalButton variant="primary" href={`tel:${request.phone}`} icon={RiPhoneLine}>
+            <ModalButton href={`tel:${request.phone}`} icon={RiPhoneLine}>
               Appeler
             </ModalButton>
           )}

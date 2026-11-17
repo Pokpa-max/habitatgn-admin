@@ -217,9 +217,10 @@ function PaymentSection({ request, onUpdated }) {
 
   const termsHref = whatsappUrl(request.phone, termsMessage(request, items))
   const field = 'h-9 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50'
-  // Vert WhatsApp, comme les boutons WhatsApp du site
-  const waButton = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90'
-  const waStyle = { backgroundColor: colors.whatsapp }
+  // Sobre : bouton blanc, seule l'icône rappelle WhatsApp
+  const waButton = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50'
+  const waStyle = undefined
+  const waIcon = { color: colors.whatsapp }
 
   return (
     <ModalSection title="Paiement">
@@ -227,7 +228,7 @@ function PaymentSection({ request, onUpdated }) {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
           <span className="text-gray-500">Total <strong className="text-gray-900">{gnf(summary.paymentTotal)}</strong></span>
-          <span className="text-gray-500">Encaissé <strong className="text-emerald-700">{gnf(summary.paymentAmount)}</strong></span>
+          <span className="text-gray-500">Encaissé <strong className="text-gray-900">{gnf(summary.paymentAmount)}</strong></span>
           {remaining > 0 && <span className="text-gray-500">Reste <strong className="text-gray-900">{gnf(remaining)}</strong></span>}
         </div>
         {paymentPill({ ...request, paymentStatus: summary.paymentStatus })}
@@ -235,7 +236,7 @@ function PaymentSection({ request, onUpdated }) {
 
       {termsHref && (
         <a href={termsHref} target="_blank" rel="noopener noreferrer" className={`${waButton} mb-3`} style={waStyle}>
-          <RiWhatsappLine className="h-4 w-4" />
+          <RiWhatsappLine className="h-4 w-4" style={waIcon} />
           Envoyer les modalités de paiement
         </a>
       )}
@@ -250,7 +251,8 @@ function PaymentSection({ request, onUpdated }) {
                 <p className="text-sm font-semibold text-gray-900">
                   {items.length > 1 ? `${index + 1}. ` : ''}{item.label}
                 </p>
-                {item.paid ? <StatusPill tone="success">Payé</StatusPill> : <StatusPill tone="warning">À encaisser</StatusPill>}
+                {/* Une seule pastille « À encaisser » (dans le résumé) : ici seulement « Payé » */}
+                {item.paid && <StatusPill tone="success">Payé</StatusPill>}
               </div>
 
               {item.paid ? (
@@ -262,7 +264,7 @@ function PaymentSection({ request, onUpdated }) {
                   <div className="flex flex-wrap gap-2">
                     {receiptHref && (
                       <a href={receiptHref} target="_blank" rel="noopener noreferrer" className={waButton} style={waStyle}>
-                        <RiWhatsappLine className="h-4 w-4" />
+                        <RiWhatsappLine className="h-4 w-4" style={waIcon} />
                         Envoyer le reçu
                       </a>
                     )}
@@ -303,7 +305,8 @@ function PaymentSection({ request, onUpdated }) {
                       type="button"
                       onClick={() => markPaid(index)}
                       disabled={saving}
-                      className="h-9 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                      className="h-9 rounded-lg px-3 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                      style={{ backgroundColor: colors.primary }}
                     >
                       Marquer payé
                     </button>
