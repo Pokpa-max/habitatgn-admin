@@ -83,6 +83,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
     setValue,
     watch,
     control,
+    unregister,
     formState: { errors },
   } = useForm({
     mode: 'onBlur',
@@ -104,6 +105,17 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
   // Ouvrier : compte de connexion facultatif (créable plus tard depuis la liste)
   const createLogin = watch('createLogin')
   const profileOnly = role === 'worker' && !createLogin
+
+  // Champs non affichés pour ce rôle : retirés de la validation. Sinon leurs
+  // règles « obligatoire » (posées au premier affichage, avant que le rôle soit
+  // connu) bloquaient l'envoi sans qu'on puisse les remplir (ex. ouvrier sans
+  // compte : mot de passe, prénom et nom des managers).
+  React.useEffect(() => {
+    const hidden = []
+    if (role === 'agent' || role === 'worker') hidden.push('firstname', 'lastname')
+    if (profileOnly) hidden.push('passWord')
+    if (hidden.length) unregister(hidden)
+  }, [role, profileOnly, unregister])
 
   React.useEffect(() => {
     if (open && defaultRole) {
