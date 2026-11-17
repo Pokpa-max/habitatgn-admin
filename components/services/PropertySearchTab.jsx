@@ -38,7 +38,7 @@ const serviceLevelLabel = (request) => {
 // ─── Paiement des formules payantes (noté à la main : rien n'est payé en ligne) ───
 
 /** Numéro de dépôt donné au client pour le paiement mobile */
-const DEPOSIT_NUMBER = '628 61 03 57'
+const DEPOSIT_NUMBER = '628610357'
 const SIGNATURE = ['Service client BâtiMoo', 'Cherchez moins. Trouvez mieux.']
 const FIRST_RESULTS_DELAY = '3 à 7 jours ouvrables'
 
