@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { RiCheckLine, RiExternalLinkLine, RiWhatsappLine } from 'react-icons/ri'
-import { ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
+import { RiArrowDownSLine, RiCheckLine, RiExternalLinkLine, RiWhatsappLine } from 'react-icons/ri'
+import { whatsappUrl } from '@/components/ui/AdminModal'
 import { useColors } from '@/contexts/ColorContext'
 import { useCanManage } from '@/hooks/useCanManage'
 import { getMatchingListings } from '@/lib/services/searchMatches'
@@ -55,17 +55,25 @@ const selectionMessage = (request, items) => {
 export default function SearchMatchesSection({ request, onUpdated }) {
   const colors = useColors()
   const canProcess = useCanManage('services', 'process')
+  // Repliée par défaut : les annonces ne sont lues qu'à l'ouverture
+  const [open, setOpen] = useState(false)
   const [matches, setMatches] = useState(null)
   const [selected, setSelected] = useState([])
   const [showAll, setShowAll] = useState(false)
   const [includeOtherZones, setIncludeOtherZones] = useState(false)
 
+  // Autre demande : section refermée et liste remise à zéro
   useEffect(() => {
-    let cancelled = false
+    setOpen(false)
     setMatches(null)
     setSelected([])
     setShowAll(false)
     setIncludeOtherZones(false)
+  }, [request.id])
+
+  useEffect(() => {
+    if (!open || matches !== null) return
+    let cancelled = false
     getMatchingListings(request)
       .then((rows) => !cancelled && setMatches(rows))
       .catch(() => !cancelled && setMatches([]))
@@ -73,7 +81,7 @@ export default function SearchMatchesSection({ request, onUpdated }) {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request.id])
+  }, [open, request.id])
 
   const proposed = Array.isArray(request.proposedListings) ? request.proposedListings : []
   const proposedOn = (id) => proposed.find((p) => p.id === id)?.sentAt
@@ -106,7 +114,27 @@ export default function SearchMatchesSection({ request, onUpdated }) {
   const visible = listed.slice(0, showAll ? undefined : SHOWN)
 
   return (
-    <ModalSection title="Biens correspondants">
+    <section className="rounded-xl border border-gray-200">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-gray-900">Biens correspondants</span>
+          <span className="block text-xs text-gray-500">
+            {matches === null
+              ? 'Annonces du site qui collent aux critères du client'
+              : `${inZone.length || matches.length} annonce${(inZone.length || matches.length) > 1 ? 's' : ''}${inZone.length ? ' dans les zones du client' : ''}`}
+            {proposed.length > 0 && ` · ${proposed.length} déjà proposé${proposed.length > 1 ? 's' : ''}`}
+          </span>
+        </span>
+        <RiArrowDownSLine className={`h-5 w-5 shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+      <div className="border-t border-gray-100 px-4 py-3">
       {matches === null ? (
         <p className="text-sm text-gray-500">Recherche des annonces…</p>
       ) : matches.length === 0 ? (
@@ -214,6 +242,8 @@ export default function SearchMatchesSection({ request, onUpdated }) {
           )}
         </>
       )}
-    </ModalSection>
+      </div>
+      )}
+    </section>
   )
 }
