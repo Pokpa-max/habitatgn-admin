@@ -78,12 +78,12 @@ function DetailModal({ lead, open, setOpen, onStatusChange, onDelete, canProcess
             </button>
           )}
           {whatsapp && (
-            <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+            <ModalButton variant="whatsapp" href={whatsapp} external icon={RiWhatsappLine}>
               WhatsApp
             </ModalButton>
           )}
           {lead.phone && (
-            <ModalButton variant="primary" href={`tel:${lead.phone.replace(/\s+/g, '')}`} icon={RiPhoneLine}>
+            <ModalButton href={`tel:${lead.phone.replace(/\s+/g, '')}`} icon={RiPhoneLine}>
               Appeler
             </ModalButton>
           )}
@@ -528,15 +528,7 @@ export default function LeadsPage() {
                         >
                           Voir
                         </button>
-                        {canDelete && (
-                          <button
-                            onClick={() => setDeleteTarget(lead)}
-                            className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-1.5 text-gray-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                            title="Supprimer la demande"
-                          >
-                            <RiDeleteBinLine className="h-4 w-4" />
-                          </button>
-                        )}
+                        {/* Suppression : depuis la fiche (« Voir »), pas sur chaque ligne */}
                       </div>
                     </td>
                   </tr>

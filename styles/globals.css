@@ -52,3 +52,99 @@
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* Téléphone : chaque ligne de tableau devient une carte (libellé à gauche,
+   valeur à droite). Les libellés viennent des en-têtes, recopiés dans
+   `data-label` par Scaffold (useTableCardLabels). Les colonnes masquées
+   (`hidden …`) le restent ; une cellule sans libellé (case à cocher,
+   actions) s'aligne à droite. */
+@media (max-width: 639px) {
+  .admin-content table {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .admin-content table thead {
+    display: none;
+  }
+  .admin-content table tbody {
+    display: block;
+    border: 0 !important;
+  }
+  .admin-content table tbody tr {
+    display: block;
+    margin: 10px 0;
+    padding: 6px 0;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px;
+    background-color: #fff;
+  }
+  .admin-content table tbody tr:first-child {
+    margin-top: 0;
+  }
+  /* Grille : libellé à gauche, tout le contenu de la cellule groupé à droite */
+  .admin-content table tbody td:not(.hidden) {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 2px;
+    width: 100%;
+    min-height: 0;
+    padding: 7px 14px !important;
+    border: 0 !important;
+    text-align: right;
+    white-space: normal !important;
+  }
+  .admin-content table tbody td:not(.hidden)::before {
+    content: attr(data-label);
+    grid-column: 1;
+    grid-row: 1 / span 6;
+    max-width: 9rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: left;
+  }
+  .admin-content table tbody td[data-label='']::before {
+    content: none;
+  }
+  .admin-content table tbody td[data-label=''] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* Ligne « aucun résultat » (une seule cellule sur toute la largeur) */
+  .admin-content table tbody td[colspan] {
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+  }
+  .admin-content table tbody td[colspan] > * {
+    justify-self: center !important;
+  }
+  .admin-content table tbody td[colspan]::before {
+    content: none;
+  }
+  /* Le contenu d'une cellule reste groupé à droite */
+  .admin-content table tbody td:not(.hidden) > * {
+    grid-column: -2;
+    justify-self: end;
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Rangées d'onglets (Toutes, En attente…) : défilent au doigt au lieu
+     d'élargir toute la page */
+  .admin-content .flex.border-b {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .admin-content .flex.border-b::-webkit-scrollbar {
+    display: none;
+  }
+  .admin-content .flex.border-b > * {
+    flex-shrink: 0;
+  }
+  /* Conteneurs de tableau : plus de défilement horizontal ni de cadre en double */
+  .admin-content .overflow-x-auto:has(> table),
+  .admin-content .overflow-x-auto:has(> div > table) {
+    overflow-x: visible;
+  }
+}

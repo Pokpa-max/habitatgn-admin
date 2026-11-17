@@ -127,47 +127,52 @@ export default function PushAlertsBanner() {
   if (state !== 'off' && state !== 'denied') return null
 
   return (
-    <div className="mx-auto mt-4 max-w-7xl px-4 sm:px-6 md:px-8">
+    <div className="mx-auto mt-3 w-full max-w-7xl px-3 sm:mt-4 sm:px-6 md:px-8">
+      {/* Téléphone : une seule ligne (titre + bouton) ; l'explication s'affiche à partir de sm */}
       <div
-        className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"
+        className="flex items-center gap-2.5 rounded-xl border px-3 py-2 sm:gap-3 sm:p-4"
         style={{ backgroundColor: colors.primaryLight, borderColor: `${colors.primary}33` }}
       >
-        <RiNotification3Line className="h-6 w-6 shrink-0" style={{ color: colors.primary }} />
+        <RiNotification3Line className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" style={{ color: colors.primary }} />
         <div className="min-w-0 flex-1 text-sm">
           {state === 'off' ? (
             <>
-              <p className="font-semibold text-gray-900">Activez les alertes sur cet appareil</p>
-              <p className="text-gray-600">
+              <p className="truncate font-semibold text-gray-900">
+                Activez les alertes<span className="hidden sm:inline"> sur cet appareil</span>
+              </p>
+              <p className="hidden text-gray-600 sm:block">
                 Soyez prévenu dès leur arrivée des nouvelles demandes de service, demandes de visite, réservations et
                 inscriptions d&apos;agents ou d&apos;artisans, même quand l&apos;admin est fermée.
               </p>
             </>
           ) : (
             <>
-              <p className="font-semibold text-gray-900">Les notifications sont bloquées pour l&apos;admin</p>
-              <p className="text-gray-600">
+              <p className="truncate font-semibold text-gray-900">
+                Notifications bloquées<span className="hidden sm:inline"> pour l&apos;admin</span>
+              </p>
+              <p className="hidden text-gray-600 sm:block">
                 Cliquez sur le cadenas à gauche de l&apos;adresse admin.batimoo.com → Notifications → Autoriser, puis
                 rechargez la page.
               </p>
             </>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
           {state === 'off' && (
             <button
               type="button"
               onClick={enable}
               disabled={busy}
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              className="rounded-lg px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60 sm:px-4 sm:py-2"
               style={{ backgroundColor: colors.primary }}
             >
-              {busy ? 'Activation…' : 'Activer les alertes'}
+              {busy ? 'Activation…' : <>Activer<span className="hidden sm:inline"> les alertes</span></>}
             </button>
           )}
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-lg p-2 text-gray-500 hover:bg-white/60"
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-white/60 sm:p-2"
             title="Plus tard"
             aria-label="Plus tard"
           >

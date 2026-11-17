@@ -10,11 +10,23 @@ export const columnsUser = [
     Cell: (data) => (
       <div className="flex items-center justify-center">
         {data ? (
+          // no-referrer : les photos Google refusent les requêtes venant d'un autre site ;
+          // image cassée -> pastille neutre (pas de texte « Profil » à la place)
           <img
             src={data}
-            alt="Profil"
+            alt=""
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none'
+              e.currentTarget.nextSibling?.style.removeProperty('display')
+            }}
             className="h-10 w-10 rounded-full object-cover shadow-sm"
           />
+        ) : null}
+        {data ? (
+          <div style={{ display: 'none' }} className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <RiUserLine className="h-6 w-6" />
+          </div>
         ) : (
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-400">
             <RiUserLine className="h-6 w-6" />
@@ -27,16 +39,8 @@ export const columnsUser = [
   {
     Header: 'Nom',
     accessor: 'name',
-    Cell: (data ,id) => (
-      <div className="flex flex-col">
-        <div className="px-1 py-1 text-sm font-light">
-          {data}
-        </div>
-       <div className="px-1 py-1 text-sm font-light">
-        {id}
-       </div>
-      </div>
-    ),
+    // Nom seul : l'identifiant technique n'aide pas l'équipe
+    Cell: (data) => <span className="text-sm font-medium text-gray-900">{data}</span>,
   },
   {
     Header: 'Rôle',
@@ -55,7 +59,16 @@ export const columnsUser = [
           colorClass = 'bg-gray-200 text-gray-700'
           break
         case 'customer':
+        case 'user':
           label = 'Client'
+          colorClass = 'bg-gray-100 text-gray-800'
+          break
+        case 'agent':
+          label = 'Agent'
+          colorClass = 'bg-gray-100 text-gray-800'
+          break
+        case 'worker':
+          label = 'Ouvrier'
           colorClass = 'bg-gray-100 text-gray-800'
           break
         default:

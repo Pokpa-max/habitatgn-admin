@@ -30,7 +30,7 @@ const readableValue = (value) => {
   return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete, renderDetailExtra, onRequestUpdated }) {
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete, renderDetailExtra, onRequestUpdated, whatsappMessage }) {
   if (!request) return null
 
   const currentStatus = request.status || 'pending'
@@ -38,9 +38,9 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
 
   // Champs renseignés uniquement ; la description occupe toute la largeur
   const fields = detailFields
-    .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.accessor === 'description' }))
+    .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.long || f.accessor === 'description' }))
     .filter((f) => f.value)
-  const whatsapp = whatsappUrl(request.phone)
+  const whatsapp = whatsappUrl(request.phone, whatsappMessage ? whatsappMessage(request) : undefined)
 
   return (
     <AdminModal
@@ -57,17 +57,17 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
       footer={
         <>
           {onDelete && (
-            <ModalButton variant="danger" onClick={() => onDelete(request)} icon={RiDeleteBinLine}>
+            <ModalButton variant="quiet-danger" className="sm:mr-auto" onClick={() => onDelete(request)} icon={RiDeleteBinLine}>
               Supprimer
             </ModalButton>
           )}
           {whatsapp && (
-            <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+            <ModalButton variant="whatsapp" href={whatsapp} external icon={RiWhatsappLine}>
               WhatsApp
             </ModalButton>
           )}
           {request.phone && (
-            <ModalButton variant="primary" href={`tel:${request.phone}`} icon={RiPhoneLine}>
+            <ModalButton href={`tel:${request.phone}`} icon={RiPhoneLine}>
               Appeler
             </ModalButton>
           )}
@@ -130,6 +130,10 @@ export default function ServiceRequestsPanel({
   deleteRequest,
   /** Facultatif : section en plus dans la fiche (ex. paiement), reçoit (demande, miseÀJour) */
   renderDetailExtra,
+  /** Facultatif : message WhatsApp pré-rempli, reçoit la demande */
+  whatsappMessage,
+  /** Facultatif : bouton à côté de la recherche (ex. « Nouvelle demande »), reçoit (ajouterÀLaListe) */
+  headerAction,
 }) {
   const colors = useColors()
   const canProcess = useCanManage('services', 'process')
@@ -218,6 +222,7 @@ export default function ServiceRequestsPanel({
         canProcess={canProcess}
         serviceTitle={title}
         renderDetailExtra={renderDetailExtra}
+        whatsappMessage={whatsappMessage}
         onRequestUpdated={handleRequestUpdated}
         onDelete={
           canDelete
@@ -246,14 +251,21 @@ export default function ServiceRequestsPanel({
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-500">{description}</p>
-        <div className="relative sm:w-64">
-          <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={searchPlaceholder || 'Rechercher...'}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-          />
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <div className="relative sm:w-64">
+            <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={searchPlaceholder || 'Rechercher...'}
+              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+          {headerAction &&
+            headerAction((created) => {
+              setRequests((prev) => [created, ...prev])
+              setStatusFilter('all')
+            })}
         </div>
       </div>
 
@@ -374,16 +386,7 @@ export default function ServiceRequestsPanel({
                           >
                             Voir
                           </button>
-                          {canDelete && (
-                            <button
-                              onClick={() => setDeleteTarget(request)}
-                              aria-label={`Supprimer la demande de ${request.name || 'ce client'}`}
-                              title="Supprimer"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
-                            >
-                              <RiDeleteBinLine className="h-4 w-4" />
-                            </button>
-                          )}
+                          {/* Suppression : depuis la fiche (« Voir »), pas sur chaque ligne */}
                         </div>
                       </td>
                     </tr>

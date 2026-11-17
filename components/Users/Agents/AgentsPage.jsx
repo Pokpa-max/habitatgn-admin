@@ -378,7 +378,7 @@ export default function AgentsPage() {
   }
 
   return (
-    <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
+    <div>
       <ConfirmModal
         open={!!deleteTarget}
         setOpen={() => setDeleteTarget(null)}
@@ -421,8 +421,7 @@ export default function AgentsPage() {
       <div className="rounded-xl bg-white p-3 shadow-sm sm:p-6">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Agents</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="text-sm text-gray-500">
               Candidatures pour devenir agent immobilier sur le site public
             </p>
           </div>

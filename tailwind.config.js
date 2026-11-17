@@ -68,7 +68,6 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/aspect-ratio'),
-    require('tailwindcss-debug-screens'),
     require('tailwind-scrollbar-hide'),
     require('@tailwindcss/line-clamp'),
     require('tailwindcss-bg-patterns'),

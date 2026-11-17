@@ -161,15 +161,22 @@ export function Spinner({ className = 'h-4 w-4' }) {
  * Avec `href`, rend un lien (externe si `external`).
  * `loading` : indicateur de chargement et bouton bloqué pendant l'action.
  */
-export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, loading, type = 'button', icon: Icon, children, form }) {
+export function ModalButton({ variant = 'secondary', href, external, onClick, disabled, loading, type = 'button', icon: Icon, children, form, className = '' }) {
   const colors = useColors()
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:cursor-not-allowed disabled:opacity-50'
+    `inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm transition-opacity disabled:cursor-not-allowed disabled:opacity-50 ${
+      variant === 'quiet-danger' ? 'px-2 font-medium text-gray-500 transition-colors hover:text-red-600' : 'px-4 font-semibold'
+    } ${className}`
   const style =
     variant === 'primary'
       ? { backgroundColor: colors.primary, color: '#FFFFFF' }
       : variant === 'danger'
       ? { backgroundColor: colors.error, color: '#FFFFFF' }
+      : variant === 'whatsapp'
+      ? { backgroundColor: colors.whatsapp, color: '#FFFFFF' }
+      : variant === 'quiet-danger'
+      ? // Suppression discrète : simple lien gris, rouge seulement au survol (classes ci-dessous)
+        undefined
       : { backgroundColor: '#FFFFFF', color: colors.gray700, border: `1px solid ${colors.gray200}` }
   const content = (
     <>
@@ -214,10 +221,12 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
 }
 
 /** Lien WhatsApp : numéro guinéen à 9 chiffres complété de l'indicatif 224. */
-export function whatsappUrl(phone) {
+/** Lien WhatsApp vers un numéro guinéen ; `text` = message pré-rempli (facultatif). */
+export function whatsappUrl(phone, text) {
   const digits = String(phone || '').replace(/[^0-9]/g, '')
   if (!digits) return null
-  return `https://wa.me/${digits.length === 9 ? `224${digits}` : digits}`
+  const base = `https://wa.me/${digits.length === 9 ? `224${digits}` : digits}`
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
 
 /**

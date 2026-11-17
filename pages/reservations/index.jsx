@@ -1,5 +1,6 @@
 import Page from '@/components/Page'
 import Scaffold from '@/components/Scaffold'
+import Header from '@/components/Header'
 import {
   AuthAction,
   withUser,
@@ -11,6 +12,7 @@ import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
 function Reservations() {
   return (
     <Scaffold>
+      <Header title="Réservations" />
       <ReservationsPage />
     </Scaffold>
   )

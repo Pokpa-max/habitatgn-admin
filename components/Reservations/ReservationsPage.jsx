@@ -100,12 +100,12 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating,
         ) : (
           <>
             {whatsapp && (
-              <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+              <ModalButton variant="whatsapp" href={whatsapp} external icon={RiWhatsappLine}>
                 WhatsApp
               </ModalButton>
             )}
             {booking.guestPhone && (
-              <ModalButton variant="primary" href={`tel:${booking.guestPhone}`} icon={RiPhoneLine}>
+              <ModalButton href={`tel:${booking.guestPhone}`} icon={RiPhoneLine}>
                 Appeler le client
               </ModalButton>
             )}
@@ -289,7 +289,7 @@ export default function ReservationsPage() {
   }
 
   return (
-    <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
+    <div>
       <BookingDetailDrawer
         booking={detailBooking}
         open={detailOpen}
@@ -302,8 +302,7 @@ export default function ReservationsPage() {
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Réservations</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="text-sm text-gray-500">
               Réservations de location journalière, tous agents confondus
             </p>
           </div>

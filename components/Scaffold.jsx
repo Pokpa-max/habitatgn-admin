@@ -4,6 +4,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import {
   RiMenuLine,
   RiCloseLine,
+  RiLoader4Line,
   RiGroupLine,
   RiBookOpenLine,
   RiDashboardLine,
@@ -45,7 +46,7 @@ const navigation = [
   { section: 'À traiter', name: 'Carrières', href: '/carrieres', icon: RiFileUserLine, claims: ['admin', 'manager'], module: 'careers', badgeKey: 'pendingCareerApplications' },
 
   { section: 'Professionnels', name: 'Agents', href: '/agents', icon: RiBriefcaseLine, claims: ['admin', 'manager'], module: 'agents', badgeKey: 'pendingAgents' },
-  { section: 'Professionnels', name: 'Artisans', href: '/workers', icon: RiHammerLine, claims: ['admin', 'manager'], module: 'workers', badgeKey: 'pendingWorkers' },
+  { section: 'Professionnels', name: 'Ouvriers', href: '/workers', icon: RiHammerLine, claims: ['admin', 'manager'], module: 'workers', badgeKey: 'pendingWorkers' },
 
   { section: 'Biens & produits', name: 'Gestion locative', href: '/gestion-locative', icon: RiBuildingLine, claims: ['admin', 'manager'], module: 'properties' },
   { section: 'Biens & produits', name: 'Marketplace', href: '/marketplace', icon: RiShoppingBag3Line, claims: ['admin', 'manager'], module: 'marketplace' },
@@ -57,6 +58,42 @@ const navigation = [
   { section: 'Administration', name: 'Paramètres', href: '/settings', icon: RiSettings3Line, claims: ['admin'] },
 ]
 
+/**
+ * Téléphone : les tableaux s'affichent en cartes (styles/globals.css). Chaque
+ * cellule reçoit le nom de sa colonne (`data-label`), recopié des en-têtes,
+ * y compris quand les lignes changent (filtres, onglets, pagination).
+ */
+function useTableCardLabels() {
+  useEffect(() => {
+    const root = document.querySelector('.admin-content')
+    if (!root) return
+    let frame = null
+    const label = () => {
+      frame = null
+      root.querySelectorAll('table').forEach((table) => {
+        const headers = Array.from(table.querySelectorAll('thead th')).map((th) => th.textContent.trim())
+        if (!headers.length) return
+        table.querySelectorAll('tbody tr').forEach((row) => {
+          Array.from(row.children).forEach((cell, index) => {
+            if (cell.tagName !== 'TD') return
+            const text = headers[index] || ''
+            if (cell.getAttribute('data-label') !== text) cell.setAttribute('data-label', text)
+          })
+        })
+      })
+    }
+    label()
+    const observer = new MutationObserver(() => {
+      if (frame === null) frame = requestAnimationFrame(label)
+    })
+    observer.observe(root, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      if (frame !== null) cancelAnimationFrame(frame)
+    }
+  }, [])
+}
+
 /** Entrée active aussi sur ses pages de détail (/agents/123 → « Agents »). */
 const isActivePath = (currentPath, href) =>
   href === '/' ? currentPath === '/' : currentPath === href || currentPath.startsWith(`${href}/`)
@@ -64,11 +101,25 @@ const isActivePath = (currentPath, href) =>
 /** Menu par sections, avec le nombre d'éléments en attente. */
 function NavSections({ items, currentPath, onNavigate }) {
   const counts = useNotifications()
+  // Page demandée en cours de chargement : marquée tout de suite, et un
+  // second clic ne relance pas la navigation (elle repartait de zéro)
+  const [pendingHref, setPendingHref] = useState(null)
+  const router = useRouter()
+  useEffect(() => {
+    const reset = () => setPendingHref(null)
+    router.events.on('routeChangeComplete', reset)
+    router.events.on('routeChangeError', reset)
+    return () => {
+      router.events.off('routeChangeComplete', reset)
+      router.events.off('routeChangeError', reset)
+    }
+  }, [router.events])
   let lastSection
   return items.map((item) => {
     const heading = item.section && item.section !== lastSection ? item.section : null
     lastSection = item.section
-    const isActive = isActivePath(currentPath, item.href)
+    const isPending = pendingHref === item.href
+    const isActive = isPending || (!pendingHref && isActivePath(currentPath, item.href))
     const count = item.badgeKey ? counts?.[item.badgeKey] || 0 : 0
     return (
       <Fragment key={item.href}>
@@ -80,9 +131,24 @@ function NavSections({ items, currentPath, onNavigate }) {
         <Link
           href={item.href}
           aria-current={isActive ? 'page' : undefined}
+          aria-busy={isPending || undefined}
           className={`nav-item-inactive flex min-h-11 items-center gap-3 rounded-md px-3.5 py-2 ${item.href === '/' ? 'mb-2' : ''} ${isActive ? 'nav-item-active' : ''}`}
-          onClick={onNavigate}>
-          <item.icon className="h-[17px] w-[17px] flex-shrink-0" />
+          onClick={(event) => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+            if (isPending || currentPath === item.href) {
+              // Déjà en cours ou déjà sur la page : rien à relancer
+              event.preventDefault()
+              onNavigate?.()
+              return
+            }
+            setPendingHref(item.href)
+            onNavigate?.()
+          }}>
+          {isPending ? (
+            <RiLoader4Line className="h-[17px] w-[17px] flex-shrink-0 animate-spin" />
+          ) : (
+            <item.icon className="h-[17px] w-[17px] flex-shrink-0" />
+          )}
           <span className="flex-1 truncate text-[13px]">{item.name}</span>
           {count > 0 && (
             <span aria-label={`${count} élément${count > 1 ? 's' : ''} à traiter`} className={`nav-badge min-w-[20px] rounded-full px-1.5 py-1 text-center text-[10px] font-semibold leading-none ${isActive ? 'nav-badge-active' : ''}`}>
@@ -155,6 +221,10 @@ export default function Scaffold({ children, title, subNav }) {
   }
 
   const currentPath = router.pathname
+  useTableCardLabels()
+  const counts = useNotifications()
+  const visibleNav = navigation.filter(canSeeNavItem)
+  const pendingTotal = visibleNav.reduce((sum, item) => sum + (item.badgeKey ? counts?.[item.badgeKey] || 0 : 0), 0)
 
   const handleSignOut = () => {
     setSigningOut(true)
@@ -271,7 +341,7 @@ export default function Scaffold({ children, title, subNav }) {
             >
               <div
                 className="sidebar-mobile relative flex w-full max-w-xs flex-1 flex-col"
-                style={{ backgroundColor: colors.navyDark }}
+                style={{ backgroundColor: colors.navyDark, paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
               >
                 {/* Close Button */}
                 <Transition.Child
@@ -283,7 +353,7 @@ export default function Scaffold({ children, title, subNav }) {
                   leaveFrom="opacity-100"
                   leaveTo="opacity-0"
                 >
-                  <div className="absolute top-0 right-0 -mr-11 pt-2">
+                  <div className="absolute top-0 right-0 -mr-11 pt-2" style={{ marginTop: 'env(safe-area-inset-top)' }}>
                     <button
                       type="button"
                       className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-white/10"
@@ -300,12 +370,8 @@ export default function Scaffold({ children, title, subNav }) {
                   className="flex h-16 flex-shrink-0 items-center border-b px-6 gap-2.5"
                   style={{ borderColor: SIDEBAR_BORDER }}
                 >
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
-                    style={{ backgroundColor: colors.primary }}
-                  >
-                    <span className="text-sm font-black text-white">B</span>
-                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/icons/logo-mark-white.png" alt="" className="h-8 w-auto" />
                   <div>
                     <p className="text-sm font-bold tracking-tight leading-none text-white">
                       BâtiMoo
@@ -366,12 +432,8 @@ export default function Scaffold({ children, title, subNav }) {
               className="flex h-16 flex-shrink-0 items-center border-b px-6 gap-2.5"
               style={{ borderColor: SIDEBAR_BORDER }}
             >
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg shadow-sm"
-                style={{ backgroundColor: colors.primary }}
-              >
-                <span className="text-sm font-black text-white">B</span>
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/logo-mark-white.png" alt="" className="h-8 w-auto" />
               <div>
                 <p className="text-sm font-bold tracking-tight leading-none text-white">
                   BâtiMoo
@@ -432,20 +494,37 @@ export default function Scaffold({ children, title, subNav }) {
         <div className="flex flex-1 flex-col md:pl-60">
           {/* Top Bar Mobile */}
           <div
-            className="sticky top-0 z-10 flex h-14 items-center border-b px-3 md:hidden"
-            style={{ backgroundColor: colors.white, borderColor: colors.gray100 }}
+            className="sticky top-0 z-30 md:hidden"
+            style={{ backgroundColor: colors.navyDark, paddingTop: 'env(safe-area-inset-top)' }}
           >
-            <button
-              type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md text-gray-500 hover:bg-gray-50"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <span className="sr-only">Ouvrir menu</span>
-              <RiMenuLine className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <p className="ml-2 text-sm font-bold" style={{ color: colors.gray900 }}>
-              BâtiMoo Admin
-            </p>
+            <div className="flex h-14 items-center gap-1 px-2">
+              <button
+                type="button"
+                className="relative inline-flex h-11 w-11 items-center justify-center rounded-lg text-white/90 active:bg-white/10"
+                onClick={() => setSidebarOpen(true)}
+                aria-label={pendingTotal > 0 ? `Ouvrir le menu, ${pendingTotal} à traiter` : 'Ouvrir le menu'}
+              >
+                <RiMenuLine className="h-6 w-6" aria-hidden="true" />
+                {pendingTotal > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute right-1 top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                    style={{ backgroundColor: colors.orangeAccent, boxShadow: `0 0 0 2px ${colors.navyDark}` }}
+                  >
+                    {pendingTotal > 99 ? '99+' : pendingTotal}
+                  </span>
+                )}
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/logo-mark-white.png" alt="" className="ml-1 h-6 w-auto" />
+              {/* Marque seule : le titre de la page est juste en dessous */}
+              <div className="ml-2 min-w-0">
+                <p className="text-[15px] font-bold leading-none text-white">BâtiMoo</p>
+                <p className="mt-1 text-[10px] font-bold uppercase leading-none tracking-wider" style={{ color: SIDEBAR_TEXT }}>
+                  Tableau de bord
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Alertes push : bandeau tant qu'elles ne sont pas activées sur cet appareil */}
