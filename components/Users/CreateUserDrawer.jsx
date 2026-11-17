@@ -172,6 +172,23 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
     setLoading(false)
   }
 
+  /** Champs obligatoires manquants : on le dit et on amène le premier à l'écran. */
+  const onInvalid = (formErrors) => {
+    const names = Object.keys(formErrors)
+    notify(
+      names.length > 1 ? `${names.length} champs à compléter avant l'envoi` : 'Un champ à compléter avant l’envoi',
+      'error'
+    )
+    const first = names
+      .map((name) => document.querySelector(`[name="${name}"]`))
+      .filter(Boolean)
+      .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0]
+    if (first) {
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (typeof first.focus === 'function') first.focus({ preventScroll: true })
+    }
+  }
+
   const closeDrawer = () => {
     setCreatedCredentials(null)
     reset()
@@ -230,7 +247,7 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
             : 'Ajouter un Manager'
         }
         description={profileOnly ? "Profil visible sur le site, sans compte de connexion" : "Création de compte"}
-        onSubmit={handleSubmit(CreatedAccountSubmit)}
+        onSubmit={handleSubmit(CreatedAccountSubmit, onInvalid)}
         footerButtons={
           createdCredentials ? (
             <button
@@ -748,6 +765,9 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
                     className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Ex: Vitrerie"
                   />
+                  {errors?.otherSpecialty && (
+                    <p className="mt-1 text-xs font-semibold" style={{ color: colors.error }}>{errors.otherSpecialty.message}</p>
+                  )}
                 </div>
               )}
 
@@ -798,14 +818,11 @@ export default function CreateUserDrawer({ open, setOpen, defaultRole, ...props 
 
               <div className="mt-4">
                 <label className="mb-2 block text-sm font-semibold text-gray-900">
-                  Description
+                  Description <span className="font-normal text-gray-400">(facultatif)</span>
                 </label>
                 <textarea
                   rows={3}
-                  {...register('description', {
-                    required: 'Champs requis (20 caractères minimum)',
-                    minLength: { value: 20, message: 'Minimum 20 caractères' },
-                  })}
+                  {...register('description')}
                   className="w-full rounded-2xl border-0 bg-gray-100 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-colors focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Présentation, expérience, savoir-faire..."
                 />
