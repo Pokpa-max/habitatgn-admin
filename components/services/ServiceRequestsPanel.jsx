@@ -386,16 +386,7 @@ export default function ServiceRequestsPanel({
                           >
                             Voir
                           </button>
-                          {canDelete && (
-                            <button
-                              onClick={() => setDeleteTarget(request)}
-                              aria-label={`Supprimer la demande de ${request.name || 'ce client'}`}
-                              title="Supprimer"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
-                            >
-                              <RiDeleteBinLine className="h-4 w-4" />
-                            </button>
-                          )}
+                          {/* Suppression : depuis la fiche (« Voir »), pas sur chaque ligne */}
                         </div>
                       </td>
                     </tr>
