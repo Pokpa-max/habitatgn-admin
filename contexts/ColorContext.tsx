@@ -60,8 +60,9 @@ const COLOR_PALETTE: ColorStyles = {
   // Identité visuelle extraite de l'image
   navyDark: '#0A192F', // Fond très sombre (Barre haute / Footer)
   blueCorporate: '#0A4D9C', // Fond des sections "Our Mission" & Stats
-  orangeAccent: '#FF5E00', // Boutons "Get a Quote", "Learn More"
-  orangeHover: '#E05300', // État survol des boutons orange
+  // Même orange que le site : texte blanc lisible (4,9:1, norme AA)
+  orangeAccent: '#C54600',
+  orangeHover: '#A83A00',
   orangeLight: '#FFF1E8', // Surbrillance légère / Badges orange
   whatsapp: '#25D366',
   whatsappHover: '#20BA5F',
@@ -121,8 +122,8 @@ export const ColorProvider: React.FC<{ children: React.ReactNode }> = ({
     root.style.setProperty('--primary', '213 88% 33%')
     root.style.setProperty('--primary-foreground', '0 0% 100%')
 
-    // Variable HSL pour l'accent Orange (#FF5E00 -> HSL 22, 100%, 50%)
-    root.style.setProperty('--accent', '22 100% 50%')
+    // Variable HSL pour l'accent Orange (#C54600 -> HSL 21, 100%, 39%)
+    root.style.setProperty('--accent', '21 100% 39%')
     root.style.setProperty('--accent-foreground', '0 0% 100%')
   }, [])
 
