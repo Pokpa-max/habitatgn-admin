@@ -2,6 +2,7 @@ import '../styles/globals.css'
 import { ColorProvider } from '../contexts/ColorContext'
 import { NotificationsProvider } from '../contexts/NotificationsContext'
 import initAuth from '@/utils/firebase/initAuth'
+import RouteProgress from '@/components/RouteProgress'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -23,6 +24,7 @@ function MyApp({ Component, pageProps }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ColorProvider>
+        <RouteProgress />
         <NotificationsProvider>
           <Component {...pageProps} />
         </NotificationsProvider>

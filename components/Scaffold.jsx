@@ -4,6 +4,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import {
   RiMenuLine,
   RiCloseLine,
+  RiLoader4Line,
   RiGroupLine,
   RiBookOpenLine,
   RiDashboardLine,
@@ -64,11 +65,25 @@ const isActivePath = (currentPath, href) =>
 /** Menu par sections, avec le nombre d'éléments en attente. */
 function NavSections({ items, currentPath, onNavigate }) {
   const counts = useNotifications()
+  // Page demandée en cours de chargement : marquée tout de suite, et un
+  // second clic ne relance pas la navigation (elle repartait de zéro)
+  const [pendingHref, setPendingHref] = useState(null)
+  const router = useRouter()
+  useEffect(() => {
+    const reset = () => setPendingHref(null)
+    router.events.on('routeChangeComplete', reset)
+    router.events.on('routeChangeError', reset)
+    return () => {
+      router.events.off('routeChangeComplete', reset)
+      router.events.off('routeChangeError', reset)
+    }
+  }, [router.events])
   let lastSection
   return items.map((item) => {
     const heading = item.section && item.section !== lastSection ? item.section : null
     lastSection = item.section
-    const isActive = isActivePath(currentPath, item.href)
+    const isPending = pendingHref === item.href
+    const isActive = isPending || (!pendingHref && isActivePath(currentPath, item.href))
     const count = item.badgeKey ? counts?.[item.badgeKey] || 0 : 0
     return (
       <Fragment key={item.href}>
@@ -80,9 +95,24 @@ function NavSections({ items, currentPath, onNavigate }) {
         <Link
           href={item.href}
           aria-current={isActive ? 'page' : undefined}
+          aria-busy={isPending || undefined}
           className={`nav-item-inactive flex min-h-11 items-center gap-3 rounded-md px-3.5 py-2 ${item.href === '/' ? 'mb-2' : ''} ${isActive ? 'nav-item-active' : ''}`}
-          onClick={onNavigate}>
-          <item.icon className="h-[17px] w-[17px] flex-shrink-0" />
+          onClick={(event) => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return
+            if (isPending || currentPath === item.href) {
+              // Déjà en cours ou déjà sur la page : rien à relancer
+              event.preventDefault()
+              onNavigate?.()
+              return
+            }
+            setPendingHref(item.href)
+            onNavigate?.()
+          }}>
+          {isPending ? (
+            <RiLoader4Line className="h-[17px] w-[17px] flex-shrink-0 animate-spin" />
+          ) : (
+            <item.icon className="h-[17px] w-[17px] flex-shrink-0" />
+          )}
           <span className="flex-1 truncate text-[13px]">{item.name}</span>
           {count > 0 && (
             <span aria-label={`${count} élément${count > 1 ? 's' : ''} à traiter`} className={`nav-badge min-w-[20px] rounded-full px-1.5 py-1 text-center text-[10px] font-semibold leading-none ${isActive ? 'nav-badge-active' : ''}`}>
