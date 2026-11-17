@@ -19,13 +19,14 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import SimpleDrawer from '@/components/SimpleDrawer'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import PropertyDrawerForm from './PropertyDrawerForm'
 import {
   getManagedProperties,
   getPropertiesByOwner,
   editManagedProperty,
   deleteManagedProperty,
+  createdAtMillis,
 } from '@/lib/services/managedProperties'
 import { getPropertyOwners } from '@/lib/services/propertyOwners'
 import { getLeasesByProperty } from '@/lib/services/leases'
@@ -152,7 +153,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [selected, setSelected] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [search, setSearch] = useState('')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [detailProperty, setDetailProperty] = useState(null)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [menuAnchor, setMenuAnchor] = useState(null)
@@ -183,7 +184,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }, [properties]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [search])
 
   useEffect(() => {
@@ -386,7 +387,8 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     return untilDate.getTime() > Date.now()
   }
 
-  const filtered = properties.filter((p) => {
+  // Du plus récent au plus ancien, quel que soit le format de la date enregistrée
+  const filtered = [...properties].sort((a, b) => createdAtMillis(b.createdAt) - createdAtMillis(a.createdAt)).filter((p) => {
     const q = search.toLowerCase()
     if (!q) return true
     const owner = ownerById(p.ownerId)
@@ -398,7 +400,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       owner?.name?.toLowerCase().includes(q)
     )
   })
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Sélection multiple : tout bien géré ou toute annonce publique, dès lors
   // qu'au moins une action groupée est possible (traiter et/ou supprimer).
@@ -947,12 +949,14 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         </td>
                         <td className="hidden px-4 py-2 lg:table-cell">
                           {isCurrentlyBoosted(property) ? (
+                            // Une seule ligne : date courte (« 17 déc. »), sans retour à la ligne
                             <span
-                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold"
                               style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                              title={`Mise en avant jusqu'au ${firebaseDateFormat(property.boostedUntil)}`}
                             >
-                              <RiRocketLine className="h-3 w-3" />
-                              Jusqu'au <span className="font-mono">{firebaseDateFormat(property.boostedUntil)}</span>
+                              <RiRocketLine className="h-3 w-3 shrink-0" />
+                              Jusqu&apos;au {firebaseDateFormat(property.boostedUntil, 'd MMM')}
                             </span>
                           ) : (
                             <span className="text-xs text-gray-300">—</span>
@@ -981,12 +985,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             </div>
           </div>
         )}
-        {!isLoading && filtered.length > 0 && visibleCount < filtered.length && (
-          <PaginationButton
-            className="!mt-3"
-            getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
-          />
-        )}
+        <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
       </div>
 
       {menuOpenId && menuAnchor && (

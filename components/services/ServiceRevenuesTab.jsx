@@ -14,7 +14,7 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { formatGNF } from '@/utils/format'
 import { getAllServiceRequests } from '@/lib/services/serviceRequests'
 import { getRentPayments } from '@/lib/services/rentPayments'
@@ -27,7 +27,7 @@ export default function ServiceRevenuesTab() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState('all') // 'week' | 'month' | 'year' | 'all'
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
 
   const emptyPeriod = { platform: 0, gross: 0 }
   const [periodTotals, setPeriodTotals] = useState({
@@ -279,7 +279,7 @@ export default function ServiceRevenuesTab() {
   }, [])
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [activeFilter, periodFilter])
 
   const filteredItems = revenueItems.filter((item) => {
@@ -287,7 +287,7 @@ export default function ServiceRevenuesTab() {
     const matchPeriod = isWithinPeriod(item.date, periodFilter)
     return matchService && matchPeriod
   })
-  const visibleItems = filteredItems.slice(0, visibleCount)
+  const visibleItems = filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="space-y-6">
@@ -534,9 +534,7 @@ export default function ServiceRevenuesTab() {
                     </tbody>
                   </table>
                 </div>
-                {visibleCount < filteredItems.length && (
-                  <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-                )}
+                <Pagination page={page} pageSize={PAGE_SIZE} total={filteredItems.length} onChange={setPage} />
               </div>
             )}
           </div>

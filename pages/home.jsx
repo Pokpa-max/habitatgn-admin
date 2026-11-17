@@ -40,6 +40,12 @@ const TODO_ITEMS = [
     href: '/workers',
   },
   {
+    key: 'pendingPropertySearchRequests',
+    one: 'recherche confiée à traiter',
+    many: 'recherches confiées à traiter',
+    href: '/recherches',
+  },
+  {
     key: 'pendingServiceRequests',
     one: 'demande de service à traiter',
     many: 'demandes de service à traiter',

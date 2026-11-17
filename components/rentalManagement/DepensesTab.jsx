@@ -7,7 +7,7 @@ import { formatGNF, currentPeriod, formatPeriodLabel } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import DrawerForm from '@/components/DrawerForm'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getPropertyExpenses, addPropertyExpense, deletePropertyExpense } from '@/lib/services/propertyExpenses'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -27,7 +27,7 @@ export default function DepensesTab({ ownerId }) {
   const [saving, setSaving] = useState(false)
   const [propertyFilter, setPropertyFilter] = useState('all')
   const [deleteConfirm, setDeleteConfirm] = useState(null)
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
 
   const {
     register,
@@ -56,7 +56,7 @@ export default function DepensesTab({ ownerId }) {
   }, [ownerId])
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [propertyFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
@@ -110,7 +110,7 @@ export default function DepensesTab({ ownerId }) {
 
   const filtered = expenses.filter((e) => propertyFilter === 'all' || e.propertyId === propertyFilter)
   const total = filtered.reduce((sum, e) => sum + (e.amount || 0), 0)
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <>
@@ -217,9 +217,7 @@ export default function DepensesTab({ ownerId }) {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filtered.length && (
-              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
           </div>
         )}
       </div>

@@ -12,6 +12,7 @@ import {
   RiMoneyDollarCircleLine,
   RiVipCrownLine,
   RiShieldCheckFill,
+  RiEditLine,
 } from 'react-icons/ri'
 import {
   AuthAction,
@@ -49,6 +50,8 @@ import {
 } from '@/lib/services/workerPayments'
 import { PAYMENT_STATUS_CONFIG } from '@/components/Users/Workers/paymentStatusConfig'
 import RecordPaymentModal from '@/components/Users/Workers/RecordPaymentModal'
+import EditWorkerModal from '@/components/Users/Workers/EditWorkerModal'
+import { useCanManage } from '@/hooks/useCanManage'
 import { firebaseDateFormat } from '@/utils/date'
 import { formatGNF } from '@/utils/format'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
@@ -61,6 +64,9 @@ function WorkerDetail() {
   const { workerId } = router.query
 
   const [worker, setWorker] = useState(null)
+  const [editOpen, setEditOpen] = useState(false)
+  // Modifier le profil : même droit que l'approbation des ouvriers
+  const canEditProfile = useCanManage('workers', 'process')
   const [reviews, setReviews] = useState([])
   const [visibleReviewsCount, setVisibleReviewsCount] = useState(PAGE_SIZE)
   const [isAvailable, setIsAvailable] = useState(true)
@@ -257,6 +263,13 @@ function WorkerDetail() {
           cancelFuction={() => {}}
         />
 
+        <EditWorkerModal
+          worker={worker}
+          open={editOpen}
+          setOpen={setEditOpen}
+          onSaved={(changes) => setWorker((prev) => ({ ...prev, ...changes }))}
+        />
+
         <RecordPaymentModal
           open={paymentModalOpen}
           setOpen={setPaymentModalOpen}
@@ -329,6 +342,17 @@ function WorkerDetail() {
               </div>
             </div>
 
+            <div className="flex flex-wrap items-center gap-2">
+            {canEditProfile && (
+              <button
+                type="button"
+                onClick={() => setEditOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiEditLine className="h-4 w-4" />
+                Modifier le profil
+              </button>
+            )}
             {worker.userId && (
               <button
                 onClick={() => setBlockModalOpen(true)}
@@ -341,6 +365,7 @@ function WorkerDetail() {
                 {isAvailable ? 'Actif' : 'Bloqué'}
               </button>
             )}
+            </div>
           </div>
 
           {worker.description && (

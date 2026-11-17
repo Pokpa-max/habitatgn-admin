@@ -22,7 +22,7 @@ import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
 import ConfirmModal from '@/components/ConfirmModal'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { formatGNF } from '@/utils/format'
 import {
   getProducts,
@@ -84,7 +84,7 @@ export default function MarketplaceProductsPage() {
   useEffect(() => {
     if (router.query.filtre === 'signales') setStatusFilter('reported')
   }, [router.query.filtre])
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
 
   // Drawer / Form state
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -324,7 +324,7 @@ export default function MarketplaceProductsPage() {
     )
   })
 
-  const visible = filteredProducts.slice(0, visibleCount)
+  const visible = filteredProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const activeCount = products.filter((p) => p.active).length
   const inactiveCount = products.filter((p) => !p.active).length
@@ -937,11 +937,7 @@ export default function MarketplaceProductsPage() {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filteredProducts.length && (
-              <PaginationButton
-                getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              />
-            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filteredProducts.length} onChange={setPage} />
           </div>
         )}
       </div>

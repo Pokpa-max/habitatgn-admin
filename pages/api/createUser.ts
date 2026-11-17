@@ -37,6 +37,26 @@ const buildWorkerSearchIndex = (worker: {
   return { keywords }
 }
 
+/** Champs publics d'un ouvrier (mêmes noms que workerService.ts côté site public). */
+const workerProfileFields = (input: Record<string, any>) => {
+  const workerSpecialties: string[] = Array.isArray(input.specialties) ? input.specialties : []
+  const workerCommunes: string[] = Array.isArray(input.communes) ? input.communes : []
+  return {
+    name: input.name || '',
+    phone: input.phoneNumber || '',
+    whatsapp: input.whatsapp || '',
+    specialties: workerSpecialties,
+    communes: workerCommunes,
+    description: input.description || '',
+    experienceYears: input.experienceYears !== undefined && input.experienceYears !== null ? Number(input.experienceYears) : null,
+    priceRange: input.priceRange || '',
+    imageUrl: input.imageUrl || '',
+    accountType: input.accountType || 'individual',
+    specialtyCommunePairs: workerSpecialties.flatMap((s) => workerCommunes.map((c) => `${s}::${c}`)),
+    searchIndex: buildWorkerSearchIndex({ name: input.name || '', specialties: workerSpecialties, communes: workerCommunes }),
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -59,13 +79,18 @@ export default async function handler(
       name,
       passWord,
       type,
+      withoutAccount,
     } = req.body || {}
 
+    // Ouvrier ajouté sans compte de connexion : seul son profil public est créé
+    const profileOnly = withoutAccount === true && (type === 'worker' || type === 'ouvrier')
+
     if (
-      typeof email !== 'string' ||
+      !profileOnly &&
+      (typeof email !== 'string' ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       typeof passWord !== 'string' ||
-      passWord.length < 6
+      passWord.length < 6)
     ) {
       return res.status(400).json({
         code: 0,
@@ -125,6 +150,33 @@ export default async function handler(
       }
     }
 
+    if (profileOnly) {
+      if (!String(name || '').trim()) {
+        return res.status(400).json({ code: 0, message: "Le nom de l'ouvrier est requis." })
+      }
+      const workerRef = dbAdmin.collection('workers').doc()
+      await workerRef.set({
+        ...workerProfileFields({ name, phoneNumber, whatsapp, specialties, communes, description, experienceYears, priceRange, imageUrl, accountType }),
+        userId: null,
+        // Sans compte : visible sur le site, mais personne ne peut s'y connecter.
+        // « Créer son compte » (api/createWorkerAccount) le rattache plus tard.
+        hasAccount: false,
+        email: typeof email === 'string' ? email.trim() : '',
+        status: 'approved',
+        createdAt: FieldValue.serverTimestamp(),
+      })
+      await logAuditEvent({
+        action: 'worker.create_profile',
+        actorUid: caller.uid,
+        actorEmail: caller.email,
+        actorType: caller.userType,
+        targetUid: workerRef.id,
+        targetEmail: typeof email === 'string' ? email : '',
+        details: { type: 'worker', withoutAccount: true },
+      })
+      return res.status(200).json({ code: 1, message: 'Worker profile created', uid: null, workerId: workerRef.id })
+    }
+
     // 1. Create user in Firebase Auth
     const userRecord = await createUserAuth(email, passWord, name || '')
     createdUid = userRecord.uid
@@ -175,30 +227,12 @@ export default async function handler(
         { merge: true }
       )
     } else if (userType === 'worker') {
-      const workerSpecialties = Array.isArray(specialties) ? specialties : []
-      const workerCommunes = Array.isArray(communes) ? communes : []
       batch.set(
         dbAdmin.collection('workers').doc(uid),
         {
+          ...workerProfileFields({ name, phoneNumber, whatsapp, specialties, communes, description, experienceYears, priceRange, imageUrl, accountType }),
           userId: uid,
-          name: name || '',
-          phone: phoneNumber || '',
-          whatsapp: whatsapp || '',
-          specialties: workerSpecialties,
-          communes: workerCommunes,
-          description: description || '',
-          experienceYears: experienceYears !== undefined ? Number(experienceYears) : null,
-          priceRange: priceRange || '',
-          imageUrl: imageUrl || '',
-          accountType: accountType || 'individual',
-          specialtyCommunePairs: workerSpecialties.flatMap((s: string) =>
-            workerCommunes.map((c: string) => `${s}::${c}`)
-          ),
-          searchIndex: buildWorkerSearchIndex({
-            name: name || '',
-            specialties: workerSpecialties,
-            communes: workerCommunes,
-          }),
+          hasAccount: true,
           status: 'approved',
           createdAt: FieldValue.serverTimestamp(),
         },

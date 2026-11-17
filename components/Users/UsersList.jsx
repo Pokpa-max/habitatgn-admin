@@ -78,6 +78,9 @@ function UserTable({
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
+  // Menu « ⋮ » : position fixe à l'écran, sinon le tableau (qui défile
+  // horizontalement) en coupait une partie
+  const [menuPos, setMenuPos] = useState(null)
 
   useEffect(() => {
     if (!menuOpenId) return
@@ -87,9 +90,29 @@ function UserTable({
         setMenuOpenId(null)
       }
     }
+    const close = () => setMenuOpenId(null)
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
   }, [menuOpenId])
+
+  /** Ouvre le menu sous le bouton, ou au-dessus s'il manque de place en bas. */
+  const toggleMenu = (event, id) => {
+    if (menuOpenId === id) {
+      setMenuOpenId(null)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const right = Math.max(8, window.innerWidth - rect.right)
+    const opensUp = rect.bottom + 240 > window.innerHeight
+    setMenuPos(opensUp ? { bottom: window.innerHeight - rect.top + 8, right } : { top: rect.bottom + 8, right })
+    setMenuOpenId(id)
+  }
 
   data = data || {}
   const { users, lastElement } = data
@@ -347,17 +370,17 @@ function UserTable({
                             <div className="relative" data-menu-root>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setMenuOpenId((prev) => (prev === row.id ? null : row.id))
-                                }
+                                onClick={(event) => toggleMenu(event, row.id)}
+                                aria-expanded={menuOpenId === row.id}
                                 className="inline-flex items-center justify-center rounded-full border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
                                 title="Actions"
+                                aria-label="Actions"
                               >
                                 <RiMore2Fill className="h-4 w-4" />
                               </button>
 
                               {menuOpenId === row.id && (
-                                <div className="absolute right-0 top-full z-[60] mt-2 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                                <div className="fixed z-[100] w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-lg" style={menuPos || undefined}>
                                   <button
                                     type="button"
                                     onClick={() => {

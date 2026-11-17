@@ -10,7 +10,7 @@ import {
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import StatusPill from '@/components/ui/StatusPill'
 import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice, whatsappUrl } from '@/components/ui/AdminModal'
 import { firebaseDateFormat } from '@/utils/date'
@@ -141,7 +141,7 @@ export default function ServiceRequestsPanel({
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [detailTarget, setDetailTarget] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -162,7 +162,7 @@ export default function ServiceRequestsPanel({
   }, [fetchRequests])
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [statusFilter, searchTerm])
 
   const handleStatusChange = async (request, status) => {
@@ -209,7 +209,7 @@ export default function ServiceRequestsPanel({
       r.name?.toLowerCase().includes(lower) || r.phone?.toLowerCase().includes(lower)
     return base || (searchFn ? searchFn(r, lower) : false)
   })
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -395,9 +395,7 @@ export default function ServiceRequestsPanel({
               </tbody>
             </table>
           </div>
-          {visibleCount < filtered.length && (
-            <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-          )}
+          <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
         </div>
       )}
     </div>

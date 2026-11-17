@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useUser } from 'next-firebase-auth'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
 import NewSearchRequestModal from './NewSearchRequestModal'
+import SearchMatchesSection from './SearchMatchesSection'
 import {
   deleteServiceRequest,
   getServiceRequestsByCategory,
+  updateServiceRequest,
   updateServiceRequestPayment,
   updateServiceRequestStatus,
 } from '@/lib/services/serviceRequests'
@@ -13,6 +15,7 @@ import { RiWhatsappLine } from 'react-icons/ri'
 import StatusPill from '@/components/ui/StatusPill'
 import { useCanManage } from '@/hooks/useCanManage'
 import { useColors } from '@/contexts/ColorContext'
+import { bedroomsText, wantedFeaturesText } from '@/lib/constants/searchRequest'
 import { notify } from '@/utils/toast'
 
 const searchTypeLabel = (value) => {
@@ -100,44 +103,6 @@ const readableDate = (value) => {
 }
 const levelName = (request) => request.serviceLevelLabel || serviceLevelLabel(request).split(' · ')[0]
 
-/** Message des modalités de paiement, à envoyer une fois la formule confirmée. */
-const termsMessage = (request, installments) => {
-  const total = installments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-  // Nom complet tel que donné : en Guinée le nom de famille vient souvent en premier
-  const firstName = clientNameOf(request.name)
-  const lines = [
-    `Bonjour${firstName ? ` ${firstName}` : ''},`,
-    '',
-    `Suite à votre demande, voici les conditions de la formule *${levelName(request)}*.`,
-    '',
-    `*Tarif : ${gnf(total)}*`,
-    '',
-  ]
-  if (installments.length > 1) {
-    lines.push('*Modalités de paiement*')
-    installments.forEach((item, index) => {
-      const when = item.terms || PAYMENT_PLANS[request.serviceLevel]?.find((plan) => plan.key === item.key)?.terms || item.label.toLowerCase()
-      lines.push(`• *${gnf(item.amount)}* ${when}${index === installments.length - 1 ? '.' : ' ;'}`)
-    })
-    lines.push('', `Le premier versement peut être effectué au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
-  } else {
-    lines.push(`Le règlement s'effectue à la confirmation et au lancement de votre dossier, au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
-  }
-  lines.push(
-    'Merci de nous transmettre la capture du dépôt sur cette conversation : votre reçu vous sera envoyé dès sa réception.',
-    '',
-    '*Délai*',
-    `Les premières propositions vous parviendront sous *${FIRST_RESULTS_DELAY}*, selon la disponibilité des logements correspondant à vos critères.`,
-    '',
-    "Notre équipe s'engage à assurer un suivi sérieux et régulier de votre recherche.",
-    '',
-    'Cordialement,',
-    `*${SIGNATURE[0]}*`,
-    `_${SIGNATURE[1]}_`
-  )
-  return lines.join('\n')
-}
-
 /** Reçu d'un versement : numéro, montant, mode, total réglé et reste à payer. */
 const receiptNumber = (request, index) => `BM-${String(request.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase()}-${index + 1}`
 const receiptMessage = (request, installments, index) => {
@@ -167,6 +132,61 @@ const receiptMessage = (request, installments, index) => {
     `*${SIGNATURE[0]}*`,
     `_${SIGNATURE[1]}_`,
   ].join('\n')
+}
+
+/** Note interne du dossier (non visible du client) : où en est la recherche. */
+function NotesSection({ request, onUpdated }) {
+  const canProcess = useCanManage('services', 'process')
+  const [text, setText] = useState(request.internalNotes || '')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setText(request.internalNotes || '')
+  }, [request.id, request.internalNotes])
+
+  const changed = text.trim() !== String(request.internalNotes || '').trim()
+  const save = async () => {
+    setSaving(true)
+    try {
+      const changes = { internalNotes: text.trim(), internalNotesUpdatedAt: new Date().toISOString() }
+      await updateServiceRequest(request.id, changes)
+      onUpdated?.(request.id, changes)
+      notify('Note enregistrée', 'success')
+    } catch (e) {
+      notify("La note n'a pas pu être enregistrée", 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <ModalSection title="Note interne">
+      <textarea
+        rows={3}
+        value={text}
+        onChange={(e) => setText(e.target.value.slice(0, 1500))}
+        disabled={!canProcess || saving}
+        placeholder="Ex. Appelé le 18/11 : préfère Kipé, près de la route. Rappeler vendredi."
+        className="w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50"
+      />
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-[11px] text-gray-500">
+          Visible uniquement par l&apos;équipe
+          {request.internalNotesUpdatedAt ? ` · modifiée le ${readableDate(String(request.internalNotesUpdatedAt).slice(0, 10))}` : ''}
+        </p>
+        {canProcess && (
+          <button
+            type="button"
+            onClick={save}
+            disabled={!changed || saving}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer la note'}
+          </button>
+        )}
+      </div>
+    </ModalSection>
+  )
 }
 
 /** Fiche : versements prévus, encaissement de chacun, messages WhatsApp (modalités, reçus). */
@@ -216,7 +236,6 @@ function PaymentSection({ request, onUpdated }) {
     persist(next, index, 'Versement remis « à encaisser »')
   }
 
-  const termsHref = whatsappUrl(request.phone, termsMessage(request, items))
   const field = 'h-9 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50'
   // Sobre : bouton blanc, seule l'icône rappelle WhatsApp
   const waButton = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50'
@@ -234,13 +253,6 @@ function PaymentSection({ request, onUpdated }) {
         </div>
         {paymentPill({ ...request, paymentStatus: summary.paymentStatus })}
       </div>
-
-      {termsHref && (
-        <a href={termsHref} target="_blank" rel="noopener noreferrer" className={`${waButton} mb-3`} style={waStyle}>
-          <RiWhatsappLine className="h-4 w-4" style={waIcon} />
-          Envoyer les modalités de paiement
-        </a>
-      )}
 
       <ol className="space-y-2.5">
         {items.map((item, index) => {
@@ -367,47 +379,37 @@ const clientNameOf = (name) => String(name || '').trim().replace(/\s+/g, ' ').sl
  * personne) ; sans nom renseigné, « l'équipe BâtiMoo ».
  */
 const whatsappMessage = (request, senderName) => {
-  // Nom complet tel que donné : en Guinée le nom de famille vient souvent en premier
-  const firstName = clientNameOf(request.name)
-  // Compte au nom générique (« BâtiMoo Admin », « Admin »…) : pas un prénom,
-  // le message parle alors au nom de l'équipe
+  const name = clientNameOf(request.name)
+  // Compte au nom générique (« BâtiMoo Admin »…) : pas un prénom
   const senderFirst = firstNameOf(senderName)
   const sender = /^(b[aâ]ti ?moo|admin|administrateur|manager|équipe|equipe|service)$/i.test(senderFirst) ? '' : senderFirst
-  const details = [
-    searchTypeLabel(request.searchType) && `• Projet : ${searchTypeLabel(request.searchType)}`,
-    `• Type de bien : ${propertyTypesLabel(request)}`,
-    request.bedrooms ? `• Chambres : ${request.bedrooms} minimum` : null,
-    locationsLabel(request) && `• Zones : ${locationsLabel(request)}`,
-    budgetLabel(request.maxPrice) && `• Budget maximum : ${budgetLabel(request.maxPrice)}`,
-  ].filter(Boolean)
+  const paid = isPaidSearch(request)
 
+  // Tout est déjà détaillé sur le site : un message court, réception + suite
   const lines = [
-    `Bonjour${firstName ? ` ${firstName}` : ''},`,
+    `Bonjour${name ? ` ${name}` : ''},`,
     '',
-    sender
-      ? `Je suis ${sender}, de l'équipe BâtiMoo. Je vous remercie pour la confiance que vous nous accordez.`
-      : "L'équipe BâtiMoo vous remercie pour la confiance que vous nous accordez.",
-    '',
-    'Nous accusons bonne réception de votre demande de recherche :',
-    ...details,
+    `Merci pour votre confiance. Nous avons bien reçu votre demande de recherche${paid ? ` (formule *${levelName(request)}*)` : ''}.`,
     '',
   ]
-  if (isPaidSearch(request)) {
-    const level = request.serviceLevelLabel || serviceLevelLabel(request).split(' · ')[0]
+  if (paid) {
+    const items = installmentsOf(request)
+    const total = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+    lines.push(`*Tarif : ${gnf(total)}*`)
+    if (items.length > 1) {
+      items.forEach((item, index) => {
+        const when = item.terms || PAYMENT_PLANS[request.serviceLevel]?.find((plan) => plan.key === item.key)?.terms || item.label.toLowerCase()
+        lines.push(`• ${gnf(item.amount)} ${when}${index === items.length - 1 ? '.' : ' ;'}`)
+      })
+    }
     lines.push(
-      `Formule choisie : *${level}*${request.servicePrice ? ` (${request.servicePrice})` : ''}.`,
-      sender ? 'Je prends personnellement en charge votre dossier.' : 'Un conseiller prend en charge votre dossier.',
-      'Les modalités de paiement vous seront communiquées avant le lancement de la recherche.',
       '',
-      'Seriez-vous disponible pour un bref échange téléphonique afin de préciser vos critères ?'
+      `Pour lancer votre recherche, effectuez ${items.length > 1 ? 'le premier versement' : 'le paiement'} au numéro de dépôt *${DEPOSIT_NUMBER}*, puis envoyez-nous la capture du dépôt ici.`,
+      '',
+      `Dès réception, ${sender ? 'je commence' : 'votre conseiller commence'} la recherche : premières propositions sous *${FIRST_RESULTS_DELAY}*.`
     )
   } else {
-    lines.push(
-      'Formule choisie : *Recherche classique* (gratuite).',
-      "Nous vous transmettrons sur cette conversation les biens correspondant à vos critères dès qu'ils seront disponibles.",
-      '',
-      "Souhaitez-vous ajouter des précisions (quartier exact, date d'emménagement, équipements souhaités) ?"
-    )
+    lines.push('Nous commençons la recherche dès maintenant et vous enverrons ici les biens correspondant à vos critères.')
   }
   lines.push(
     '',
@@ -461,10 +463,8 @@ const detailFields = [
   { label: 'Formule', render: serviceLevelLabel },
   { label: 'Projet', render: (request) => searchTypeLabel(request.searchType) },
   { label: 'Types de bien', render: propertyTypesLabel },
-  {
-    label: 'Chambres minimum',
-    render: (request) => (request.bedrooms ? `${request.bedrooms}+` : null),
-  },
+  { label: 'Chambres', render: bedroomsText },
+  { label: 'Souhaits', render: wantedFeaturesText },
   { label: 'Zones souhaitées', render: locationsLabel },
   {
     label: 'Budget maximum',
@@ -495,7 +495,14 @@ export default function PropertySearchTab() {
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}
       deleteRequest={deleteServiceRequest}
-      renderDetailExtra={(request, onUpdated) => <PaymentSection request={request} onUpdated={onUpdated} />}
+      // Ordre du traitement : paiement (formules payantes), biens à proposer, note du dossier
+      renderDetailExtra={(request, onUpdated) => (
+        <>
+          <PaymentSection request={request} onUpdated={onUpdated} />
+          <SearchMatchesSection request={request} onUpdated={onUpdated} />
+          <NotesSection request={request} onUpdated={onUpdated} />
+        </>
+      )}
       whatsappMessage={(request) => whatsappMessage(request, AuthUser?.displayName)}
       headerAction={canProcess ? (onCreated) => <NewSearchRequestModal onCreated={onCreated} /> : undefined}
       columns={columns}

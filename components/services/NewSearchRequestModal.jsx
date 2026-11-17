@@ -5,6 +5,7 @@ import AdminModal, { ModalButton, ModalSection } from '@/components/ui/AdminModa
 import { useColors } from '@/contexts/ColorContext'
 import { createServiceRequest } from '@/lib/services/serviceRequests'
 import { notify } from '@/utils/toast'
+import { ANY_ZONE, BEDROOM_OPTIONS, CONAKRY_NEIGHBORHOODS, WANTED_FEATURES, bedroomsText } from '@/lib/constants/searchRequest'
 
 /**
  * Demande de recherche immobilière saisie par l'équipe : le client a appelé,
@@ -34,7 +35,6 @@ const CHANNELS = ['Appel téléphonique', 'WhatsApp', "Visite à l'agence"]
 // Communes les plus demandées : un clic les ajoute ; tout autre quartier se tape
 const QUICK_ZONES = ['Kaloum', 'Dixinn', 'Matam', 'Ratoma', 'Matoto', 'Coyah', 'Dubréka']
 
-const BEDROOMS = ['', '1', '2', '3', '4', '5']
 
 const EMPTY = {
   name: '',
@@ -46,7 +46,8 @@ const EMPTY = {
   propertyTypes: [],
   zones: [],
   zoneDraft: '',
-  bedrooms: '',
+  bedrooms: [],
+  wishes: [],
   maxPrice: '',
   notes: '',
 }
@@ -110,14 +111,24 @@ export default function NewSearchRequestModal({ onCreated }) {
 
     const level = LEVELS.find((l) => l.value === form.serviceLevel) || LEVELS[0]
     const types = TYPES.filter((t) => form.propertyTypes.includes(t.value))
+    const bedroomNumbers = form.bedrooms.map(Number).sort((a, b) => a - b)
+    const bedroomFields = bedroomNumbers.length
+      ? {
+          bedrooms: bedroomNumbers[0],
+          bedroomOptions: bedroomNumbers,
+          ...(form.bedrooms.includes('5') ? {} : { maxBedrooms: bedroomNumbers[bedroomNumbers.length - 1] }),
+        }
+      : {}
+    const wishLabels = WANTED_FEATURES.filter((f) => form.wishes.includes(f.key)).map((f) => f.label)
     // Même texte récapitulatif que les demandes venues du site
     const criteria = [
       `Formule : ${level.label} (${level.price})`,
       `Recherche : ${form.searchType === 'buy' ? 'Achat' : 'Location'}`,
       `Types de bien : ${types.map((t) => t.label).join(', ')}`,
-      form.bedrooms ? `Chambres minimum : ${form.bedrooms}+` : '',
+      bedroomNumbers.length ? `Chambres : ${bedroomsText({ bedroomOptions: bedroomNumbers })}` : '',
       `Zones : ${zones.join(', ')}`,
       `Budget maximum : ${maxPrice.toLocaleString('fr-FR')} GNF`,
+      wishLabels.length ? `Souhaits : ${wishLabels.join(', ')}` : '',
       form.notes.trim() ? `Précisions : ${form.notes.trim()}` : '',
     ].filter(Boolean)
 
@@ -131,7 +142,8 @@ export default function NewSearchRequestModal({ onCreated }) {
       searchType: form.searchType,
       propertyTypes: types.map((t) => t.value),
       propertyType: types.map((t) => t.label).join(', '),
-      ...(form.bedrooms ? { bedrooms: Number(form.bedrooms) } : {}),
+      ...bedroomFields,
+      ...(form.wishes.length ? { wantedFeatures: form.wishes } : {}),
       preferredLocations: zones.slice(0, 10),
       address: zones.join(', '),
       maxPrice,
@@ -296,6 +308,18 @@ export default function NewSearchRequestModal({ onCreated }) {
 
               <div>
                 <span className={label}>Zones souhaitées *</span>
+                <label className="mb-2 inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={form.zones[0] === ANY_ZONE}
+                    onChange={(e) => set({ zones: e.target.checked ? [ANY_ZONE] : [], zoneDraft: '' })}
+                    className="h-4 w-4 rounded border-gray-300"
+                    style={{ accentColor: colors.primary }}
+                  />
+                  Peu importe le quartier
+                </label>
+                {form.zones[0] !== ANY_ZONE && (
+                <>
                 <div className="mb-2 flex flex-wrap gap-1.5">
                   {QUICK_ZONES.map((zone) => (
                     <button key={zone} type="button" aria-pressed={form.zones.includes(zone)} onClick={() => toggle('zones', zone)} className="h-8 rounded-full border px-3 text-[13px] font-medium" style={chip(form.zones.includes(zone))}>
@@ -319,22 +343,33 @@ export default function NewSearchRequestModal({ onCreated }) {
                       }
                     }}
                     className={field('zones')}
-                    placeholder="Autre quartier ou ville (ex. Kipé, Lambanyi)"
+                    placeholder="Quartier ou ville (ex. Kipé, Lambanyi)"
+                    list="search-request-neighborhoods"
                   />
+                  <datalist id="search-request-neighborhoods">
+                    {CONAKRY_NEIGHBORHOODS.map((n) => (
+                      <option key={n} value={n} />
+                    ))}
+                  </datalist>
                   <button type="button" onClick={addZoneDraft} className="h-10 shrink-0 rounded-lg border border-gray-200 px-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">
                     Ajouter
                   </button>
                 </div>
+                </>
+                )}
                 {error('zones')}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <span className={label}>Chambres minimum</span>
+                  <span className={label}>Chambres (un ou plusieurs choix)</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {BEDROOMS.map((value) => (
-                      <button key={value || 'any'} type="button" aria-pressed={form.bedrooms === value} onClick={() => set({ bedrooms: value })} className={`h-9 whitespace-nowrap rounded-lg border text-[13px] font-semibold ${value ? 'w-9' : 'px-2.5'}`} style={chip(form.bedrooms === value)}>
-                        {value ? (value === '5' ? '5+' : value) : 'Peu importe'}
+                    <button type="button" aria-pressed={form.bedrooms.length === 0} onClick={() => set({ bedrooms: [] })} className="h-9 whitespace-nowrap rounded-lg border px-2.5 text-[13px] font-semibold" style={chip(form.bedrooms.length === 0)}>
+                      Peu importe
+                    </button>
+                    {BEDROOM_OPTIONS.map((value) => (
+                      <button key={value} type="button" aria-pressed={form.bedrooms.includes(value)} onClick={() => toggle('bedrooms', value)} className="h-9 w-9 rounded-lg border text-[13px] font-semibold" style={chip(form.bedrooms.includes(value))}>
+                        {value === '5' ? '5+' : value}
                       </button>
                     ))}
                   </div>
@@ -353,6 +388,17 @@ export default function NewSearchRequestModal({ onCreated }) {
                   </div>
                   {error('maxPrice')}
                 </label>
+              </div>
+
+              <div>
+                <span className={label}>Souhaits (facultatif)</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {WANTED_FEATURES.map((feature) => (
+                    <button key={feature.key} type="button" aria-pressed={form.wishes.includes(feature.key)} onClick={() => toggle('wishes', feature.key)} className="h-8 rounded-full border px-3 text-[13px] font-medium" style={chip(form.wishes.includes(feature.key))}>
+                      {feature.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <label className="block">

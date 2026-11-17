@@ -5,6 +5,10 @@ import {
   RiMenuLine,
   RiCloseLine,
   RiLoader4Line,
+  RiArrowRightSLine,
+  RiExternalLinkLine,
+  RiShieldUserLine,
+  RiSearchEyeLine,
   RiGroupLine,
   RiBookOpenLine,
   RiDashboardLine,
@@ -40,6 +44,7 @@ const navigation = [
 
   { section: 'À traiter', name: 'Demandes de visite', href: '/leads', icon: RiCalendarTodoLine, claims: ['admin', 'manager'], module: 'leads', badgeKey: 'pendingLeads' },
   { section: 'À traiter', name: 'Réservations', href: '/reservations', icon: RiCalendarCheckLine, claims: ['admin', 'manager'], module: 'reservations', badgeKey: 'pendingBookings' },
+  { section: 'À traiter', name: 'Recherches confiées', href: '/recherches', icon: RiSearchEyeLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingPropertySearchRequests' },
   { section: 'À traiter', name: 'Demandes de service', href: '/services', icon: RiTruckLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingServiceRequests' },
   { section: 'À traiter', name: 'Messages', href: '/messages', icon: RiMailLine, claims: ['admin', 'manager'], module: 'messages', badgeKey: 'unreadMessages' },
   { section: 'À traiter', name: 'Annonces signalées', href: '/signalements', icon: RiFlag2Line, claims: ['admin', 'manager'], module: 'properties' },
@@ -224,6 +229,9 @@ export default function Scaffold({ children, title, subNav }) {
   useTableCardLabels()
   const counts = useNotifications()
   const visibleNav = navigation.filter(canSeeNavItem)
+  const currentNavItem =
+    visibleNav.find((item) => item.href !== '/' && isActivePath(currentPath, item.href)) ||
+    (currentPath === '/' ? visibleNav.find((item) => item.href === '/') : null)
   const pendingTotal = visibleNav.reduce((sum, item) => sum + (item.badgeKey ? counts?.[item.badgeKey] || 0 : 0), 0)
 
   const handleSignOut = () => {
@@ -373,11 +381,14 @@ export default function Scaffold({ children, title, subNav }) {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/icons/logo-mark-white.png" alt="" className="h-8 w-auto" />
                   <div>
-                    <p className="text-sm font-bold tracking-tight leading-none text-white">
+                    <p className="flex items-center gap-1.5 text-sm font-bold tracking-tight leading-none text-white">
                       BâtiMoo
+                      <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white" style={{ backgroundColor: colors.orangeAccent }}>
+                        Admin
+                      </span>
                     </p>
                     <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: SIDEBAR_TEXT }}>
-                      Tableau de bord
+                      Administration
                     </p>
                   </div>
                 </div>
@@ -435,12 +446,15 @@ export default function Scaffold({ children, title, subNav }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icons/logo-mark-white.png" alt="" className="h-8 w-auto" />
               <div>
-                <p className="text-sm font-bold tracking-tight leading-none text-white">
+                <p className="flex items-center gap-1.5 text-sm font-bold tracking-tight leading-none text-white">
                   BâtiMoo
+                  <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white" style={{ backgroundColor: colors.orangeAccent }}>
+                    Admin
+                  </span>
                 </p>
 
                 <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: SIDEBAR_TEXT }}>
-                  Tableau de bord
+                  Administration
                 </p>
               </div>
             </div>
@@ -519,13 +533,64 @@ export default function Scaffold({ children, title, subNav }) {
               <img src="/icons/logo-mark-white.png" alt="" className="ml-1 h-6 w-auto" />
               {/* Marque seule : le titre de la page est juste en dessous */}
               <div className="ml-2 min-w-0">
-                <p className="text-[15px] font-bold leading-none text-white">BâtiMoo</p>
+                <p className="flex items-center gap-1.5 text-[15px] font-bold leading-none text-white">
+                  BâtiMoo
+                  <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white" style={{ backgroundColor: colors.orangeAccent }}>
+                    Admin
+                  </span>
+                </p>
                 <p className="mt-1 text-[10px] font-bold uppercase leading-none tracking-wider" style={{ color: SIDEBAR_TEXT }}>
-                  Tableau de bord
+                  Administration
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Ordinateur : bandeau « Espace administration », page en cours, accès au site */}
+          <header
+            className="sticky top-0 z-20 hidden h-14 items-center gap-4 border-b bg-white/95 px-8 backdrop-blur md:flex"
+            style={{ borderColor: colors.gray200 }}
+          >
+            <div className="flex min-w-0 items-center gap-2 text-sm">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-white"
+                style={{ backgroundColor: colors.navyDark }}
+              >
+                <RiShieldUserLine className="h-3.5 w-3.5" style={{ color: colors.orangeAccent }} />
+                Espace administration
+              </span>
+              <RiArrowRightSLine className="h-4 w-4 shrink-0 text-gray-300" aria-hidden="true" />
+              <span className="truncate font-semibold text-gray-900">{currentNavItem?.name || 'BâtiMoo'}</span>
+            </div>
+            <div className="ml-auto flex shrink-0 items-center gap-3">
+              {pendingTotal > 0 && (
+                <span className="text-xs text-gray-500">
+                  <strong className="text-gray-900">{pendingTotal}</strong> à traiter
+                </span>
+              )}
+              <a
+                href="https://www.batimoo.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <RiExternalLinkLine className="h-3.5 w-3.5" />
+                Voir le site
+              </a>
+              <span className="flex items-center gap-2 border-l border-gray-200 pl-3">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold"
+                  style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                >
+                  {(AuthUser?.displayName?.[0] || 'A').toUpperCase()}
+                </span>
+                <span className="leading-tight">
+                  <span className="block max-w-[10rem] truncate text-xs font-semibold text-gray-900">{AuthUser?.displayName || 'Utilisateur'}</span>
+                  <span className="block text-[11px] text-gray-500">{userType === 'admin' ? 'Administrateur' : 'Manager'}</span>
+                </span>
+              </span>
+            </div>
+          </header>
 
           {/* Alertes push : bandeau tant qu'elles ne sont pas activées sur cet appareil */}
           <PushAlertsBanner />
