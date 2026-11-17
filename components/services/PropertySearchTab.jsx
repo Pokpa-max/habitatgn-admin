@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useUser } from 'next-firebase-auth'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
 import {
   deleteServiceRequest,
@@ -183,12 +184,17 @@ const budgetLabel = (value) => {
     : null
 }
 
+const firstNameOf = (name) => String(name || '').trim().split(/\s+/)[0]
+
 /**
  * Premier message WhatsApp au client : reprend sa demande pour qu'il la
  * reconnaisse, puis la suite selon la formule (gratuite ou payante).
+ * Signé du prénom du conseiller connecté (on répond plus volontiers à une
+ * personne) ; sans nom renseigné, « l'équipe BâtiMoo ».
  */
-const whatsappMessage = (request) => {
-  const firstName = String(request.name || '').trim().split(/\s+/)[0]
+const whatsappMessage = (request, senderName) => {
+  const firstName = firstNameOf(request.name)
+  const sender = firstNameOf(senderName)
   const criteria = [
     searchTypeLabel(request.searchType),
     propertyTypesLabel(request),
@@ -198,7 +204,7 @@ const whatsappMessage = (request) => {
   ].filter(Boolean)
 
   const lines = [
-    `Bonjour${firstName ? ` ${firstName}` : ''}, ici l'équipe BâtiMoo.`,
+    `Bonjour${firstName ? ` ${firstName}` : ''}, ${sender ? `je suis ${sender}, de l'équipe BâtiMoo.` : "ici l'équipe BâtiMoo."}`,
     '',
     `Nous avons bien reçu votre recherche : ${criteria.join(' · ')}.`,
     '',
@@ -206,7 +212,7 @@ const whatsappMessage = (request) => {
   if (isPaidSearch(request)) {
     const level = request.serviceLevelLabel || serviceLevelLabel(request).split(' · ')[0]
     lines.push(
-      `Vous avez choisi la formule « ${level} »${request.servicePrice ? ` (${request.servicePrice})` : ''}. Un conseiller va s'occuper de votre recherche.`,
+      `Vous avez choisi la formule « ${level} »${request.servicePrice ? ` (${request.servicePrice})` : ''}. ${sender ? 'Je m\'occupe personnellement de votre recherche.' : 'Un conseiller va s\'occuper de votre recherche.'}`,
       'Avant de commencer, nous vous confirmons le montant et le mode de paiement (Orange Money, MTN Mobile Money ou espèces).',
       '',
       'Êtes-vous disponible pour un court appel ?'
@@ -218,7 +224,8 @@ const whatsappMessage = (request) => {
       "Avez-vous d'autres précisions (quartier exact, date d'emménagement) ?"
     )
   }
-  lines.push('', 'Merci de votre confiance,', "L'équipe BâtiMoo")
+  if (sender) lines.push('', 'Merci de votre confiance.')
+  else lines.push('', 'Merci de votre confiance,', "L'équipe BâtiMoo")
   return lines.join('\n')
 }
 
@@ -264,6 +271,7 @@ const detailFields = [
 ]
 
 export default function PropertySearchTab() {
+  const AuthUser = useUser()
   const fetchRequests = useCallback(
     () => getServiceRequestsByCategory('recherche-bien'),
     []
@@ -277,7 +285,7 @@ export default function PropertySearchTab() {
       updateStatus={updateServiceRequestStatus}
       deleteRequest={deleteServiceRequest}
       renderDetailExtra={(request, onUpdated) => <PaymentSection request={request} onUpdated={onUpdated} />}
-      whatsappMessage={whatsappMessage}
+      whatsappMessage={(request) => whatsappMessage(request, AuthUser?.displayName)}
       columns={columns}
       detailFields={detailFields}
       searchFn={(request, lower) =>
