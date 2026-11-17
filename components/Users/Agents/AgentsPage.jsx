@@ -88,6 +88,38 @@ export default function AgentsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState(null)
+  // Menu « ⋮ » du tableau : position fixe à l'écran, sinon le tableau (qui
+  // défile horizontalement) en coupait une partie
+  const [menuPos, setMenuPos] = useState(null)
+
+  useEffect(() => {
+    if (!menuOpenId) return
+    const close = () => setMenuOpenId(null)
+    const onPointer = (event) => {
+      if (!event.target.closest('[data-menu-root],[data-agent-menu],[data-agent-menu-button]')) close()
+    }
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    document.addEventListener('mousedown', onPointer)
+    return () => {
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+      document.removeEventListener('mousedown', onPointer)
+    }
+  }, [menuOpenId])
+
+  /** Ouvre le menu sous le bouton, ou au-dessus s'il manque de place en bas. */
+  const toggleTableMenu = (event, id) => {
+    if (menuOpenId === id) {
+      setMenuOpenId(null)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    const right = Math.max(8, window.innerWidth - rect.right)
+    const opensUp = rect.bottom + 280 > window.innerHeight
+    setMenuPos(opensUp ? { bottom: window.innerHeight - rect.top + 8, right } : { top: rect.bottom + 8, right })
+    setMenuOpenId(id)
+  }
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
@@ -836,19 +868,22 @@ export default function AgentsPage() {
                               />
                             )}
                             <button
-                              onClick={() =>
-                                setMenuOpenId((prev) =>
-                                  prev === request.id ? null : request.id
-                                )
-                              }
+                              onClick={(event) => toggleTableMenu(event, request.id)}
+                              data-agent-menu-button
+                              aria-expanded={menuOpenId === request.id}
                               className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
                               title="Actions"
+                              aria-label="Actions"
                             >
                               <RiMore2Fill className="h-4 w-4" />
                             </button>
 
                             {menuOpenId === request.id && (
-                              <div className="absolute right-0 top-full z-[60] mt-2 w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                              <div
+                                data-agent-menu
+                                className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg"
+                                style={menuPos || undefined}
+                              >
                                 {canProcess && request.status === 'pending' && (
                                   <>
                                     <button
