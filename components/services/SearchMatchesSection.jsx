@@ -30,6 +30,7 @@ const selectionMessage = (request, items) => {
     lines.push(
       `${index + 1}. *${item.title}*${item.place ? ` — ${item.place}` : ''}`,
       `   ${item.priceLabel} · Réf. ${item.ref}`,
+      ...(item.matchedWishes?.length ? [`   ✓ ${item.matchedWishes.join(' · ')}`] : []),
       `   ${item.url}`,
       ''
     )
@@ -147,6 +148,12 @@ export default function SearchMatchesSection({ request, onUpdated }) {
                         {item.place || '—'}
                         {!item.zoneMatch && ' · autre zone'}
                       </span>
+                      {item.wishCount > 0 && (
+                        <span className="block truncate text-[11px] text-gray-500">
+                          {item.matchedWishes.length}/{item.wishCount} souhaits
+                          {item.matchedWishes.length > 0 && ` · ${item.matchedWishes.join(', ')}`}
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 text-right">
                       <span className="block text-sm font-semibold text-gray-900">{item.priceLabel}</span>
