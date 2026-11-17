@@ -16,7 +16,7 @@ import CustomersPage from '@/components/Users/Customers/CustomersPage'
 import ManagersPage from '@/components/Users/Managers/ManagersPage'
 
 const TABS = [
-  { value: 'customers', label: 'Utilisateurs', icon: RiGroupLine, type: 'customer' },
+  { value: 'customers', label: 'Utilisateurs', icon: RiGroupLine, roles: ['user', 'agent', 'worker'] },
   { value: 'managers', label: 'Managers', icon: RiProfileLine, type: 'manager' },
   { value: 'admins', label: 'Admins', icon: RiShieldStarLine, type: 'admin' },
 ]
@@ -30,7 +30,9 @@ function Users() {
     const loadCounts = async () => {
       const usersRef = collection(db, 'users')
       const results = await Promise.all(
-        TABS.map((tab) => getDocs(query(usersRef, where('type', '==', tab.type))))
+        TABS.map((tab) =>
+          getDocs(query(usersRef, tab.roles ? where('role', 'in', tab.roles) : where('type', '==', tab.type)))
+        )
       )
       const next = {}
       TABS.forEach((tab, i) => {

@@ -105,8 +105,10 @@ function UserTable({
     const email = user.email?.toLowerCase() || ''
     const phoneNumber = user.phoneNumber?.toLowerCase() || ''
     const agency = user.agence?.toLowerCase() || ''
+    const name = user.name?.toLowerCase() || ''
 
     return (
+      name.includes(searchLower) ||
       firstName.includes(searchLower) ||
       lastName.includes(searchLower) ||
       email.includes(searchLower) ||

@@ -380,6 +380,20 @@ const whatsappMessage = (request, senderName) => {
   return lines.join('\n')
 }
 
+/**
+ * Le site recopie tous les critères dans `description` (formule, projet,
+ * types…), déjà affichés au-dessus : on ne garde que les précisions écrites
+ * par le client. Ancienne demande sans critères structurés : texte complet.
+ */
+const clientNotes = (request) => {
+  const text = String(request.description || '').trim()
+  if (!text) return null
+  const structured = Array.isArray(request.propertyTypes) || request.serviceLevel
+  if (!structured) return text
+  const notes = text.split('\n').find((line) => /^(Précisions|Notes)\s*:/.test(line))
+  return notes ? notes.replace(/^(Précisions|Notes)\s*:\s*/, '') : null
+}
+
 const columns = [
   {
     header: 'Formule',
@@ -418,7 +432,7 @@ const detailFields = [
     label: 'Budget maximum',
     render: (request) => budgetLabel(request.maxPrice),
   },
-  { label: 'Critères et précisions', accessor: 'description' },
+  { label: 'Précisions du client', render: (request) => clientNotes(request), long: true },
 ]
 
 export default function PropertySearchTab() {

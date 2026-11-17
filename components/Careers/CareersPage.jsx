@@ -232,7 +232,7 @@ export default function CareersPage() {
   }
 
   return (
-    <div className="mx-auto px-4 py-6 sm:px-6 md:px-8">
+    <div>
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1.5" role="tablist" aria-label="Gestion des carrières">
         {[
           { id: 'applications', label: 'Candidatures' },
@@ -270,8 +270,7 @@ export default function CareersPage() {
       <div className="rounded-xl bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Carrières</h2>
-            <p className="mt-1 text-sm text-gray-500">Candidatures reçues via le site public</p>
+            <p className="text-sm text-gray-500">Candidatures reçues via le site public</p>
           </div>
           <div className="relative sm:w-64">
             <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />

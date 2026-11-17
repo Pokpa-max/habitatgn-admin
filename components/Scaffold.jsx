@@ -46,7 +46,7 @@ const navigation = [
   { section: 'À traiter', name: 'Carrières', href: '/carrieres', icon: RiFileUserLine, claims: ['admin', 'manager'], module: 'careers', badgeKey: 'pendingCareerApplications' },
 
   { section: 'Professionnels', name: 'Agents', href: '/agents', icon: RiBriefcaseLine, claims: ['admin', 'manager'], module: 'agents', badgeKey: 'pendingAgents' },
-  { section: 'Professionnels', name: 'Artisans', href: '/workers', icon: RiHammerLine, claims: ['admin', 'manager'], module: 'workers', badgeKey: 'pendingWorkers' },
+  { section: 'Professionnels', name: 'Ouvriers', href: '/workers', icon: RiHammerLine, claims: ['admin', 'manager'], module: 'workers', badgeKey: 'pendingWorkers' },
 
   { section: 'Biens & produits', name: 'Gestion locative', href: '/gestion-locative', icon: RiBuildingLine, claims: ['admin', 'manager'], module: 'properties' },
   { section: 'Biens & produits', name: 'Marketplace', href: '/marketplace', icon: RiShoppingBag3Line, claims: ['admin', 'manager'], module: 'marketplace' },

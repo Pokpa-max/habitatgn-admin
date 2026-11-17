@@ -38,7 +38,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
 
   // Champs renseignés uniquement ; la description occupe toute la largeur
   const fields = detailFields
-    .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.accessor === 'description' }))
+    .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.long || f.accessor === 'description' }))
     .filter((f) => f.value)
   const whatsapp = whatsappUrl(request.phone, whatsappMessage ? whatsappMessage(request) : undefined)
 

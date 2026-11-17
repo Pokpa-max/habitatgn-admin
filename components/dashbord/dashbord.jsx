@@ -474,7 +474,8 @@ function DashboardCard() {
           getDocs(query(agentRequestsRef, where('status', '==', 'pending'))),
           getDocs(query(workersRef, where('status', '==', 'approved'))),
           getDocs(query(workersRef, where('status', '==', 'pending'))),
-          getDocs(query(usersRef, where('type', '==', 'customer'))),
+          // Comptes du site public : champ `role` (le site n'écrit jamais `type: 'customer'`)
+          getDocs(query(usersRef, where('role', 'in', ['user', 'agent', 'worker']))),
           getDocs(query(usersRef, where('type', 'in', ['manager', 'admin']))),
           getDocs(legalPartnersRef),
           getDocs(agenciesRef),
