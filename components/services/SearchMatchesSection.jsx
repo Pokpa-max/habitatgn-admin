@@ -57,12 +57,14 @@ export default function SearchMatchesSection({ request, onUpdated }) {
   const [matches, setMatches] = useState(null)
   const [selected, setSelected] = useState([])
   const [showAll, setShowAll] = useState(false)
+  const [includeOtherZones, setIncludeOtherZones] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     setMatches(null)
     setSelected([])
     setShowAll(false)
+    setIncludeOtherZones(false)
     getMatchingListings(request)
       .then((rows) => !cancelled && setMatches(rows))
       .catch(() => !cancelled && setMatches([]))
@@ -96,7 +98,11 @@ export default function SearchMatchesSection({ request, onUpdated }) {
     }
   }
 
-  const visible = (matches || []).slice(0, showAll ? undefined : SHOWN)
+  // Zones du client d'abord ; les autres zones seulement sur demande (ou s'il n'y a rien dans la zone)
+  const inZone = (matches || []).filter((m) => m.zoneMatch)
+  const otherZones = (matches || []).length - inZone.length
+  const listed = includeOtherZones || inZone.length === 0 ? matches || [] : inZone
+  const visible = listed.slice(0, showAll ? undefined : SHOWN)
 
   return (
     <ModalSection title="Biens correspondants">
@@ -109,7 +115,10 @@ export default function SearchMatchesSection({ request, onUpdated }) {
       ) : (
         <>
           <p className="mb-2 text-xs text-gray-500">
-            {matches.length} annonce{matches.length > 1 ? 's' : ''} en ligne · cochez celles à envoyer au client
+            {inZone.length > 0
+              ? `${inZone.length} annonce${inZone.length > 1 ? 's' : ''} dans les zones du client`
+              : 'Aucune annonce dans les zones du client · biens proches ailleurs'}
+            {' · cochez celles à envoyer'}
           </p>
           <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200">
             {visible.map((item) => {
@@ -159,11 +168,18 @@ export default function SearchMatchesSection({ request, onUpdated }) {
               )
             })}
           </ul>
-          {matches.length > SHOWN && (
-            <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs font-semibold text-gray-600 hover:text-gray-900">
-              {showAll ? 'Afficher moins' : `Afficher les ${matches.length - SHOWN} autres`}
-            </button>
-          )}
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {listed.length > SHOWN && (
+              <button type="button" onClick={() => setShowAll((v) => !v)} className="text-xs font-semibold text-gray-600 hover:text-gray-900">
+                {showAll ? 'Afficher moins' : `Afficher les ${listed.length - SHOWN} autres`}
+              </button>
+            )}
+            {inZone.length > 0 && otherZones > 0 && (
+              <button type="button" onClick={() => setIncludeOtherZones((v) => !v)} className="text-xs font-semibold text-gray-600 hover:text-gray-900">
+                {includeOtherZones ? 'Seulement les zones du client' : `Voir aussi les ${otherZones} biens hors zone`}
+              </button>
+            )}
+          </div>
 
           {canProcess && (
             <div className="mt-3 flex flex-wrap items-center gap-3">
