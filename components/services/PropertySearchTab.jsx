@@ -183,6 +183,45 @@ const budgetLabel = (value) => {
     : null
 }
 
+/**
+ * Premier message WhatsApp au client : reprend sa demande pour qu'il la
+ * reconnaisse, puis la suite selon la formule (gratuite ou payante).
+ */
+const whatsappMessage = (request) => {
+  const firstName = String(request.name || '').trim().split(/\s+/)[0]
+  const criteria = [
+    searchTypeLabel(request.searchType),
+    propertyTypesLabel(request),
+    request.bedrooms ? `${request.bedrooms} chambre${Number(request.bedrooms) > 1 ? 's' : ''} minimum` : null,
+    locationsLabel(request) ? `à ${locationsLabel(request)}` : null,
+    budgetLabel(request.maxPrice) ? `budget max ${budgetLabel(request.maxPrice)}` : null,
+  ].filter(Boolean)
+
+  const lines = [
+    `Bonjour${firstName ? ` ${firstName}` : ''}, ici l'équipe BâtiMoo.`,
+    '',
+    `Nous avons bien reçu votre recherche : ${criteria.join(' · ')}.`,
+    '',
+  ]
+  if (isPaidSearch(request)) {
+    const level = request.serviceLevelLabel || serviceLevelLabel(request).split(' · ')[0]
+    lines.push(
+      `Vous avez choisi la formule « ${level} »${request.servicePrice ? ` (${request.servicePrice})` : ''}. Un conseiller va s'occuper de votre recherche.`,
+      'Avant de commencer, nous vous confirmons le montant et le mode de paiement (Orange Money, MTN Mobile Money ou espèces).',
+      '',
+      'Êtes-vous disponible pour un court appel ?'
+    )
+  } else {
+    lines.push(
+      'Nous vous envoyons ici les biens qui correspondent dès que nous en trouvons.',
+      '',
+      "Avez-vous d'autres précisions (quartier exact, date d'emménagement) ?"
+    )
+  }
+  lines.push('', 'Merci de votre confiance,', "L'équipe BâtiMoo")
+  return lines.join('\n')
+}
+
 const columns = [
   {
     header: 'Formule',
@@ -238,6 +277,7 @@ export default function PropertySearchTab() {
       updateStatus={updateServiceRequestStatus}
       deleteRequest={deleteServiceRequest}
       renderDetailExtra={(request, onUpdated) => <PaymentSection request={request} onUpdated={onUpdated} />}
+      whatsappMessage={whatsappMessage}
       columns={columns}
       detailFields={detailFields}
       searchFn={(request, lower) =>

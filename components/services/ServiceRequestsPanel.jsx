@@ -30,7 +30,7 @@ const readableValue = (value) => {
   return isNaN(date.getTime()) ? value : date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete, renderDetailExtra, onRequestUpdated }) {
+function DetailModal({ request, open, setOpen, detailFields, onStatusChange, canProcess, serviceTitle, onDelete, renderDetailExtra, onRequestUpdated, whatsappMessage }) {
   if (!request) return null
 
   const currentStatus = request.status || 'pending'
@@ -40,7 +40,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
   const fields = detailFields
     .map((f) => ({ label: f.label, value: readableValue(f.render ? f.render(request) : request[f.accessor]), long: f.accessor === 'description' }))
     .filter((f) => f.value)
-  const whatsapp = whatsappUrl(request.phone)
+  const whatsapp = whatsappUrl(request.phone, whatsappMessage ? whatsappMessage(request) : undefined)
 
   return (
     <AdminModal
@@ -130,6 +130,8 @@ export default function ServiceRequestsPanel({
   deleteRequest,
   /** Facultatif : section en plus dans la fiche (ex. paiement), reçoit (demande, miseÀJour) */
   renderDetailExtra,
+  /** Facultatif : message WhatsApp pré-rempli, reçoit la demande */
+  whatsappMessage,
 }) {
   const colors = useColors()
   const canProcess = useCanManage('services', 'process')
@@ -218,6 +220,7 @@ export default function ServiceRequestsPanel({
         canProcess={canProcess}
         serviceTitle={title}
         renderDetailExtra={renderDetailExtra}
+        whatsappMessage={whatsappMessage}
         onRequestUpdated={handleRequestUpdated}
         onDelete={
           canDelete

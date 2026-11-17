@@ -214,10 +214,12 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
 }
 
 /** Lien WhatsApp : numéro guinéen à 9 chiffres complété de l'indicatif 224. */
-export function whatsappUrl(phone) {
+/** Lien WhatsApp vers un numéro guinéen ; `text` = message pré-rempli (facultatif). */
+export function whatsappUrl(phone, text) {
   const digits = String(phone || '').replace(/[^0-9]/g, '')
   if (!digits) return null
-  return `https://wa.me/${digits.length === 9 ? `224${digits}` : digits}`
+  const base = `https://wa.me/${digits.length === 9 ? `224${digits}` : digits}`
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base
 }
 
 /**
