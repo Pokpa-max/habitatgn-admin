@@ -18,6 +18,7 @@ import {
   RiLockPasswordLine,
   RiShieldCheckFill,
   RiUserAddLine,
+  RiDeleteBinLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -26,6 +27,7 @@ import StatusPill from '@/components/ui/StatusPill'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
 import ResetPasswordModal from '@/components/Users/ResetPasswordModal'
 import {
+  deleteWorkerProfile,
   getWorkers,
   approveWorker,
   rejectWorker,
@@ -49,6 +51,7 @@ import { PAYMENT_STATUS_CONFIG } from './paymentStatusConfig'
 import RecordPaymentModal from './RecordPaymentModal'
 import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
+import ConfirmModal from '@/components/ConfirmModal'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import AdminModal from '@/components/ui/AdminModal'
 import Pagination from '@/components/ui/Pagination'
@@ -103,6 +106,7 @@ function ActionsModal({
   onRecordPayment,
   onResetPassword,
   onCreateAccount,
+  onDelete,
   canProcess,
   canPayments,
   isAdmin,
@@ -197,6 +201,18 @@ function ActionsModal({
           />
         )}
 
+        {canProcess && !worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onDelete}
+            icon={RiDeleteBinLine}
+            iconColor={colors.error}
+            iconBg="#FDECEC"
+            label="Supprimer l'ouvrier"
+            tone="danger"
+          />
+        )}
+
         {isAdmin && status === 'approved' && worker.userId && (
           <ActionRow
             as="button"
@@ -234,6 +250,7 @@ export default function WorkersPage() {
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [accountTarget, setAccountTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [page, setPage] = useState(1)
@@ -584,9 +601,37 @@ export default function WorkersPage() {
           setActionsModalOpen(false)
           setAccountTarget(actionsTarget)
         }}
+        onDelete={() => {
+          setActionsModalOpen(false)
+          setDeleteTarget(actionsTarget)
+        }}
         canProcess={canProcess}
         canPayments={canPayments}
         isAdmin={isAdmin}
+      />
+
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        setOpen={(value) => !value && setDeleteTarget(null)}
+        title="Supprimer cet ouvrier ?"
+        description={
+          deleteTarget
+            ? `Le profil de ${deleteTarget.name || 'cet ouvrier'} sera retiré du site et de l'admin. Cette action est irréversible.`
+            : ''
+        }
+        confirmLabel="Supprimer"
+        tone="error"
+        confirmFunction={async () => {
+          try {
+            await deleteWorkerProfile(deleteTarget)
+            setWorkers((prev) => prev.filter((w) => w.id !== deleteTarget.id))
+            notify('Ouvrier supprimé', 'success')
+          } catch (e) {
+            notify(e.message || 'La suppression a échoué', 'error')
+          } finally {
+            setDeleteTarget(null)
+          }
+        }}
       />
 
       <CreateWorkerAccountModal
