@@ -949,12 +949,14 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                         </td>
                         <td className="hidden px-4 py-2 lg:table-cell">
                           {isCurrentlyBoosted(property) ? (
+                            // Une seule ligne : date courte (« 17 déc. »), sans retour à la ligne
                             <span
-                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                              className="inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold"
                               style={{ backgroundColor: colors.primaryVeryLight, color: colors.primary }}
+                              title={`Mise en avant jusqu'au ${firebaseDateFormat(property.boostedUntil)}`}
                             >
-                              <RiRocketLine className="h-3 w-3" />
-                              Jusqu'au <span className="font-mono">{firebaseDateFormat(property.boostedUntil)}</span>
+                              <RiRocketLine className="h-3 w-3 shrink-0" />
+                              Jusqu&apos;au {firebaseDateFormat(property.boostedUntil, 'd MMM')}
                             </span>
                           ) : (
                             <span className="text-xs text-gray-300">—</span>
