@@ -132,6 +132,8 @@ export default function ServiceRequestsPanel({
   renderDetailExtra,
   /** Facultatif : message WhatsApp pré-rempli, reçoit la demande */
   whatsappMessage,
+  /** Facultatif : bouton à côté de la recherche (ex. « Nouvelle demande »), reçoit (ajouterÀLaListe) */
+  headerAction,
 }) {
   const colors = useColors()
   const canProcess = useCanManage('services', 'process')
@@ -249,14 +251,21 @@ export default function ServiceRequestsPanel({
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-gray-500">{description}</p>
-        <div className="relative sm:w-64">
-          <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={searchPlaceholder || 'Rechercher...'}
-            className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
-          />
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center">
+          <div className="relative sm:w-64">
+            <RiSearchLine className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={searchPlaceholder || 'Rechercher...'}
+              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm focus:border-gray-400 focus:outline-none"
+            />
+          </div>
+          {headerAction &&
+            headerAction((created) => {
+              setRequests((prev) => [created, ...prev])
+              setStatusFilter('all')
+            })}
         </div>
       </div>
 

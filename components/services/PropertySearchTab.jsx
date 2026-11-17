@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useUser } from 'next-firebase-auth'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
+import NewSearchRequestModal from './NewSearchRequestModal'
 import {
   deleteServiceRequest,
   getServiceRequestsByCategory,
@@ -433,10 +434,18 @@ const detailFields = [
     render: (request) => budgetLabel(request.maxPrice),
   },
   { label: 'Précisions du client', render: (request) => clientNotes(request), long: true },
+  {
+    label: 'Origine',
+    render: (request) =>
+      request.source === 'admin'
+        ? `${request.channel || 'Saisie par l’équipe'}${request.createdByName ? ` · saisie par ${request.createdByName}` : ''}`
+        : 'Formulaire du site',
+  },
 ]
 
 export default function PropertySearchTab() {
   const AuthUser = useUser()
+  const canProcess = useCanManage('services', 'process')
   const fetchRequests = useCallback(
     () => getServiceRequestsByCategory('recherche-bien'),
     []
@@ -445,12 +454,13 @@ export default function PropertySearchTab() {
   return (
     <ServiceRequestsPanel
       title="Recherche immobilière"
-      description="Demandes d'achat et de location envoyées depuis le site public"
+      description="Demandes d'achat et de location reçues sur le site ou par téléphone"
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}
       deleteRequest={deleteServiceRequest}
       renderDetailExtra={(request, onUpdated) => <PaymentSection request={request} onUpdated={onUpdated} />}
       whatsappMessage={(request) => whatsappMessage(request, AuthUser?.displayName)}
+      headerAction={canProcess ? (onCreated) => <NewSearchRequestModal onCreated={onCreated} /> : undefined}
       columns={columns}
       detailFields={detailFields}
       searchFn={(request, lower) =>
