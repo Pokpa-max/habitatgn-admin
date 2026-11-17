@@ -5,6 +5,7 @@ import {
   RiMenuLine,
   RiCloseLine,
   RiLoader4Line,
+  RiSearchEyeLine,
   RiGroupLine,
   RiBookOpenLine,
   RiDashboardLine,
@@ -40,6 +41,7 @@ const navigation = [
 
   { section: 'À traiter', name: 'Demandes de visite', href: '/leads', icon: RiCalendarTodoLine, claims: ['admin', 'manager'], module: 'leads', badgeKey: 'pendingLeads' },
   { section: 'À traiter', name: 'Réservations', href: '/reservations', icon: RiCalendarCheckLine, claims: ['admin', 'manager'], module: 'reservations', badgeKey: 'pendingBookings' },
+  { section: 'À traiter', name: 'Recherches confiées', href: '/recherches', icon: RiSearchEyeLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingPropertySearchRequests' },
   { section: 'À traiter', name: 'Demandes de service', href: '/services', icon: RiTruckLine, claims: ['admin', 'manager'], module: 'services', badgeKey: 'pendingServiceRequests' },
   { section: 'À traiter', name: 'Messages', href: '/messages', icon: RiMailLine, claims: ['admin', 'manager'], module: 'messages', badgeKey: 'unreadMessages' },
   { section: 'À traiter', name: 'Annonces signalées', href: '/signalements', icon: RiFlag2Line, claims: ['admin', 'manager'], module: 'properties' },

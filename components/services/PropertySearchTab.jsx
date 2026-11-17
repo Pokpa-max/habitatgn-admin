@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useUser } from 'next-firebase-auth'
 import ServiceRequestsPanel from './ServiceRequestsPanel'
 import NewSearchRequestModal from './NewSearchRequestModal'
+import SearchMatchesSection from './SearchMatchesSection'
 import {
   deleteServiceRequest,
   getServiceRequestsByCategory,
+  updateServiceRequest,
   updateServiceRequestPayment,
   updateServiceRequestStatus,
 } from '@/lib/services/serviceRequests'
@@ -167,6 +169,61 @@ const receiptMessage = (request, installments, index) => {
     `*${SIGNATURE[0]}*`,
     `_${SIGNATURE[1]}_`,
   ].join('\n')
+}
+
+/** Note interne du dossier (non visible du client) : où en est la recherche. */
+function NotesSection({ request, onUpdated }) {
+  const canProcess = useCanManage('services', 'process')
+  const [text, setText] = useState(request.internalNotes || '')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setText(request.internalNotes || '')
+  }, [request.id, request.internalNotes])
+
+  const changed = text.trim() !== String(request.internalNotes || '').trim()
+  const save = async () => {
+    setSaving(true)
+    try {
+      const changes = { internalNotes: text.trim(), internalNotesUpdatedAt: new Date().toISOString() }
+      await updateServiceRequest(request.id, changes)
+      onUpdated?.(request.id, changes)
+      notify('Note enregistrée', 'success')
+    } catch (e) {
+      notify("La note n'a pas pu être enregistrée", 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <ModalSection title="Note interne">
+      <textarea
+        rows={3}
+        value={text}
+        onChange={(e) => setText(e.target.value.slice(0, 1500))}
+        disabled={!canProcess || saving}
+        placeholder="Ex. Appelé le 18/11 : préfère Kipé, près de la route. Rappeler vendredi."
+        className="w-full resize-y rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50"
+      />
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-[11px] text-gray-500">
+          Visible uniquement par l&apos;équipe
+          {request.internalNotesUpdatedAt ? ` · modifiée le ${readableDate(String(request.internalNotesUpdatedAt).slice(0, 10))}` : ''}
+        </p>
+        {canProcess && (
+          <button
+            type="button"
+            onClick={save}
+            disabled={!changed || saving}
+            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer la note'}
+          </button>
+        )}
+      </div>
+    </ModalSection>
+  )
 }
 
 /** Fiche : versements prévus, encaissement de chacun, messages WhatsApp (modalités, reçus). */
@@ -495,7 +552,14 @@ export default function PropertySearchTab() {
       fetchRequests={fetchRequests}
       updateStatus={updateServiceRequestStatus}
       deleteRequest={deleteServiceRequest}
-      renderDetailExtra={(request, onUpdated) => <PaymentSection request={request} onUpdated={onUpdated} />}
+      // Ordre du traitement : paiement (formules payantes), biens à proposer, note du dossier
+      renderDetailExtra={(request, onUpdated) => (
+        <>
+          <PaymentSection request={request} onUpdated={onUpdated} />
+          <SearchMatchesSection request={request} onUpdated={onUpdated} />
+          <NotesSection request={request} onUpdated={onUpdated} />
+        </>
+      )}
       whatsappMessage={(request) => whatsappMessage(request, AuthUser?.displayName)}
       headerAction={canProcess ? (onCreated) => <NewSearchRequestModal onCreated={onCreated} /> : undefined}
       columns={columns}

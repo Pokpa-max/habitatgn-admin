@@ -332,7 +332,7 @@ export function NotificationsProvider({ children }) {
     pendingMovingRequests +
     pendingRentalRequests +
     pendingLegalRequests +
-    pendingPropertySearchRequests +
+    // Recherches confiées : entrée de menu à part (« Recherches confiées »)
     pendingArtisanRequests
 
   return (

@@ -18,7 +18,6 @@ import { useNotifications } from '@/contexts/NotificationsContext'
 import MovingTab from '@/components/services/MovingTab'
 import RentalManagementTab from '@/components/services/RentalManagementTab'
 import LegalSecurityTab from '@/components/services/LegalSecurityTab'
-import PropertySearchTab from '@/components/services/PropertySearchTab'
 import ArtisanRequestsTab from '@/components/services/ArtisanRequestsTab'
 import ServiceRevenuesTab from '@/components/services/ServiceRevenuesTab'
 import { hasManagerModuleAccess } from '@/utils/firebase/checkManagerAccess'
@@ -33,7 +32,6 @@ function Services() {
     { value: 'moving', label: 'Déménagement', badgeCount: notifications.pendingMovingRequests },
     { value: 'rental', label: 'Gestion locative', badgeCount: notifications.pendingRentalRequests },
     { value: 'legal', label: 'Sécurisation foncière', badgeCount: notifications.pendingLegalRequests },
-    { value: 'search', label: 'Recherche immobilière', badgeCount: notifications.pendingPropertySearchRequests },
   ]
   const propertyRequestsCount = propertyCategories.reduce((total, category) => total + category.badgeCount, 0)
   const sections = [
@@ -96,7 +94,7 @@ function Services() {
               <div
                 role="group"
                 aria-label="Type de demande immobilière"
-                className="grid grid-cols-2 gap-2 lg:grid-cols-4"
+                className="grid grid-cols-2 gap-2 lg:grid-cols-3"
               >
                 {propertyCategories.map((category) => (
                   <button
@@ -130,7 +128,6 @@ function Services() {
             {activePropertyCategory === 'moving' && <MovingTab />}
             {activePropertyCategory === 'rental' && <RentalManagementTab />}
             {activePropertyCategory === 'legal' && <LegalSecurityTab />}
-            {activePropertyCategory === 'search' && <PropertySearchTab />}
           </>
         )}
         {activeSection === 'artisan' && <ArtisanRequestsTab />}
