@@ -37,7 +37,7 @@ const serviceLevelLabel = (request) => {
 // ─── Paiement des formules payantes (noté à la main : rien n'est payé en ligne) ───
 
 /** Numéro de dépôt donné au client pour le paiement mobile */
-const DEPOSIT_NUMBER = '628 610 357'
+const DEPOSIT_NUMBER = '628 61 03 57'
 const SIGNATURE = ['Service client BâtiMoo', 'Cherchez moins. Trouvez mieux.']
 const FIRST_RESULTS_DELAY = '3 à 7 jours ouvrables'
 
@@ -105,49 +105,61 @@ const termsMessage = (request, installments) => {
   const lines = [
     `Bonjour${firstName ? ` ${firstName}` : ''},`,
     '',
-    `Pour votre information, la formule *${levelName(request)}* est proposée au tarif de *${gnf(total)}*.`,
+    `Suite à votre demande, voici les conditions de la formule *${levelName(request)}*.`,
+    '',
+    `*Tarif : ${gnf(total)}*`,
     '',
   ]
   if (installments.length > 1) {
-    lines.push('Les modalités de paiement sont les suivantes :', '')
-    installments.forEach((item) => {
+    lines.push('*Modalités de paiement*')
+    installments.forEach((item, index) => {
       const when = item.terms || PAYMENT_PLANS[request.serviceLevel]?.find((plan) => plan.key === item.key)?.terms || item.label.toLowerCase()
-      lines.push(`- *${gnf(item.amount)}* ${when}.`)
+      lines.push(`• *${gnf(item.amount)}* ${when}${index === installments.length - 1 ? '.' : ' ;'}`)
     })
     lines.push('', `Le premier versement peut être effectué au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
   } else {
-    lines.push(`Le paiement se fait à la confirmation et au lancement de votre dossier, au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
+    lines.push(`Le règlement s'effectue à la confirmation et au lancement de votre dossier, au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
   }
   lines.push(
+    'Merci de nous transmettre la capture du dépôt sur cette conversation : votre reçu vous sera envoyé dès sa réception.',
     '',
-    `Le délai estimatif pour les premières propositions est de *${FIRST_RESULTS_DELAY}*, selon la disponibilité des logements correspondant à vos critères.`,
+    '*Délai*',
+    `Les premières propositions vous parviendront sous *${FIRST_RESULTS_DELAY}*, selon la disponibilité des logements correspondant à vos critères.`,
     '',
-    "Notre équipe s'engage à assurer un suivi sérieux de votre recherche.",
+    "Notre équipe s'engage à assurer un suivi sérieux et régulier de votre recherche.",
     '',
+    'Cordialement,',
     `*${SIGNATURE[0]}*`,
     `_${SIGNATURE[1]}_`
   )
   return lines.join('\n')
 }
 
-/** Reçu d'un versement : numéro, montant, mode, reste à payer. */
+/** Reçu d'un versement : numéro, montant, mode, total réglé et reste à payer. */
 const receiptNumber = (request, index) => `BM-${String(request.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase()}-${index + 1}`
 const receiptMessage = (request, installments, index) => {
   const item = installments[index]
-  const { paymentTotal, paymentAmount } = paymentSummary(installments)
-  const remaining = paymentTotal - paymentAmount
-  const firstName = firstNameOf(request.name)
+  const { paymentTotal } = paymentSummary(installments)
+  // Réglé jusqu'à ce versement inclus (un reçu renvoyé plus tard reste exact)
+  const paidSoFar = installments
+    .slice(0, index + 1)
+    .filter((it) => it.paid)
+    .reduce((sum, it) => sum + (Number(it.amount) || 0), 0)
+  const remaining = Math.max(0, paymentTotal - paidSoFar)
   return [
-    `*Reçu de paiement N° ${receiptNumber(request, index)}*`,
+    '*REÇU DE PAIEMENT*',
+    `N° ${receiptNumber(request, index)} · ${readableDate(item.paidOn)}`,
     '',
-    `Client : ${request.name || firstName || '—'}`,
+    `Client : ${request.name || '—'}`,
     `Formule : ${levelName(request)} (${gnf(paymentTotal)})`,
     `Objet : ${item.label}`,
-    `Montant reçu : *${gnf(item.amount)}*`,
     `Mode de paiement : ${item.method || '—'}`,
-    `Date : ${readableDate(item.paidOn)}`,
     '',
-    remaining > 0 ? `Reste à payer : ${gnf(remaining)}` : 'Formule entièrement réglée. Merci !',
+    `*Montant reçu : ${gnf(item.amount)}*`,
+    `Total réglé : ${gnf(paidSoFar)}`,
+    remaining > 0 ? `Reste à payer : ${gnf(remaining)}` : 'Solde : formule entièrement réglée',
+    '',
+    'Nous vous remercions pour votre règlement.',
     '',
     `*${SIGNATURE[0]}*`,
     `_${SIGNATURE[1]}_`,
@@ -347,37 +359,48 @@ const firstNameOf = (name) => String(name || '').trim().split(/\s+/)[0]
 const whatsappMessage = (request, senderName) => {
   const firstName = firstNameOf(request.name)
   const sender = firstNameOf(senderName)
-  const criteria = [
-    searchTypeLabel(request.searchType),
-    propertyTypesLabel(request),
-    request.bedrooms ? `${request.bedrooms} chambre${Number(request.bedrooms) > 1 ? 's' : ''} minimum` : null,
-    locationsLabel(request) ? `à ${locationsLabel(request)}` : null,
-    budgetLabel(request.maxPrice) ? `budget max ${budgetLabel(request.maxPrice)}` : null,
+  const details = [
+    searchTypeLabel(request.searchType) && `• Projet : ${searchTypeLabel(request.searchType)}`,
+    `• Type de bien : ${propertyTypesLabel(request)}`,
+    request.bedrooms ? `• Chambres : ${request.bedrooms} minimum` : null,
+    locationsLabel(request) && `• Zones : ${locationsLabel(request)}`,
+    budgetLabel(request.maxPrice) && `• Budget maximum : ${budgetLabel(request.maxPrice)}`,
   ].filter(Boolean)
 
   const lines = [
-    `Bonjour${firstName ? ` ${firstName}` : ''}, ${sender ? `je suis ${sender}, de l'équipe BâtiMoo.` : "ici l'équipe BâtiMoo."}`,
+    `Bonjour${firstName ? ` ${firstName}` : ''},`,
     '',
-    `Nous avons bien reçu votre recherche : ${criteria.join(' · ')}.`,
+    sender
+      ? `Je suis ${sender}, de l'équipe BâtiMoo. Je vous remercie pour la confiance que vous nous accordez.`
+      : "L'équipe BâtiMoo vous remercie pour la confiance que vous nous accordez.",
+    '',
+    'Nous accusons bonne réception de votre demande de recherche :',
+    ...details,
     '',
   ]
   if (isPaidSearch(request)) {
     const level = request.serviceLevelLabel || serviceLevelLabel(request).split(' · ')[0]
     lines.push(
-      `Vous avez choisi la formule « ${level} »${request.servicePrice ? ` (${request.servicePrice})` : ''}. ${sender ? 'Je m\'occupe personnellement de votre recherche.' : 'Un conseiller va s\'occuper de votre recherche.'}`,
-      'Avant de commencer, nous vous confirmons le montant et le mode de paiement (Orange Money, MTN Mobile Money ou espèces).',
+      `Formule choisie : *${level}*${request.servicePrice ? ` (${request.servicePrice})` : ''}.`,
+      sender ? 'Je prends personnellement en charge votre dossier.' : 'Un conseiller prend en charge votre dossier.',
+      'Les modalités de paiement vous seront communiquées avant le lancement de la recherche.',
       '',
-      'Êtes-vous disponible pour un court appel ?'
+      'Seriez-vous disponible pour un bref échange téléphonique afin de préciser vos critères ?'
     )
   } else {
     lines.push(
-      'Nous vous envoyons ici les biens qui correspondent dès que nous en trouvons.',
+      'Formule choisie : *Recherche classique* (gratuite).',
+      "Nous vous transmettrons sur cette conversation les biens correspondant à vos critères dès qu'ils seront disponibles.",
       '',
-      "Avez-vous d'autres précisions (quartier exact, date d'emménagement) ?"
+      "Souhaitez-vous ajouter des précisions (quartier exact, date d'emménagement, équipements souhaités) ?"
     )
   }
-  if (sender) lines.push('', 'Merci de votre confiance.')
-  else lines.push('', 'Merci de votre confiance,', "L'équipe BâtiMoo")
+  lines.push(
+    '',
+    'Cordialement,',
+    sender ? `${sender} · *${SIGNATURE[0]}*` : `*${SIGNATURE[0]}*`,
+    `_${SIGNATURE[1]}_`
+  )
   return lines.join('\n')
 }
 
