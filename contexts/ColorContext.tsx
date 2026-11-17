@@ -20,6 +20,8 @@ interface ColorStyles {
   orangeAccent: string // Boutons CTA & accents
   orangeHover: string // Hover des boutons
   orangeLight: string // Fond d'accent léger
+  whatsapp: string // Boutons WhatsApp (couleur de la marque, comme le site)
+  whatsappHover: string
 
   paper: string
   ink: string
@@ -61,6 +63,8 @@ const COLOR_PALETTE: ColorStyles = {
   orangeAccent: '#FF5E00', // Boutons "Get a Quote", "Learn More"
   orangeHover: '#E05300', // État survol des boutons orange
   orangeLight: '#FFF1E8', // Surbrillance légère / Badges orange
+  whatsapp: '#25D366',
+  whatsappHover: '#20BA5F',
 
   // Bases neutres
   paper: '#F8FAFC',

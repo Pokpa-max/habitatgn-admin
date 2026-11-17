@@ -100,7 +100,7 @@ function BookingDetailDrawer({ booking, open, setOpen, onStatusChange, updating,
         ) : (
           <>
             {whatsapp && (
-              <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+              <ModalButton variant="whatsapp" href={whatsapp} external icon={RiWhatsappLine}>
                 WhatsApp
               </ModalButton>
             )}

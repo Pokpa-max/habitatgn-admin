@@ -12,6 +12,7 @@ import { ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
 import { RiWhatsappLine } from 'react-icons/ri'
 import StatusPill from '@/components/ui/StatusPill'
 import { useCanManage } from '@/hooks/useCanManage'
+import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 
 const searchTypeLabel = (value) => {
@@ -101,7 +102,8 @@ const levelName = (request) => request.serviceLevelLabel || serviceLevelLabel(re
 /** Message des modalités de paiement, à envoyer une fois la formule confirmée. */
 const termsMessage = (request, installments) => {
   const total = installments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-  const firstName = firstNameOf(request.name)
+  // Nom complet tel que donné : en Guinée le nom de famille vient souvent en premier
+  const firstName = clientNameOf(request.name)
   const lines = [
     `Bonjour${firstName ? ` ${firstName}` : ''},`,
     '',
@@ -168,6 +170,7 @@ const receiptMessage = (request, installments, index) => {
 
 /** Fiche : versements prévus, encaissement de chacun, messages WhatsApp (modalités, reçus). */
 function PaymentSection({ request, onUpdated }) {
+  const colors = useColors()
   const canProcess = useCanManage('services', 'process')
   const [items, setItems] = useState(() => installmentsOf(request))
   const [savingIndex, setSavingIndex] = useState(null)
@@ -214,7 +217,9 @@ function PaymentSection({ request, onUpdated }) {
 
   const termsHref = whatsappUrl(request.phone, termsMessage(request, items))
   const field = 'h-9 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50'
-  const waButton = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50'
+  // Vert WhatsApp, comme les boutons WhatsApp du site
+  const waButton = 'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90'
+  const waStyle = { backgroundColor: colors.whatsapp }
 
   return (
     <ModalSection title="Paiement">
@@ -229,8 +234,8 @@ function PaymentSection({ request, onUpdated }) {
       </div>
 
       {termsHref && (
-        <a href={termsHref} target="_blank" rel="noopener noreferrer" className={`${waButton} mb-3`}>
-          <RiWhatsappLine className="h-4 w-4 text-[#25D366]" />
+        <a href={termsHref} target="_blank" rel="noopener noreferrer" className={`${waButton} mb-3`} style={waStyle}>
+          <RiWhatsappLine className="h-4 w-4" />
           Envoyer les modalités de paiement
         </a>
       )}
@@ -256,8 +261,8 @@ function PaymentSection({ request, onUpdated }) {
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {receiptHref && (
-                      <a href={receiptHref} target="_blank" rel="noopener noreferrer" className={waButton}>
-                        <RiWhatsappLine className="h-4 w-4 text-[#25D366]" />
+                      <a href={receiptHref} target="_blank" rel="noopener noreferrer" className={waButton} style={waStyle}>
+                        <RiWhatsappLine className="h-4 w-4" />
                         Envoyer le reçu
                       </a>
                     )}
@@ -349,6 +354,7 @@ const budgetLabel = (value) => {
 }
 
 const firstNameOf = (name) => String(name || '').trim().split(/\s+/)[0]
+const clientNameOf = (name) => String(name || '').trim().replace(/\s+/g, ' ').slice(0, 50)
 
 /**
  * Premier message WhatsApp au client : reprend sa demande pour qu'il la
@@ -357,8 +363,12 @@ const firstNameOf = (name) => String(name || '').trim().split(/\s+/)[0]
  * personne) ; sans nom renseigné, « l'équipe BâtiMoo ».
  */
 const whatsappMessage = (request, senderName) => {
-  const firstName = firstNameOf(request.name)
-  const sender = firstNameOf(senderName)
+  // Nom complet tel que donné : en Guinée le nom de famille vient souvent en premier
+  const firstName = clientNameOf(request.name)
+  // Compte au nom générique (« BâtiMoo Admin », « Admin »…) : pas un prénom,
+  // le message parle alors au nom de l'équipe
+  const senderFirst = firstNameOf(senderName)
+  const sender = /^(b[aâ]ti ?moo|admin|administrateur|manager|équipe|equipe|service)$/i.test(senderFirst) ? '' : senderFirst
   const details = [
     searchTypeLabel(request.searchType) && `• Projet : ${searchTypeLabel(request.searchType)}`,
     `• Type de bien : ${propertyTypesLabel(request)}`,

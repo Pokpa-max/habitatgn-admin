@@ -62,7 +62,7 @@ function DetailModal({ request, open, setOpen, detailFields, onStatusChange, can
             </ModalButton>
           )}
           {whatsapp && (
-            <ModalButton href={whatsapp} external icon={RiWhatsappLine}>
+            <ModalButton variant="whatsapp" href={whatsapp} external icon={RiWhatsappLine}>
               WhatsApp
             </ModalButton>
           )}

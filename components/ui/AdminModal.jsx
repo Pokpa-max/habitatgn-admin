@@ -170,6 +170,8 @@ export function ModalButton({ variant = 'secondary', href, external, onClick, di
       ? { backgroundColor: colors.primary, color: '#FFFFFF' }
       : variant === 'danger'
       ? { backgroundColor: colors.error, color: '#FFFFFF' }
+      : variant === 'whatsapp'
+      ? { backgroundColor: colors.whatsapp, color: '#FFFFFF' }
       : { backgroundColor: '#FFFFFF', color: colors.gray700, border: `1px solid ${colors.gray200}` }
   const content = (
     <>
