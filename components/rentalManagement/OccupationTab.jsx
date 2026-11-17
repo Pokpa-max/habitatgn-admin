@@ -4,7 +4,7 @@ import { RiPieChartLine, RiHome4Line, RiHome3Line, RiCheckboxCircleLine } from '
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 
@@ -38,10 +38,10 @@ export default function OccupationTab({ ownerId }) {
   const [properties, setProperties] = useState([])
   const [leases, setLeases] = useState([])
   const [isLoading, setIsLoading] = useState(true)
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [ownerId])
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function OccupationTab({ ownerId }) {
   const activeLeaseByProperty = (propertyId) =>
     leases.find((l) => l.propertyId === propertyId && l.status === 'active')
 
-  const visibleProperties = properties.slice(0, visibleCount)
+  const visibleProperties = properties.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <div className="rounded-xl bg-white p-6 shadow-sm">
@@ -182,9 +182,7 @@ export default function OccupationTab({ ownerId }) {
               </tbody>
             </table>
           </div>
-          {visibleCount < properties.length && (
-            <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-          )}
+          <Pagination page={page} pageSize={PAGE_SIZE} total={properties.length} onChange={setPage} />
         </>
       )}
     </div>

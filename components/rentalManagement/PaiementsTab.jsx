@@ -8,7 +8,7 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { getManagedProperties, getPropertiesByOwner } from '@/lib/services/managedProperties'
 import { getLeases } from '@/lib/services/leases'
 import { getRentPayments, addRentPayment, deleteRentPayment } from '@/lib/services/rentPayments'
@@ -44,7 +44,7 @@ export default function PaiementsTab({ ownerId }) {
   const [propertyFilter, setPropertyFilter] = useState('all')
   const [periodFilter, setPeriodFilter] = useState(currentPeriod())
   const [deleteConfirm, setDeleteConfirm] = useState(null)
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
 
   const {
     register,
@@ -81,7 +81,7 @@ export default function PaiementsTab({ ownerId }) {
   }, [ownerId])
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [propertyFilter, periodFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
@@ -151,7 +151,7 @@ export default function PaiementsTab({ ownerId }) {
     if (periodFilter && p.period !== periodFilter) return false
     return true
   })
-  const visiblePayments = filteredPayments.slice(0, visibleCount)
+  const visiblePayments = filteredPayments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <>
@@ -326,9 +326,7 @@ export default function PaiementsTab({ ownerId }) {
                     </tbody>
                   </table>
                 </div>
-                {visibleCount < filteredPayments.length && (
-                  <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-                )}
+                <Pagination page={page} pageSize={PAGE_SIZE} total={filteredPayments.length} onChange={setPage} />
               </div>
             )}
           </>

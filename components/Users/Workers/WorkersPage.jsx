@@ -50,7 +50,7 @@ import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import AdminModal from '@/components/ui/AdminModal'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
 
@@ -221,7 +221,7 @@ export default function WorkersPage() {
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
   const [paymentTarget, setPaymentTarget] = useState(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
@@ -230,7 +230,7 @@ export default function WorkersPage() {
   const [bulkActing, setBulkActing] = useState(false)
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
     setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
 
@@ -500,7 +500,7 @@ export default function WorkersPage() {
       (w.communes || []).some((c) => c?.toLowerCase().includes(lower))
     )
   })
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Sélectionnable dépend de l'action groupée disponible pour l'onglet actif :
   // pending -> approuver/rejeter, approved -> bloquer, rejected -> débloquer
@@ -950,11 +950,7 @@ export default function WorkersPage() {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filtered.length && (
-              <PaginationButton
-                getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              />
-            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
           </div>
         )}
       </div>

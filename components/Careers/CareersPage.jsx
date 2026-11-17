@@ -12,7 +12,7 @@ import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import AdminModal, { ModalButton, ModalFields, ModalNote, ModalSection, StatusChoice } from '@/components/ui/AdminModal'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { firebaseDateFormat } from '@/utils/date'
 import {
   getAllCareerApplications,
@@ -127,7 +127,7 @@ export default function CareersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('pending')
   const [searchTerm, setSearchTerm] = useState('')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [detailApplication, setDetailApplication] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [updatingId, setUpdatingId] = useState(null)
@@ -138,7 +138,7 @@ export default function CareersPage() {
   const [activeSection, setActiveSection] = useState('applications')
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [statusFilter, searchTerm])
 
   useEffect(() => {
@@ -191,7 +191,7 @@ export default function CareersPage() {
     })
   }, [applications, statusFilter, searchTerm])
 
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const selectableIds = canProcess ? visible.map((a) => a.id) : []
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
@@ -446,9 +446,7 @@ export default function CareersPage() {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filtered.length && (
-              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
           </div>
         )}
       </div>

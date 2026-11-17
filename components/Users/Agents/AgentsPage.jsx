@@ -51,7 +51,7 @@ import DesableConfirmModal from '@/components/DesableConfirm'
 import ConfirmModal from '@/components/ConfirmModal'
 import { fetchWithPost } from '@/utils/fetch'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
 
@@ -121,7 +121,7 @@ export default function AgentsPage() {
     setMenuOpenId(id)
   }
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
   const [paymentTarget, setPaymentTarget] = useState(null)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
@@ -130,7 +130,7 @@ export default function AgentsPage() {
   const [bulkActing, setBulkActing] = useState(false)
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
     setSelectedIds(new Set())
   }, [statusFilter, searchTerm])
 
@@ -383,7 +383,7 @@ export default function AgentsPage() {
       r.agencyName?.toLowerCase().includes(lower)
     )
   })
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Sélectionnable dépend de l'action groupée disponible pour l'onglet actif :
   // pending -> approuver/rejeter, approved -> bloquer/débloquer, rejected -> aucune action.
@@ -1007,11 +1007,7 @@ export default function AgentsPage() {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filtered.length && (
-              <PaginationButton
-                getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
-              />
-            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
           </div>
         )}
       </div>

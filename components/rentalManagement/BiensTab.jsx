@@ -19,7 +19,7 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import SimpleDrawer from '@/components/SimpleDrawer'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import PropertyDrawerForm from './PropertyDrawerForm'
 import {
   getManagedProperties,
@@ -153,7 +153,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [selected, setSelected] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [search, setSearch] = useState('')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
   const [detailProperty, setDetailProperty] = useState(null)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [menuAnchor, setMenuAnchor] = useState(null)
@@ -184,7 +184,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   }, [properties]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [search])
 
   useEffect(() => {
@@ -400,7 +400,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
       owner?.name?.toLowerCase().includes(q)
     )
   })
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   // Sélection multiple : tout bien géré ou toute annonce publique, dès lors
   // qu'au moins une action groupée est possible (traiter et/ou supprimer).
@@ -985,12 +985,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
             </div>
           </div>
         )}
-        {!isLoading && filtered.length > 0 && visibleCount < filtered.length && (
-          <PaginationButton
-            className="!mt-3"
-            getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)}
-          />
-        )}
+        <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
       </div>
 
       {menuOpenId && menuAnchor && (

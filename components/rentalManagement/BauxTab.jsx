@@ -8,7 +8,7 @@ import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
 import DrawerForm from '@/components/DrawerForm'
-import PaginationButton from '@/components/Orders/PaginationButton'
+import Pagination from '@/components/ui/Pagination'
 import { getManagedProperties, getPropertiesByOwner, editManagedProperty } from '@/lib/services/managedProperties'
 import { getLeases, addLease, editLease } from '@/lib/services/leases'
 
@@ -29,7 +29,7 @@ export default function BauxTab({ ownerId }) {
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
   const [propertyFilter, setPropertyFilter] = useState('all')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [page, setPage] = useState(1)
 
   const {
     register,
@@ -58,7 +58,7 @@ export default function BauxTab({ ownerId }) {
   }, [ownerId])
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE)
+    setPage(1)
   }, [propertyFilter])
 
   const propertyById = (id) => properties.find((p) => p.id === id)
@@ -147,7 +147,7 @@ export default function BauxTab({ ownerId }) {
   }
 
   const filtered = leases.filter((l) => propertyFilter === 'all' || l.propertyId === propertyFilter)
-  const visible = filtered.slice(0, visibleCount)
+  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <>
@@ -263,9 +263,7 @@ export default function BauxTab({ ownerId }) {
                 </tbody>
               </table>
             </div>
-            {visibleCount < filtered.length && (
-              <PaginationButton getmoreData={() => setVisibleCount((c) => c + PAGE_SIZE)} />
-            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
           </div>
         )}
       </div>
