@@ -100,10 +100,20 @@ export default function ServiceRevenuesTab() {
         const moving = allRequests.filter((r) => r.category === 'demenagement')
         const rental = allRequests.filter((r) => r.category === 'gestion-locative')
         const legal = allRequests.filter((r) => r.category === 'securisation-fonciere')
-        // Recherche immobilière : seules les formules payantes marquées « payé » dans la fiche
-        const paidSearches = allRequests.filter(
-          (r) => r.category === 'recherche-bien' && r.paymentStatus === 'paid' && Number(r.paymentAmount) > 0
-        )
+        // Recherche immobilière : chaque versement noté « payé » dans la fiche
+        // (acompte puis solde) ; anciens paiements uniques repris tels quels.
+        const searchPayments = allRequests
+          .filter((r) => r.category === 'recherche-bien')
+          .flatMap((r) => {
+            const installments = Array.isArray(r.installments) && r.installments.length
+              ? r.installments
+              : r.paymentStatus === 'paid'
+              ? [{ label: 'Paiement', amount: r.paymentAmount, paid: true, paidOn: r.paidOn }]
+              : []
+            return installments
+              .map((item, index) => ({ request: r, item, index }))
+              .filter(({ item }) => item.paid && Number(item.amount) > 0)
+          })
         const propertiesById = Object.fromEntries(properties.map((p) => [p.id, p]))
 
         // Calculs Déménagement
@@ -198,19 +208,19 @@ export default function ServiceRevenuesTab() {
         })
 
         let searchRev = 0
-        const searchItems = paidSearches.map((r) => {
-          const amount = Number(r.paymentAmount) || 0
+        const searchItems = searchPayments.map(({ request: r, item, index }) => {
+          const amount = Number(item.amount) || 0
           searchRev += amount
           return {
-            id: `search-${r.id}`,
-            service: `Recherche immobilière${r.serviceLevelLabel ? ` · ${r.serviceLevelLabel}` : ''}`,
+            id: `search-${r.id}-${index}`,
+            service: `Recherche immobilière${r.serviceLevelLabel ? ` · ${r.serviceLevelLabel}` : ''} · ${item.label}`,
             serviceType: 'search',
             client: r.name || 'Client',
             phone: r.phone || '—',
             amount,
             grossAmount: amount,
             status: 'Payé',
-            date: r.paidOn || r.createdAt,
+            date: item.paidOn || r.paidOn || r.createdAt,
           }
         })
 
@@ -255,7 +265,7 @@ export default function ServiceRevenuesTab() {
           legalRevenue: legalRev,
           legalCount: legalDoneCount,
           searchRevenue: searchRev,
-          searchCount: searchItems.length,
+          searchCount: new Set(searchPayments.map(({ request }) => request.id)).size,
         })
 
         setRevenueItems(allItems)
@@ -399,7 +409,7 @@ export default function ServiceRevenuesTab() {
                 icon: RiSearchEyeLine,
                 label: 'Recherche immobilière',
                 value: formatGNF(stats.searchRevenue),
-                subValue: `${stats.searchCount} formule${stats.searchCount > 1 ? 's' : ''} payée${stats.searchCount > 1 ? 's' : ''}`,
+                subValue: `${stats.searchCount} dossier${stats.searchCount > 1 ? 's' : ''}`,
               },
             ].map((card) => (
               <div

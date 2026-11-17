@@ -7,7 +7,8 @@ import {
   updateServiceRequestPayment,
   updateServiceRequestStatus,
 } from '@/lib/services/serviceRequests'
-import { ModalSection } from '@/components/ui/AdminModal'
+import { ModalSection, whatsappUrl } from '@/components/ui/AdminModal'
+import { RiWhatsappLine } from 'react-icons/ri'
 import StatusPill from '@/components/ui/StatusPill'
 import { useCanManage } from '@/hooks/useCanManage'
 import { notify } from '@/utils/toast'
@@ -32,122 +33,272 @@ const serviceLevelLabel = (request) => {
   return 'Classique · Gratuit'
 }
 
-// Formules payantes : montant de départ proposé dans la fiche
-const PAID_LEVELS = { assisted: 50000, full: 100000 }
-const isPaidSearch = (request) => Boolean(PAID_LEVELS[request.serviceLevel])
+// ─── Paiement des formules payantes (noté à la main : rien n'est payé en ligne) ───
 
-const PAYMENT_METHODS = ['Espèces', 'Orange Money', 'MTN Mobile Money', 'Virement bancaire']
+/** Numéro de dépôt donné au client pour le paiement mobile */
+const DEPOSIT_NUMBER = '628 610 357'
+const SIGNATURE = ['Service client BâtiMoo', 'Cherchez moins. Trouvez mieux.']
+const FIRST_RESULTS_DELAY = '3 à 7 jours ouvrables'
 
-const paymentPill = (request) =>
-  isPaidSearch(request) ? (
-    request.paymentStatus === 'paid' ? (
-      <StatusPill tone="success">Payé</StatusPill>
-    ) : (
-      <StatusPill tone="warning">À encaisser</StatusPill>
-    )
-  ) : null
+/**
+ * Versements prévus par formule. Montants modifiables dans la fiche
+ * (l'accompagnement complet peut aller de 100 000 à 200 000 GNF).
+ */
+const PAYMENT_PLANS = {
+  assisted: [
+    { key: 'launch', label: 'Paiement au lancement du dossier', amount: 50000, terms: 'à la confirmation et au lancement de votre dossier' },
+  ],
+  full: [
+    { key: 'deposit', label: 'Acompte au lancement du dossier', amount: 50000, terms: 'à la confirmation et au lancement de votre dossier' },
+    { key: 'balance', label: "Solde après identification d'un logement, avant les visites", amount: 100000, terms: "après identification d'un logement correspondant à vos critères, avant l'organisation des visites" },
+  ],
+}
+const isPaidSearch = (request) => Boolean(PAYMENT_PLANS[request.serviceLevel])
+
+const PAYMENT_METHODS = ['Orange Money', 'MTN Mobile Money', 'Espèces', 'Virement bancaire']
+
+const gnf = (amount) => `${Number(amount || 0).toLocaleString('fr-FR').replace(/[  ]/g, ' ')} GNF`
+
+/** Versements de la demande : enregistrés, sinon ceux de la formule (anciens paiements uniques repris). */
+const installmentsOf = (request) => {
+  if (Array.isArray(request.installments) && request.installments.length) return request.installments
+  if (request.paymentStatus === 'paid' && Number(request.paymentAmount) > 0) {
+    return [{ key: 'legacy', label: 'Paiement', amount: Number(request.paymentAmount), paid: true, method: request.paymentMethod || '', paidOn: request.paidOn || '' }]
+  }
+  return (PAYMENT_PLANS[request.serviceLevel] || []).map((item) => ({ ...item, paid: false, method: '', paidOn: '' }))
+}
+
+/** Résumé enregistré avec les versements : liste, revenus et anciens écrans s'en servent. */
+const paymentSummary = (installments) => {
+  const paid = installments.filter((item) => item.paid)
+  const paidAmount = paid.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  const total = installments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  return {
+    installments,
+    paymentTotal: total,
+    paymentAmount: paidAmount,
+    paymentStatus: paid.length === 0 ? 'pending' : paid.length === installments.length ? 'paid' : 'partial',
+    paymentMethod: paid.length ? paid[paid.length - 1].method : null,
+    paidOn: paid.length ? paid[paid.length - 1].paidOn : null,
+  }
+}
+
+const paymentPill = (request) => {
+  if (!isPaidSearch(request)) return null
+  if (request.paymentStatus === 'paid') return <StatusPill tone="success">Payé</StatusPill>
+  if (request.paymentStatus === 'partial') return <StatusPill tone="primary">Acompte reçu</StatusPill>
+  return <StatusPill tone="warning">À encaisser</StatusPill>
+}
 
 const todayInput = () => new Date().toISOString().slice(0, 10)
+const readableDate = (value) => {
+  const date = new Date(`${value || todayInput()}T12:00:00`)
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+const levelName = (request) => request.serviceLevelLabel || serviceLevelLabel(request).split(' · ')[0]
 
-/** Paiement noté à la main (formules payantes uniquement) : rien n'est payé en ligne. */
+/** Message des modalités de paiement, à envoyer une fois la formule confirmée. */
+const termsMessage = (request, installments) => {
+  const total = installments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+  const firstName = firstNameOf(request.name)
+  const lines = [
+    `Bonjour${firstName ? ` ${firstName}` : ''},`,
+    '',
+    `Pour votre information, la formule *${levelName(request)}* est proposée au tarif de *${gnf(total)}*.`,
+    '',
+  ]
+  if (installments.length > 1) {
+    lines.push('Les modalités de paiement sont les suivantes :', '')
+    installments.forEach((item) => {
+      const when = item.terms || PAYMENT_PLANS[request.serviceLevel]?.find((plan) => plan.key === item.key)?.terms || item.label.toLowerCase()
+      lines.push(`- *${gnf(item.amount)}* ${when}.`)
+    })
+    lines.push('', `Le premier versement peut être effectué au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
+  } else {
+    lines.push(`Le paiement se fait à la confirmation et au lancement de votre dossier, au numéro de dépôt suivant : *${DEPOSIT_NUMBER}*.`)
+  }
+  lines.push(
+    '',
+    `Le délai estimatif pour les premières propositions est de *${FIRST_RESULTS_DELAY}*, selon la disponibilité des logements correspondant à vos critères.`,
+    '',
+    "Notre équipe s'engage à assurer un suivi sérieux de votre recherche.",
+    '',
+    `*${SIGNATURE[0]}*`,
+    `_${SIGNATURE[1]}_`
+  )
+  return lines.join('\n')
+}
+
+/** Reçu d'un versement : numéro, montant, mode, reste à payer. */
+const receiptNumber = (request, index) => `BM-${String(request.id || '').replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase()}-${index + 1}`
+const receiptMessage = (request, installments, index) => {
+  const item = installments[index]
+  const { paymentTotal, paymentAmount } = paymentSummary(installments)
+  const remaining = paymentTotal - paymentAmount
+  const firstName = firstNameOf(request.name)
+  return [
+    `*Reçu de paiement N° ${receiptNumber(request, index)}*`,
+    '',
+    `Client : ${request.name || firstName || '—'}`,
+    `Formule : ${levelName(request)} (${gnf(paymentTotal)})`,
+    `Objet : ${item.label}`,
+    `Montant reçu : *${gnf(item.amount)}*`,
+    `Mode de paiement : ${item.method || '—'}`,
+    `Date : ${readableDate(item.paidOn)}`,
+    '',
+    remaining > 0 ? `Reste à payer : ${gnf(remaining)}` : 'Formule entièrement réglée. Merci !',
+    '',
+    `*${SIGNATURE[0]}*`,
+    `_${SIGNATURE[1]}_`,
+  ].join('\n')
+}
+
+/** Fiche : versements prévus, encaissement de chacun, messages WhatsApp (modalités, reçus). */
 function PaymentSection({ request, onUpdated }) {
   const canProcess = useCanManage('services', 'process')
-  const [amount, setAmount] = useState('')
-  const [method, setMethod] = useState('')
-  const [paidOn, setPaidOn] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [items, setItems] = useState(() => installmentsOf(request))
+  const [savingIndex, setSavingIndex] = useState(null)
 
   useEffect(() => {
-    setAmount(String(request.paymentAmount || PAID_LEVELS[request.serviceLevel] || ''))
-    setMethod(request.paymentMethod || '')
-    setPaidOn(request.paidOn || '')
-  }, [request.id, request.paymentAmount, request.paymentMethod, request.paidOn, request.serviceLevel])
+    setItems(installmentsOf(request))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request.id, request.installments, request.paymentStatus, request.serviceLevel])
 
   if (!isPaidSearch(request)) return null
-  const paid = request.paymentStatus === 'paid'
-  const amountNumber = Number(String(amount).replace(/\D/g, ''))
 
-  const save = async (status) => {
-    if (!canProcess) return
-    if (status === 'paid' && (!amountNumber || !method)) {
-      notify('Indiquez le montant et le mode de paiement', 'error')
-      return
-    }
-    const changes = {
-      paymentStatus: status,
-      paymentAmount: amountNumber || null,
-      paymentMethod: method || null,
-      paidOn: status === 'paid' ? paidOn || todayInput() : null,
-    }
-    setSaving(true)
+  const summary = paymentSummary(items)
+  const remaining = summary.paymentTotal - summary.paymentAmount
+  const editItem = (index, patch) => setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+
+  const persist = async (next, index, okMessage) => {
+    setSavingIndex(index)
     try {
+      const changes = paymentSummary(next)
       await updateServiceRequestPayment(request.id, changes)
+      setItems(next)
       onUpdated?.(request.id, changes)
-      notify(status === 'paid' ? 'Paiement enregistré' : 'Paiement remis « à encaisser »', 'success')
+      notify(okMessage, 'success')
     } catch (e) {
       notify("Le paiement n'a pas pu être enregistré", 'error')
     } finally {
-      setSaving(false)
+      setSavingIndex(null)
     }
   }
 
-  const field = 'h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50'
+  const markPaid = (index) => {
+    const item = items[index]
+    if (!(Number(item.amount) > 0) || !item.method) {
+      notify('Indiquez le montant et le mode de paiement', 'error')
+      return
+    }
+    const next = items.map((it, i) => (i === index ? { ...it, paid: true, paidOn: it.paidOn || todayInput() } : it))
+    persist(next, index, 'Versement enregistré : envoyez le reçu au client')
+  }
+  const cancelPaid = (index) => {
+    const next = items.map((it, i) => (i === index ? { ...it, paid: false, paidOn: '' } : it))
+    persist(next, index, 'Versement remis « à encaisser »')
+  }
+
+  const termsHref = whatsappUrl(request.phone, termsMessage(request, items))
+  const field = 'h-9 w-full rounded-lg border border-gray-200 bg-white px-2.5 text-sm text-gray-900 focus:border-gray-400 focus:outline-none disabled:bg-gray-50'
+  const waButton = 'inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50'
 
   return (
     <ModalSection title="Paiement">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-xs text-gray-500">
-          Formule {request.serviceLevelLabel || ''} · {request.servicePrice || ''}. Rien n'est payé en ligne : notez ici l'encaissement.
-        </p>
-        {paymentPill(request)}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-gray-600">Montant (GNF)</span>
-          <input
-            inputMode="numeric"
-            value={amountNumber ? amountNumber.toLocaleString('fr-FR') : ''}
-            onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').slice(0, 9))}
-            disabled={!canProcess || saving}
-            className={field}
-          />
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-gray-600">Mode de paiement</span>
-          <select value={method} onChange={(e) => setMethod(e.target.value)} disabled={!canProcess || saving} className={field}>
-            <option value="">Choisir…</option>
-            {PAYMENT_METHODS.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold text-gray-600">Date du paiement</span>
-          <input type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} disabled={!canProcess || saving} className={field} />
-        </label>
-      </div>
-      {canProcess && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => save('paid')}
-            disabled={saving}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-          >
-            {paid ? 'Mettre à jour le paiement' : 'Marquer comme payé'}
-          </button>
-          {paid && (
-            <button
-              type="button"
-              onClick={() => save('pending')}
-              disabled={saving}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-            >
-              Remettre « à encaisser »
-            </button>
-          )}
+      {/* Résumé : total, encaissé, reste */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+          <span className="text-gray-500">Total <strong className="text-gray-900">{gnf(summary.paymentTotal)}</strong></span>
+          <span className="text-gray-500">Encaissé <strong className="text-emerald-700">{gnf(summary.paymentAmount)}</strong></span>
+          {remaining > 0 && <span className="text-gray-500">Reste <strong className="text-gray-900">{gnf(remaining)}</strong></span>}
         </div>
+        {paymentPill({ ...request, paymentStatus: summary.paymentStatus })}
+      </div>
+
+      {termsHref && (
+        <a href={termsHref} target="_blank" rel="noopener noreferrer" className={`${waButton} mb-3`}>
+          <RiWhatsappLine className="h-4 w-4 text-[#25D366]" />
+          Envoyer les modalités de paiement
+        </a>
       )}
+
+      <ol className="space-y-2.5">
+        {items.map((item, index) => {
+          const saving = savingIndex === index
+          const receiptHref = item.paid ? whatsappUrl(request.phone, receiptMessage(request, items, index)) : null
+          return (
+            <li key={item.key || index} className="rounded-xl border border-gray-200 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-gray-900">
+                  {items.length > 1 ? `${index + 1}. ` : ''}{item.label}
+                </p>
+                {item.paid ? <StatusPill tone="success">Payé</StatusPill> : <StatusPill tone="warning">À encaisser</StatusPill>}
+              </div>
+
+              {item.paid ? (
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-gray-600">
+                    <strong className="text-gray-900">{gnf(item.amount)}</strong> reçus le {readableDate(item.paidOn)} · {item.method}
+                    <span className="text-gray-400"> · Reçu {receiptNumber(request, index)}</span>
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {receiptHref && (
+                      <a href={receiptHref} target="_blank" rel="noopener noreferrer" className={waButton}>
+                        <RiWhatsappLine className="h-4 w-4 text-[#25D366]" />
+                        Envoyer le reçu
+                      </a>
+                    )}
+                    {canProcess && (
+                      <button type="button" onClick={() => cancelPaid(index)} disabled={saving} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-60">
+                        Annuler
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-semibold text-gray-500">Montant (GNF)</span>
+                    <input
+                      inputMode="numeric"
+                      value={Number(item.amount) ? Number(item.amount).toLocaleString('fr-FR') : ''}
+                      onChange={(e) => editItem(index, { amount: Number(e.target.value.replace(/\D/g, '').slice(0, 9)) || 0 })}
+                      disabled={!canProcess || saving}
+                      className={field}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-semibold text-gray-500">Mode</span>
+                    <select value={item.method || ''} onChange={(e) => editItem(index, { method: e.target.value })} disabled={!canProcess || saving} className={field}>
+                      <option value="">Choisir…</option>
+                      {PAYMENT_METHODS.map((m) => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[11px] font-semibold text-gray-500">Date</span>
+                    <input type="date" value={item.paidOn || ''} onChange={(e) => editItem(index, { paidOn: e.target.value })} disabled={!canProcess || saving} className={field} />
+                  </label>
+                  {canProcess && (
+                    <button
+                      type="button"
+                      onClick={() => markPaid(index)}
+                      disabled={saving}
+                      className="h-9 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      Marquer payé
+                    </button>
+                  )}
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+      <p className="mt-2 text-[11px] text-gray-500">
+        Rien n'est payé en ligne : notez chaque versement reçu, puis envoyez le reçu au client sur WhatsApp.
+      </p>
     </ModalSection>
   )
 }
