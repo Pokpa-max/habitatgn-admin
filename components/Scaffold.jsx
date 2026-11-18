@@ -5,9 +5,7 @@ import {
   RiMenuLine,
   RiCloseLine,
   RiLoader4Line,
-  RiArrowRightSLine,
   RiExternalLinkLine,
-  RiShieldUserLine,
   RiSearchEyeLine,
   RiGroupLine,
   RiBookOpenLine,
@@ -546,20 +544,12 @@ export default function Scaffold({ children, title, subNav }) {
             </div>
           </div>
 
-          {/* Ordinateur : bandeau « Espace administration », page en cours, accès au site */}
+          {/* Ordinateur : page en cours, accès au site */}
           <header
             className="sticky top-0 z-20 hidden h-14 items-center gap-4 border-b bg-white/95 px-8 backdrop-blur md:flex"
             style={{ borderColor: colors.gray200 }}
           >
             <div className="flex min-w-0 items-center gap-2 text-sm">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-white"
-                style={{ backgroundColor: colors.navyDark }}
-              >
-                <RiShieldUserLine className="h-3.5 w-3.5" style={{ color: colors.orangeAccent }} />
-                Espace administration
-              </span>
-              <RiArrowRightSLine className="h-4 w-4 shrink-0 text-gray-300" aria-hidden="true" />
               <span className="truncate font-semibold text-gray-900">{currentNavItem?.name || 'BâtiMoo'}</span>
             </div>
             <div className="ml-auto flex shrink-0 items-center gap-3">
