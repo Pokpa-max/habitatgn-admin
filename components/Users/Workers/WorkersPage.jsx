@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
@@ -12,7 +13,6 @@ import {
   RiSearchLine,
   RiAddLine,
   RiMoneyDollarCircleLine,
-  RiArrowRightSLine,
   RiForbidLine,
   RiLockUnlockLine,
   RiLockPasswordLine,
@@ -54,7 +54,6 @@ import DesableConfirmModal from '@/components/DesableConfirm'
 import ConfirmModal from '@/components/ConfirmModal'
 import { fetchWithPost } from '@/utils/fetch'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
-import AdminModal from '@/components/ui/AdminModal'
 import Pagination from '@/components/ui/Pagination'
 import CreateWorkerAccountModal from './CreateWorkerAccountModal'
 import { firebaseDateFormat } from '@/utils/date'
@@ -72,34 +71,28 @@ const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
 
 function ActionRow({ as = 'a', icon: Icon, iconColor, iconBg, label, tone, ...props }) {
   const Tag = as
-  const labelColor = tone === 'danger' ? '#DC2626' : '#374151'
+  const danger = tone === 'danger'
   return (
     <Tag
       {...props}
+      role="menuitem"
       type={as === 'button' ? 'button' : undefined}
-      className="group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50"
+      className={`flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
+        danger ? 'text-red-700 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'
+      }`}
     >
-      <span
-        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-        style={{ backgroundColor: iconBg }}
-      >
-        <Icon className="h-4.5 w-4.5" style={{ color: iconColor }} />
-      </span>
-      <span className="flex-1 text-sm font-semibold" style={{ color: labelColor }}>
-        {label}
-      </span>
-      <RiArrowRightSLine className="h-4 w-4 flex-shrink-0 text-gray-300 opacity-0 transition-opacity group-hover:opacity-100" />
+      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: danger ? undefined : iconColor }} />
+      {label}
     </Tag>
   )
 }
 
-const STATUS_LABEL = { pending: 'En attente', approved: 'Approuvé', rejected: 'Refusé' }
-const STATUS_TONE = { pending: 'warning', approved: 'success', rejected: 'error' }
 
 function ActionsModal({
   worker,
   open,
   setOpen,
+  pos,
   onApprove,
   onReject,
   onToggleBlock,
@@ -113,19 +106,42 @@ function ActionsModal({
   isAdmin,
 }) {
   const colors = useColors()
-  if (!worker) return null
+  const menuRef = useRef(null)
+
+  // Fermeture : clic à côté, Échap, défilement ou redimensionnement
+  useEffect(() => {
+    if (!open) return
+    const close = () => setOpen(false)
+    const onPointer = (event) => {
+      if (menuRef.current?.contains(event.target) || event.target.closest?.('[data-worker-menu-button]')) return
+      close()
+    }
+    const onKey = (event) => event.key === 'Escape' && close()
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
+    }
+  }, [open, setOpen])
+
+  if (!worker || !open || !pos) return null
   const status = worker.status || 'pending'
 
-  return (
-    <AdminModal
-      open={open}
-      onClose={() => setOpen(false)}
-      size="sm"
-      eyebrow="Artisan · que voulez-vous faire ?"
-      title={worker.name || 'Artisan'}
-      meta={<StatusPill tone={STATUS_TONE[status] || 'gray'}>{STATUS_LABEL[status] || status}</StatusPill>}
+  // Un clic sur une action ferme le menu (les actions ferment déjà de leur côté)
+  return createPortal(
+    <div
+      ref={menuRef}
+      role="menu"
+      onClick={(event) => event.target.closest('a,button') && setOpen(false)}
+      className="fixed z-[1300] w-64 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl"
+      style={pos}
     >
-      <div className="-mx-3 -my-2 space-y-0.5">
+      <div>
         <Link href={`/workers/${worker.id}`} passHref legacyBehavior>
           <ActionRow
             icon={RiProfileLine}
@@ -243,7 +259,8 @@ function ActionsModal({
           </p>
         )}
       </div>
-    </AdminModal>
+    </div>,
+    document.body
   )
 }
 
@@ -261,6 +278,7 @@ export default function WorkersPage() {
   const [blockModalOpen, setBlockModalOpen] = useState(false)
   const [actionsTarget, setActionsTarget] = useState(null)
   const [actionsModalOpen, setActionsModalOpen] = useState(false)
+  const [actionsPos, setActionsPos] = useState(null)
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [accountTarget, setAccountTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -592,6 +610,7 @@ export default function WorkersPage() {
         worker={actionsTarget}
         open={actionsModalOpen}
         setOpen={setActionsModalOpen}
+        pos={actionsPos}
         onApprove={() => handleApprove(actionsTarget)}
         onReject={() => handleReject(actionsTarget)}
         onToggleBlock={() => {
@@ -1035,7 +1054,23 @@ export default function WorkersPage() {
                               />
                             )}
                             <button
-                              onClick={() => {
+                              type="button"
+                              data-worker-menu-button
+                              aria-haspopup="menu"
+                              aria-expanded={actionsModalOpen && actionsTarget?.id === worker.id}
+                              onClick={(event) => {
+                                if (actionsModalOpen && actionsTarget?.id === worker.id) {
+                                  setActionsModalOpen(false)
+                                  return
+                                }
+                                // Sous le bouton, ou au-dessus s'il manque de place en bas
+                                const rect = event.currentTarget.getBoundingClientRect()
+                                const right = Math.max(8, window.innerWidth - rect.right)
+                                setActionsPos(
+                                  rect.bottom + 340 > window.innerHeight
+                                    ? { bottom: window.innerHeight - rect.top + 6, right }
+                                    : { top: rect.bottom + 6, right }
+                                )
                                 setActionsTarget(worker)
                                 setActionsModalOpen(true)
                               }}
