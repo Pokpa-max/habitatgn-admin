@@ -9,7 +9,8 @@ import {
   RiMailLine,
   RiMapPinLine,
   RiProfileLine,
-  RiMore2Fill,
+  RiForbidLine,
+  RiLockUnlockLine,
   RiSearchLine,
   RiAddLine,
   RiMoneyDollarCircleLine,
@@ -20,6 +21,7 @@ import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
+import ActionMenu, { MenuItem, MenuSeparator } from '@/components/ui/ActionMenu'
 import CreateUserDrawer from '@/components/Users/CreateUserDrawer'
 import ResetPasswordModal from '@/components/Users/ResetPasswordModal'
 import {
@@ -72,6 +74,48 @@ const isBoosted = (property) => {
   return untilDate.getTime() > Date.now()
 }
 
+/** Menu « ⋮ » d'un agent (composant commun ActionMenu). */
+function AgentMenu({ request, size, canProcess, canPayments, isAdmin, onApprove, onReject, onRecordPayment, onToggleBlock, onResetPassword, onDelete }) {
+  const colors = useColors()
+  const approved = request.status === 'approved'
+  const pending = request.status === 'pending'
+  if (!((canProcess && pending) || (canPayments && approved) || (approved && request.userId) || isAdmin)) return null
+  return (
+    <ActionMenu size={size}>
+      {approved && request.userId && (
+        <MenuItem icon={RiProfileLine} href={`/agents/${request.userId}`}>Voir détail et ses biens</MenuItem>
+      )}
+      {canProcess && pending && (
+        <>
+          <MenuSeparator />
+          <MenuItem icon={RiCheckLine} iconColor={colors.primary} onClick={onApprove}>Approuver la candidature</MenuItem>
+          <MenuItem icon={RiCloseLine} onClick={onReject}>Refuser la candidature</MenuItem>
+        </>
+      )}
+      <MenuSeparator />
+      {canPayments && approved && (
+        <MenuItem icon={RiMoneyDollarCircleLine} onClick={onRecordPayment}>Enregistrer un paiement</MenuItem>
+      )}
+      {isAdmin && approved && request.userId && (
+        <MenuItem icon={RiLockPasswordLine} onClick={onResetPassword}>Modifier le mot de passe</MenuItem>
+      )}
+      <MenuSeparator />
+      {canProcess && approved && request.userId && (
+        <MenuItem
+          icon={request.isAvailable ? RiForbidLine : RiLockUnlockLine}
+          iconColor={request.isAvailable ? '#D97706' : colors.primary}
+          onClick={onToggleBlock}
+        >
+          {request.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+        </MenuItem>
+      )}
+      {isAdmin && (
+        <MenuItem icon={RiDeleteBinLine} danger onClick={onDelete}>Supprimer le compte</MenuItem>
+      )}
+    </ActionMenu>
+  )
+}
+
 export default function AgentsPage() {
   const colors = useColors()
   const isAdmin = useIsAdmin()
@@ -87,39 +131,6 @@ export default function AgentsPage() {
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
-  const [menuOpenId, setMenuOpenId] = useState(null)
-  // Menu « ⋮ » du tableau : position fixe à l'écran, sinon le tableau (qui
-  // défile horizontalement) en coupait une partie
-  const [menuPos, setMenuPos] = useState(null)
-
-  useEffect(() => {
-    if (!menuOpenId) return
-    const close = () => setMenuOpenId(null)
-    const onPointer = (event) => {
-      if (!event.target.closest('[data-menu-root],[data-agent-menu],[data-agent-menu-button]')) close()
-    }
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    document.addEventListener('mousedown', onPointer)
-    return () => {
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-      document.removeEventListener('mousedown', onPointer)
-    }
-  }, [menuOpenId])
-
-  /** Ouvre le menu sous le bouton, ou au-dessus s'il manque de place en bas. */
-  const toggleTableMenu = (event, id) => {
-    if (menuOpenId === id) {
-      setMenuOpenId(null)
-      return
-    }
-    const rect = event.currentTarget.getBoundingClientRect()
-    const right = Math.max(8, window.innerWidth - rect.right)
-    const opensUp = rect.bottom + 280 > window.innerHeight
-    setMenuPos(opensUp ? { bottom: window.innerHeight - rect.top + 8, right } : { top: rect.bottom + 8, right })
-    setMenuOpenId(id)
-  }
   const [createDrawerOpen, setCreateDrawerOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [subscriptionAmount, setSubscriptionAmount] = useState(0)
@@ -202,7 +213,6 @@ export default function AgentsPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setMenuOpenId(null)
   }
 
   // Suppression définitive du compte (admin) : candidature, compte, annonces
@@ -241,7 +251,6 @@ export default function AgentsPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setMenuOpenId(null)
   }
 
   const setAgentBlockedState = async (request, blocked) => {
@@ -408,6 +417,28 @@ export default function AgentsPage() {
   const toggleSelectAll = () => {
     setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
   }
+
+  const menuProps = (request) => ({
+    request,
+    canProcess,
+    canPayments,
+    isAdmin,
+    onApprove: () => handleApprove(request),
+    onReject: () => handleReject(request),
+    onRecordPayment: () => {
+      setPaymentTarget(request)
+      setPaymentModalOpen(true)
+    },
+    onToggleBlock: () => {
+      setBlockTarget(request)
+      setBlockModalOpen(true)
+    },
+    onResetPassword: () => {
+      setPasswordTarget(request)
+      setPasswordModalOpen(true)
+    },
+    onDelete: () => setDeleteTarget(request),
+  })
 
   return (
     <div>
@@ -694,53 +725,7 @@ export default function AgentsPage() {
                           </Link>
                         ) : <span className="flex-1 text-xs text-gray-400">Actions de candidature</span>}
                         {((canProcess && request.status === 'pending') || (canPayments && request.status === 'approved') || (canProcess && request.status === 'approved') || isAdmin) && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setMenuOpenId((current) => current === request.id ? null : request.id)}
-                              aria-label="Autres actions"
-                              aria-haspopup="menu"
-                              aria-expanded={menuOpenId === request.id}
-                              className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border transition-colors ${menuOpenId === request.id ? 'border-gray-300 bg-gray-100 text-gray-800' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}
-                            >
-                              <RiMore2Fill className="h-5 w-5" />
-                            </button>
-                            {menuOpenId === request.id && (
-                          <div role="menu" className="absolute bottom-full right-0 z-30 mb-2 w-60 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl">
-                            {canProcess && request.status === 'pending' && (
-                              <>
-                                <button type="button" onClick={() => { setMenuOpenId(null); handleApprove(request) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                  <RiCheckLine className="h-4 w-4" style={{ color: colors.primary }} /> Approuver la candidature
-                                </button>
-                                <button type="button" onClick={() => { setMenuOpenId(null); handleReject(request) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                  <RiCloseLine className="h-4 w-4 text-gray-400" /> Refuser la candidature
-                                </button>
-                              </>
-                            )}
-                            {canPayments && request.status === 'approved' && (
-                              <button type="button" onClick={() => { setMenuOpenId(null); setPaymentTarget(request); setPaymentModalOpen(true) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                <RiMoneyDollarCircleLine className="h-4 w-4 text-gray-400" /> Enregistrer un paiement
-                              </button>
-                            )}
-                            {canProcess && request.status === 'approved' && (
-                              <button type="button" onClick={() => { setMenuOpenId(null); setBlockTarget(request); setBlockModalOpen(true) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: request.isAvailable ? colors.warning : colors.success }} />
-                                {request.isAvailable ? 'Bloquer le compte' : 'D\u00e9bloquer le compte'}
-                              </button>
-                            )}
-                            {isAdmin && request.status === 'approved' && (
-                              <button type="button" onClick={() => { setMenuOpenId(null); setPasswordTarget(request); setPasswordModalOpen(true) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                <RiLockPasswordLine className="h-4 w-4 text-gray-400" /> Modifier le mot de passe
-                              </button>
-                            )}
-                            {isAdmin && (
-                              <button type="button" onClick={() => { setMenuOpenId(null); setDeleteTarget(request) }} className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-red-100 px-3 py-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50">
-                                <RiDeleteBinLine className="h-4 w-4" /> Supprimer le compte
-                              </button>
-                            )}
-                          </div>
-                            )}
-                          </>
+                          <AgentMenu {...menuProps(request)} size="lg" />
                         )}
                       </div>
                     )}
@@ -867,138 +852,7 @@ export default function AgentsPage() {
                                 onReject={() => handleReject(request)}
                               />
                             )}
-                            <button
-                              onClick={(event) => toggleTableMenu(event, request.id)}
-                              data-agent-menu-button
-                              aria-expanded={menuOpenId === request.id}
-                              className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-                              title="Actions"
-                              aria-label="Actions"
-                            >
-                              <RiMore2Fill className="h-4 w-4" />
-                            </button>
-
-                            {menuOpenId === request.id && (
-                              <div
-                                data-agent-menu
-                                className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-lg"
-                                style={menuPos || undefined}
-                              >
-                                {canProcess && request.status === 'pending' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleApprove(request)}
-                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <RiCheckLine
-                                        className="h-4 w-4"
-                                        style={{ color: colors.primary }}
-                                      />
-                                      Approuver la candidature
-                                    </button>
-                                    <button
-                                      onClick={() => handleReject(request)}
-                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <RiCloseLine className="h-4 w-4 text-gray-400" />
-                                      Rejeter la candidature
-                                    </button>
-                                  </>
-                                )}
-
-                                {canPayments && request.status === 'approved' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setMenuOpenId(null)
-                                      setPaymentTarget(request)
-                                      setPaymentModalOpen(true)
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                  >
-                                    <RiMoneyDollarCircleLine
-                                      className="h-4 w-4"
-                                      style={{ color: colors.primary }}
-                                    />
-                                    Enregistrer un paiement
-                                  </button>
-                                )}
-
-                                {request.status === 'approved' &&
-                                  request.userId && (
-                                    <>
-                                      <Link
-                                        href={`/agents/${request.userId}`}
-                                        onClick={() => setMenuOpenId(null)}
-                                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50">
-
-                                        <RiProfileLine className="h-4 w-4 text-gray-400" />Voir détail et ses biens
-                                      </Link>
-                                      {canProcess && (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setMenuOpenId(null)
-                                            setBlockTarget(request)
-                                            setBlockModalOpen(true)
-                                          }}
-                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                        >
-                                          <span
-                                            className="h-2 w-2 rounded-full"
-                                            style={{
-                                              backgroundColor: request.isAvailable
-                                                ? colors.gray700
-                                                : colors.primary,
-                                            }}
-                                          />
-                                          {request.isAvailable
-                                            ? 'Bloquer le compte'
-                                            : 'Débloquer le compte'}
-                                        </button>
-                                      )}
-                                      {isAdmin && (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setMenuOpenId(null)
-                                            setPasswordTarget(request)
-                                            setPasswordModalOpen(true)
-                                          }}
-                                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                        >
-                                          <RiLockPasswordLine
-                                            className="h-4 w-4"
-                                            style={{ color: colors.primary }}
-                                          />
-                                          Modifier le mot de passe
-                                        </button>
-                                      )}
-                                    </>
-                                  )}
-
-                                {request.status === 'rejected' && !isAdmin && (
-                                  <p className="px-3 py-2.5 text-sm text-gray-400">
-                                    Aucune action disponible
-                                  </p>
-                                )}
-
-                                {isAdmin && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setMenuOpenId(null)
-                                      setDeleteTarget(request)
-                                    }}
-                                    className="mt-1 flex w-full items-center gap-2 rounded-lg border-t border-gray-100 px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
-                                    style={{ color: colors.error }}
-                                  >
-                                    <RiDeleteBinLine className="h-4 w-4" />
-                                    Supprimer le compte
-                                  </button>
-                                )}
-                              </div>
-                            )}
+                            <AgentMenu {...menuProps(request)} />
                           </div>
                         )}
                       </td>

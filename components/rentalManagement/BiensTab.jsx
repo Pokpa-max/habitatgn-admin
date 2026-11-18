@@ -8,7 +8,6 @@ import {
   RiArrowRightSLine,
   RiEyeLine,
   RiEyeOffLine,
-  RiMore2Fill,
   RiShieldCheckLine,
   RiRocketLine,
 } from 'react-icons/ri'
@@ -18,6 +17,7 @@ import { formatGNF } from '@/utils/format'
 import { firebaseDateFormat } from '@/utils/date'
 import Loader from '@/components/Loader'
 import StatusPill from '@/components/ui/StatusPill'
+import ActionMenu, { MenuChoices, MenuItem, MenuSeparator } from '@/components/ui/ActionMenu'
 import SimpleDrawer from '@/components/SimpleDrawer'
 import Pagination from '@/components/ui/Pagination'
 import PropertyDrawerForm from './PropertyDrawerForm'
@@ -155,8 +155,6 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [detailProperty, setDetailProperty] = useState(null)
-  const [menuOpenId, setMenuOpenId] = useState(null)
-  const [menuAnchor, setMenuAnchor] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkActing, setBulkActing] = useState(false)
   const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
@@ -187,23 +185,6 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     setPage(1)
   }, [search])
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!menuOpenId) return
-      const target = event.target
-      if (
-        target instanceof HTMLElement &&
-        !target.closest('[data-menu-root]')
-      ) {
-        setMenuOpenId(null)
-        setMenuAnchor(null)
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [menuOpenId])
-
   const ownerById = (id) => owners.find((o) => o.id === id)
 
   const openAdd = () => {
@@ -222,25 +203,6 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
   const openDetail = (property) => {
     setDeleteConfirm(null)
     setDetailProperty(property)
-  }
-
-  const openMenu = (event, propertyId) => {
-    event.stopPropagation()
-    if (menuOpenId === propertyId) {
-      setMenuOpenId(null)
-      setMenuAnchor(null)
-      return
-    }
-
-    const rect = event.currentTarget.getBoundingClientRect()
-    const left = Math.max(
-      16,
-      Math.min(rect.right - 224, window.innerWidth - 240 - 16)
-    )
-    const top = Math.min(rect.bottom + 8, window.innerHeight - 220 - 16)
-
-    setMenuOpenId(propertyId)
-    setMenuAnchor({ left, top })
   }
 
   const handleSaved = (saved) => {
@@ -573,6 +535,55 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
     setBulkActing(false)
   }
 
+  /** Menu « ⋮ » d'un bien (composant commun ActionMenu). */
+  const renderMenu = (property, size) => (
+    <ActionMenu size={size} label={`Actions pour ${property.reference || 'ce bien'}`}>
+      <MenuItem icon={RiEyeLine} onClick={() => openDetail(property)}>Voir les détails</MenuItem>
+      {canProcess && (
+        <MenuItem icon={RiEditLine} onClick={() => openEdit(property)}>Modifier l'annonce</MenuItem>
+      )}
+      {canProcess && (
+        <MenuItem icon={RiEyeOffLine} onClick={() => handleToggleStatus(property)}>
+          {property.status === 'inactive' ? "Réactiver l'annonce" : 'Désactiver / Masquer'}
+        </MenuItem>
+      )}
+      {canProcess && isPublicListing(property) && (
+        <>
+          <MenuSeparator />
+          <MenuItem icon={RiShieldCheckLine} onClick={() => handleToggleVerified(property)}>
+            {property.verified ? 'Retirer la vérification' : 'Marquer comme vérifiée'}
+          </MenuItem>
+          {isCurrentlyBoosted(property) ? (
+            <MenuItem icon={RiRocketLine} onClick={() => handleSetBoost(property, null)}>Retirer la mise en avant</MenuItem>
+          ) : (
+            <MenuChoices
+              icon={RiRocketLine}
+              label="Mettre en avant"
+              options={[7, 15, 30].map((days) => ({
+                label: `${days} j`,
+                ariaLabel: `Mettre en avant ${days} jours`,
+                onClick: () => handleSetBoost(property, days),
+              }))}
+            />
+          )}
+        </>
+      )}
+      <MenuSeparator />
+      {canDelete && (
+        <MenuItem
+          icon={RiDeleteBinLine}
+          danger
+          onClick={() => {
+            openDetail(property)
+            setDeleteConfirm(property.id)
+          }}
+        >
+          Supprimer l'annonce
+        </MenuItem>
+      )}
+    </ActionMenu>
+  )
+
   return (
     <>
       <div className="rounded-xl bg-white p-3 shadow-sm sm:p-6">
@@ -791,16 +802,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           {formatGNF(property.rentAmount)}
                         </span>
                       </div>
-                      <div data-menu-root>
-                        <button
-                          type="button"
-                          onClick={(event) => openMenu(event, property.id)}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500"
-                          aria-label={`Actions pour ${property.reference || 'ce bien'}`}
-                        >
-                          <RiMore2Fill className="h-4 w-4" />
-                        </button>
-                      </div>
+                      {renderMenu(property, 'md')}
                     </div>
                   </article>
                 )
@@ -966,16 +968,7 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
                           className="px-4 py-2 text-right"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <div className="flex justify-end" data-menu-root>
-                            <button
-                              type="button"
-                              onClick={(event) => openMenu(event, property.id)}
-                              className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-                              title="Actions"
-                            >
-                              <RiMore2Fill className="h-4 w-4" />
-                            </button>
-                          </div>
+                          <div className="flex justify-end">{renderMenu(property)}</div>
                         </td>
                       </tr>
                     )
@@ -988,146 +981,6 @@ export default function BiensTab({ ownerId, onPropertiesChange }) {
         <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onChange={setPage} />
       </div>
 
-      {menuOpenId && menuAnchor && (
-        <div
-          className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
-          style={{ left: menuAnchor.left, top: menuAnchor.top }}
-          data-menu-root
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setMenuOpenId(null)
-              setMenuAnchor(null)
-              openDetail(
-                properties.find((property) => property.id === menuOpenId) ||
-                  null
-              )
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-          >
-            <RiEyeLine className="h-4 w-4 text-gray-400" />
-            Voir les détails
-          </button>
-          {canProcess && (
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                openEdit(
-                  properties.find((property) => property.id === menuOpenId)
-                )
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              <RiEditLine className="h-4 w-4 text-gray-400" />
-              Modifier l'annonce
-            </button>
-          )}
-          {canProcess && (
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                handleToggleStatus(
-                  properties.find((property) => property.id === menuOpenId)
-                )
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-            >
-              <RiEyeOffLine className="h-4 w-4 text-gray-400" />
-              {properties.find((property) => property.id === menuOpenId)
-                ?.status === 'inactive'
-                ? "Réactiver l'annonce"
-                : 'Désactiver / Masquer'}
-            </button>
-          )}
-          {canProcess && isPublicListing(
-            properties.find((property) => property.id === menuOpenId)
-          ) && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  const property = properties.find((p) => p.id === menuOpenId)
-                  setMenuOpenId(null)
-                  setMenuAnchor(null)
-                  handleToggleVerified(property)
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <RiShieldCheckLine className="h-4 w-4 text-gray-400" />
-                {properties.find((property) => property.id === menuOpenId)
-                  ?.verified
-                  ? 'Retirer la vérification'
-                  : 'Marquer comme vérifiée'}
-              </button>
-              {isCurrentlyBoosted(
-                properties.find((property) => property.id === menuOpenId)
-              ) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const property = properties.find((p) => p.id === menuOpenId)
-                    setMenuOpenId(null)
-                    setMenuAnchor(null)
-                    handleSetBoost(property, null)
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                >
-                  <RiRocketLine className="h-4 w-4 text-gray-400" />
-                  Retirer la mise en avant
-                </button>
-              ) : (
-                <div className="px-3 py-1.5">
-                  <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-                    <RiRocketLine className="h-3.5 w-3.5" />
-                    Mettre en avant
-                  </p>
-                  <div className="flex gap-1.5">
-                    {[7, 15, 30].map((days) => (
-                      <button
-                        key={days}
-                        type="button"
-                        onClick={() => {
-                          const property = properties.find((p) => p.id === menuOpenId)
-                          setMenuOpenId(null)
-                          setMenuAnchor(null)
-                          handleSetBoost(property, days)
-                        }}
-                        className="flex-1 rounded-lg border border-gray-200 py-1.5 text-xs font-semibold text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-                      >
-                        {days}j
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-          {canDelete && (
-            <button
-              type="button"
-              onClick={() => {
-                setMenuOpenId(null)
-                setMenuAnchor(null)
-                const selectedProperty = properties.find(
-                  (property) => property.id === menuOpenId
-                )
-                openDetail(selectedProperty)
-                setDeleteConfirm(selectedProperty?.id)
-              }}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
-              style={{ color: colors.error }}
-            >
-              <RiDeleteBinLine className="h-4 w-4" />
-              Supprimer l'annonce
-            </button>
-          )}
-        </div>
-      )}
 
       <PropertyDrawerForm
         open={drawerOpen}

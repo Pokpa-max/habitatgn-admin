@@ -2,13 +2,12 @@
 import { columnsUser } from './_dataTable'
 import { OrderSkleton } from '../Orders/OrdersList'
 import PaginationButton from '../Orders/PaginationButton'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   RiSearchLine,
   RiAddLine,
   RiShieldKeyholeLine,
   RiLockPasswordLine,
-  RiMore2Fill,
   RiForbidLine,
   RiCheckLine,
 } from 'react-icons/ri'
@@ -16,6 +15,7 @@ import DesableConfirmModal from '../DesableConfirm'
 import ManagerPermissionsModal from './ManagerPermissionsModal'
 import ResetPasswordModal from './ResetPasswordModal'
 import StatusPill from '../ui/StatusPill'
+import ActionMenu, { MenuItem, MenuSeparator } from '../ui/ActionMenu'
 import {
   desableUser,
   desableUserFirestore,
@@ -77,43 +77,6 @@ function UserTable({
   const [permissionsModalOpen, setPermissionsModalOpen] = useState(false)
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
-  const [menuOpenId, setMenuOpenId] = useState(null)
-  // Menu « ⋮ » : position fixe à l'écran, sinon le tableau (qui défile
-  // horizontalement) en coupait une partie
-  const [menuPos, setMenuPos] = useState(null)
-
-  useEffect(() => {
-    if (!menuOpenId) return
-    const handleClickOutside = (event) => {
-      const target = event.target
-      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
-        setMenuOpenId(null)
-      }
-    }
-    const close = () => setMenuOpenId(null)
-    document.addEventListener('mousedown', handleClickOutside)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-    }
-  }, [menuOpenId])
-
-  /** Ouvre le menu sous le bouton, ou au-dessus s'il manque de place en bas. */
-  const toggleMenu = (event, id) => {
-    if (menuOpenId === id) {
-      setMenuOpenId(null)
-      return
-    }
-    const rect = event.currentTarget.getBoundingClientRect()
-    const right = Math.max(8, window.innerWidth - rect.right)
-    const opensUp = rect.bottom + 240 > window.innerHeight
-    setMenuPos(opensUp ? { bottom: window.innerHeight - rect.top + 8, right } : { top: rect.bottom + 8, right })
-    setMenuOpenId(id)
-  }
-
   data = data || {}
   const { users, lastElement } = data
   const { managers, lastElement: lastManager } = data
@@ -367,67 +330,41 @@ function UserTable({
                             <StatusPill tone={row.isAvailable ? 'success' : 'error'}>
                               {row.isAvailable ? 'Actif' : 'Inactif'}
                             </StatusPill>
-                            <div className="relative" data-menu-root>
-                              <button
-                                type="button"
-                                onClick={(event) => toggleMenu(event, row.id)}
-                                aria-expanded={menuOpenId === row.id}
-                                className="inline-flex items-center justify-center rounded-full border border-gray-200 p-1.5 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-                                title="Actions"
-                                aria-label="Actions"
-                              >
-                                <RiMore2Fill className="h-4 w-4" />
-                              </button>
-
-                              {menuOpenId === row.id && (
-                                <div className="fixed z-[100] w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-lg" style={menuPos || undefined}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setMenuOpenId(null)
-                                      setSelectUser(row)
-                                      setOpenModal(true)
-                                    }}
-                                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                  >
-                                    {row.isAvailable ? (
-                                      <RiForbidLine className="h-4 w-4" style={{ color: colors.error }} />
-                                    ) : (
-                                      <RiCheckLine className="h-4 w-4" style={{ color: colors.success }} />
-                                    )}
-                                    {row.isAvailable ? 'Suspendre le compte' : 'Activer le compte'}
-                                  </button>
-                                  {isStaffTab && row.type === 'manager' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMenuOpenId(null)
-                                        setPermissionsTarget(row)
-                                        setPermissionsModalOpen(true)
-                                      }}
-                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <RiShieldKeyholeLine className="h-4 w-4" style={{ color: colors.primary }} />
-                                      Permissions
-                                    </button>
-                                  )}
-                                  {isAdmin && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMenuOpenId(null)
-                                        setPasswordTarget(row)
-                                        setPasswordModalOpen(true)
-                                      }}
-                                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-                                    >
-                                      <RiLockPasswordLine className="h-4 w-4" style={{ color: colors.primary }} />
-                                      Réinitialiser le mot de passe
-                                    </button>
-                                  )}
-                                </div>
+                            <ActionMenu width="w-64">
+                              {isStaffTab && row.type === 'manager' && (
+                                <MenuItem
+                                  icon={RiShieldKeyholeLine}
+                                  onClick={() => {
+                                    setPermissionsTarget(row)
+                                    setPermissionsModalOpen(true)
+                                  }}
+                                >
+                                  Permissions
+                                </MenuItem>
                               )}
-                            </div>
+                              {isAdmin && (
+                                <MenuItem
+                                  icon={RiLockPasswordLine}
+                                  onClick={() => {
+                                    setPasswordTarget(row)
+                                    setPasswordModalOpen(true)
+                                  }}
+                                >
+                                  Réinitialiser le mot de passe
+                                </MenuItem>
+                              )}
+                              <MenuSeparator />
+                              <MenuItem
+                                icon={row.isAvailable ? RiForbidLine : RiCheckLine}
+                                iconColor={row.isAvailable ? '#D97706' : colors.success}
+                                onClick={() => {
+                                  setSelectUser(row)
+                                  setOpenModal(true)
+                                }}
+                              >
+                                {row.isAvailable ? 'Suspendre le compte' : 'Activer le compte'}
+                              </MenuItem>
+                            </ActionMenu>
                           </div>
                         </td>
                       </tr>
