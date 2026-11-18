@@ -24,18 +24,41 @@ const searchTypeLabel = (value) => {
   return null
 }
 
-// Formule choisie sur le site (rien n'est payé en ligne : le conseiller confirme le prix)
-const SERVICE_LEVELS = {
-  classic: 'Classique · Gratuit',
-  assisted: 'Assistée · 50 000 GNF',
-  full: 'Accompagnement complet · 100 000 à 200 000 GNF',
-}
+/**
+ * Formules d'accompagnement. Le site ne les affiche plus : le client envoie
+ * son besoin, le conseiller lui envoie les modalités sur WhatsApp, puis note
+ * ici la formule choisie (rien n'est payé en ligne).
+ */
+const LEVEL_OPTIONS = [
+  {
+    value: 'classic',
+    name: 'Essentiel',
+    price: 'gratuit',
+    shortPrice: 'Gratuit',
+    detail: 'votre demande est transmise à nos agents et propriétaires partenaires ; vous êtes contacté dès qu’un bien correspond.',
+  },
+  {
+    value: 'assisted',
+    name: 'Accompagné',
+    price: '50 000 GNF',
+    shortPrice: '50 000 GNF',
+    detail: 'un conseiller cherche activement pour vous et contacte les propriétaires.',
+  },
+  {
+    value: 'full',
+    name: 'Complet',
+    price: 'de 100 000 à 200 000 GNF selon le besoin',
+    shortPrice: '100 000 à 200 000 GNF',
+    detail: 'recherche, vérification des biens, organisation des visites et assistance jusqu’à la signature.',
+  },
+]
+const SERVICE_LEVELS = Object.fromEntries(LEVEL_OPTIONS.map((o) => [o.value, `${o.name} · ${o.shortPrice}`]))
 
 const serviceLevelLabel = (request) => {
-  if (request.serviceLevel && SERVICE_LEVELS[request.serviceLevel]) return SERVICE_LEVELS[request.serviceLevel]
   if (request.serviceLevelLabel) return [request.serviceLevelLabel, request.servicePrice].filter(Boolean).join(' · ')
-  // Demandes envoyées avant l'ajout des formules
-  return 'Classique · Gratuit'
+  if (request.serviceLevel && SERVICE_LEVELS[request.serviceLevel]) return SERVICE_LEVELS[request.serviceLevel]
+  // Le client n'a pas encore choisi (modalités à envoyer)
+  return 'À définir'
 }
 
 // ─── Paiement des formules payantes (noté à la main : rien n'est payé en ligne) ───
@@ -185,6 +208,100 @@ function NotesSection({ request, onUpdated }) {
           </button>
         )}
       </div>
+    </ModalSection>
+  )
+}
+
+/**
+ * Formule du dossier : tant que le client n'a pas choisi, bouton « Envoyer
+ * les modalités » (WhatsApp) ; puis le conseiller note la formule choisie,
+ * ce qui ouvre la partie Paiement pour les formules payantes.
+ */
+function FormulaSection({ request, onUpdated, senderName }) {
+  const colors = useColors()
+  const canProcess = useCanManage('services', 'process')
+  const [saving, setSaving] = useState(false)
+  const [changing, setChanging] = useState(false)
+  const chosen = Boolean(request.serviceLevel)
+  const hasPayment = installmentsOf(request).some((item) => item.paid)
+
+  const choose = async (option) => {
+    setSaving(true)
+    try {
+      const changes = { serviceLevel: option.value, serviceLevelLabel: option.name, servicePrice: option.shortPrice }
+      await updateServiceRequest(request.id, changes)
+      onUpdated?.(request.id, changes)
+      setChanging(false)
+      notify(`Formule « ${option.name} » enregistrée`, 'success')
+    } catch (e) {
+      notify("La formule n'a pas pu être enregistrée", 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const termsHref = whatsappUrl(request.phone, modalitiesMessage(request, senderName))
+
+  return (
+    <ModalSection title="Formule">
+      {chosen && !changing ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-gray-700">
+            Formule du client : <strong className="text-gray-900">{serviceLevelLabel(request)}</strong>
+          </p>
+          {canProcess && !hasPayment && (
+            <button type="button" onClick={() => setChanging(true)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-800">
+              Changer
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          {!chosen && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <p className="min-w-0 flex-1 text-sm text-gray-700">
+                Le client n'a pas encore choisi. Envoyez-lui les modalités, puis notez son choix ci-dessous.
+              </p>
+              {termsHref && (
+                <a
+                  href={termsHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  <RiWhatsappLine className="h-4 w-4" style={{ color: colors.whatsapp }} />
+                  Envoyer les modalités
+                </a>
+              )}
+            </div>
+          )}
+          {canProcess && (
+            <>
+              <p className="mb-1.5 text-[11px] font-semibold text-gray-500">Formule choisie par le client</p>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {LEVEL_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    disabled={saving}
+                    onClick={() => choose(option)}
+                    className="rounded-xl border px-3 py-2 text-left transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:opacity-60"
+                    style={{ borderColor: request.serviceLevel === option.value ? colors.primary : colors.gray200 }}
+                  >
+                    <span className="block text-sm font-semibold text-gray-900">{option.name}</span>
+                    <span className="block text-xs text-gray-500">{option.shortPrice}</span>
+                  </button>
+                ))}
+              </div>
+              {changing && (
+                <button type="button" onClick={() => setChanging(false)} className="mt-2 text-xs font-semibold text-gray-500 hover:text-gray-800">
+                  Annuler
+                </button>
+              )}
+            </>
+          )}
+        </>
+      )}
     </ModalSection>
   )
 }
@@ -378,11 +495,56 @@ const clientNameOf = (name) => String(name || '').trim().replace(/\s+/g, ' ').sl
  * Signé du prénom du conseiller connecté (on répond plus volontiers à une
  * personne) ; sans nom renseigné, « l'équipe BâtiMoo ».
  */
-const whatsappMessage = (request, senderName) => {
-  const name = clientNameOf(request.name)
+const senderOf = (senderName) => {
   // Compte au nom générique (« BâtiMoo Admin »…) : pas un prénom
   const senderFirst = firstNameOf(senderName)
-  const sender = /^(b[aâ]ti ?moo|admin|administrateur|manager|équipe|equipe|service)$/i.test(senderFirst) ? '' : senderFirst
+  return /^(b[aâ]ti ?moo|admin|administrateur|manager|équipe|equipe|service)$/i.test(senderFirst) ? '' : senderFirst
+}
+
+/** Résumé de la demande en une ligne, pour que le client la reconnaisse. */
+const requestSummary = (request) =>
+  [
+    searchTypeLabel(request.searchType)?.toLowerCase(),
+    propertyTypesLabel(request).toLowerCase(),
+    bedroomsText(request) ? `chambres : ${bedroomsText(request)}` : null,
+    locationsLabel(request),
+    budgetLabel(request.maxPrice) ? `budget ${budgetLabel(request.maxPrice)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+/**
+ * Modalités envoyées au client qui n'a pas encore choisi de formule : sa
+ * demande, les 3 niveaux d'accompagnement, puis la question du choix.
+ */
+const modalitiesMessage = (request, senderName) => {
+  const name = clientNameOf(request.name)
+  const sender = senderOf(senderName)
+  const summary = requestSummary(request)
+  return [
+    `Bonjour${name ? ` ${name}` : ''},`,
+    '',
+    'Merci d’avoir confié votre recherche à BâtiMoo.',
+    summary ? `Votre demande : ${summary}.` : null,
+    '',
+    'Nous vous proposons 3 niveaux d’accompagnement :',
+    ...LEVEL_OPTIONS.map((o) => `• *${o.name}, ${o.price}* : ${o.detail}`),
+    '',
+    'Rien n’est à payer avant votre accord. Quel niveau vous convient ?',
+    '',
+    'Cordialement,',
+    sender ? `${sender} · *${SIGNATURE[0]}*` : `*${SIGNATURE[0]}*`,
+    `_${SIGNATURE[1]}_`,
+  ]
+    .filter((line) => line !== null)
+    .join('\n')
+}
+
+const whatsappMessage = (request, senderName) => {
+  // Formule pas encore choisie : on envoie d'abord les modalités
+  if (!request.serviceLevel) return modalitiesMessage(request, senderName)
+  const name = clientNameOf(request.name)
+  const sender = senderOf(senderName)
   const paid = isPaidSearch(request)
 
   // Tout est déjà détaillé sur le site : un message court, réception + suite
@@ -428,7 +590,7 @@ const whatsappMessage = (request, senderName) => {
 const clientNotes = (request) => {
   const text = String(request.description || '').trim()
   if (!text) return null
-  const structured = Array.isArray(request.propertyTypes) || request.serviceLevel
+  const structured = Array.isArray(request.propertyTypes) || request.serviceLevel || /^Recherche\s*:/m.test(text)
   if (!structured) return text
   const notes = text.split('\n').find((line) => /^(Précisions|Notes)\s*:/.test(line))
   return notes ? notes.replace(/^(Précisions|Notes)\s*:\s*/, '') : null
@@ -498,6 +660,7 @@ export default function PropertySearchTab() {
       // Ordre du traitement : paiement (formules payantes), biens à proposer, note du dossier
       renderDetailExtra={(request, onUpdated) => (
         <>
+          <FormulaSection request={request} onUpdated={onUpdated} senderName={AuthUser?.displayName} />
           <PaymentSection request={request} onUpdated={onUpdated} />
           <SearchMatchesSection request={request} onUpdated={onUpdated} />
           <NotesSection request={request} onUpdated={onUpdated} />
