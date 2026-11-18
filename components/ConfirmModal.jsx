@@ -16,19 +16,27 @@ function ConfirmModal({
   cancelFuction = () => {},
   confirmLabel = 'Confirmer',
   tone = 'error',
+  /** Texte à recopier pour activer « Confirmer » (actions irréversibles) */
+  confirmText = '',
 }) {
   const [busy, setBusy] = useState(false)
+  const [typed, setTyped] = useState('')
+  const normalize = (v) => String(v || '').trim().replace(/\s+/g, ' ').toLowerCase()
+  const blocked = Boolean(confirmText) && normalize(typed) !== normalize(confirmText)
   const close = () => {
     if (busy) return
+    setTyped('')
     cancelFuction()
     setOpen(false)
   }
   const confirm = async () => {
+    if (blocked) return
     setBusy(true)
     try {
       await confirmFunction()
     } finally {
       setBusy(false)
+      setTyped('')
     }
   }
 
@@ -43,13 +51,25 @@ function ConfirmModal({
       footer={
         <>
           <ModalButton onClick={close} disabled={busy}>Annuler</ModalButton>
-          <ModalButton variant={tone === 'error' ? 'danger' : 'primary'} loading={busy} onClick={confirm}>
+          <ModalButton variant={tone === 'error' ? 'danger' : 'primary'} loading={busy} disabled={blocked} onClick={confirm}>
             {confirmLabel}
           </ModalButton>
         </>
       }
     >
       {description && <p className="text-sm leading-relaxed text-gray-600">{description}</p>}
+      {confirmText && (
+        <label className="mt-4 block text-sm text-gray-700">
+          Pour confirmer, tapez <span className="font-semibold text-gray-900">{confirmText}</span>
+          <input
+            type="text"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            autoComplete="off"
+            className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100"
+          />
+        </label>
+      )}
     </AdminModal>
   )
 }

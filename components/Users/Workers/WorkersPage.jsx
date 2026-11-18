@@ -52,6 +52,7 @@ import RecordPaymentModal from './RecordPaymentModal'
 import WorkerRevenueChart from './WorkerRevenueChart'
 import DesableConfirmModal from '@/components/DesableConfirm'
 import ConfirmModal from '@/components/ConfirmModal'
+import { fetchWithPost } from '@/utils/fetch'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import AdminModal from '@/components/ui/AdminModal'
 import Pagination from '@/components/ui/Pagination'
@@ -221,6 +222,18 @@ function ActionsModal({
             iconColor={colors.primary}
             iconBg={colors.primaryVeryLight}
             label="Modifier le mot de passe"
+          />
+        )}
+
+        {isAdmin && worker.userId && (
+          <ActionRow
+            as="button"
+            onClick={onDelete}
+            icon={RiDeleteBinLine}
+            iconColor={colors.error}
+            iconBg="#FDECEC"
+            label="Supprimer le compte"
+            tone="danger"
           />
         )}
 
@@ -613,19 +626,29 @@ export default function WorkersPage() {
       <ConfirmModal
         open={Boolean(deleteTarget)}
         setOpen={(value) => !value && setDeleteTarget(null)}
-        title="Supprimer cet ouvrier ?"
+        title={deleteTarget?.userId ? 'Supprimer le compte de cet ouvrier ?' : 'Supprimer cet ouvrier ?'}
         description={
-          deleteTarget
-            ? `Le profil de ${deleteTarget.name || 'cet ouvrier'} sera retiré du site et de l'admin. Cette action est irréversible.`
-            : ''
+          !deleteTarget
+            ? ''
+            : deleteTarget.userId
+              ? `${deleteTarget.name || 'Cet ouvrier'} ne pourra plus se connecter : son compte et son profil seront supprimés définitivement et il disparaîtra du site. Ses paiements restent dans l'historique. Pour une simple pause, utilisez plutôt « Bloquer le compte ».`
+              : `Le profil de ${deleteTarget.name || 'cet ouvrier'} sera retiré du site et de l'admin. Cette action est irréversible.`
         }
-        confirmLabel="Supprimer"
+        confirmText={deleteTarget?.userId ? (deleteTarget.name || '').trim() || 'SUPPRIMER' : ''}
+        confirmLabel="Supprimer définitivement"
         tone="error"
         confirmFunction={async () => {
           try {
-            await deleteWorkerProfile(deleteTarget)
-            setWorkers((prev) => prev.filter((w) => w.id !== deleteTarget.id))
-            notify('Ouvrier supprimé', 'success')
+            if (deleteTarget.userId) {
+              const result = await fetchWithPost('/api/deleteWorker', { workerId: deleteTarget.id })
+              if (!result?.ok) throw new Error(result?.message || '')
+              setWorkers((prev) => prev.filter((w) => w.id !== deleteTarget.id && w.userId !== deleteTarget.userId))
+              notify(result.accountDeleted ? "Compte de l'ouvrier supprimé" : 'Fiche ouvrier supprimée (le compte agent est conservé)', 'success')
+            } else {
+              await deleteWorkerProfile(deleteTarget)
+              setWorkers((prev) => prev.filter((w) => w.id !== deleteTarget.id))
+              notify('Ouvrier supprimé', 'success')
+            }
           } catch (e) {
             notify(e.message || 'La suppression a échoué', 'error')
           } finally {
