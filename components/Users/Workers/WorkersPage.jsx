@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Timestamp } from 'firebase/firestore'
 import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
   RiCheckLine,
@@ -16,6 +17,7 @@ import {
   RiShieldCheckFill,
   RiUserAddLine,
   RiDeleteBinLine,
+  RiRocketLine,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
@@ -31,6 +33,7 @@ import {
   hideWorkerFromPublic,
   restoreWorkerVisibility,
   toggleWorkerCertification,
+  setWorkerBoost,
 } from '@/lib/services/workers'
 import {
   desableUser,
@@ -52,7 +55,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { fetchWithPost } from '@/utils/fetch'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import Pagination from '@/components/ui/Pagination'
-import ActionMenu, { MenuItem, MenuSeparator } from '@/components/ui/ActionMenu'
+import ActionMenu, { MenuChoices, MenuItem, MenuSeparator } from '@/components/ui/ActionMenu'
 import CreateWorkerAccountModal from './CreateWorkerAccountModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -67,6 +70,14 @@ const STATUS_FILTERS = [
 
 const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
 
+/** Mise en avant encore valable (en tête des listes d'ouvriers du site). */
+const isWorkerBoosted = (worker) => {
+  const until = worker?.boostedUntil
+  if (!until) return false
+  const date = typeof until?.toDate === 'function' ? until.toDate() : new Date(until)
+  return date.getTime() > Date.now()
+}
+
 /** Menu « ⋮ » d'un ouvrier (composant commun ActionMenu). */
 function WorkerMenu({
   worker,
@@ -74,6 +85,7 @@ function WorkerMenu({
   onReject,
   onToggleBlock,
   onToggleCertification,
+  onSetBoost,
   onRecordPayment,
   onResetPassword,
   onCreateAccount,
@@ -101,6 +113,21 @@ function WorkerMenu({
         <MenuItem icon={RiShieldCheckFill} iconColor={worker.isCertified ? undefined : '#2563EB'} onClick={onToggleCertification}>
           {worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
         </MenuItem>
+      )}
+      {canProcess && status === 'approved' && (
+        isWorkerBoosted(worker) ? (
+          <MenuItem icon={RiRocketLine} onClick={() => onSetBoost(null)}>Retirer la mise en avant</MenuItem>
+        ) : (
+          <MenuChoices
+            icon={RiRocketLine}
+            label="Mettre en avant"
+            options={[7, 15, 30].map((days) => ({
+              label: `${days} j`,
+              ariaLabel: `Mettre en avant ${days} jours`,
+              onClick: () => onSetBoost(days),
+            }))}
+          />
+        )
       )}
       {canPayments && status === 'approved' && (
         <MenuItem icon={RiMoneyDollarCircleLine} onClick={onRecordPayment}>Enregistrer un paiement</MenuItem>
@@ -336,6 +363,22 @@ export default function WorkersPage() {
     setActioningId(null)
   }
 
+  const handleSetBoost = async (worker, days) => {
+    if (!canProcess || !worker) return
+    setActioningId(worker.id)
+    try {
+      const boostedUntil = days
+        ? Timestamp.fromDate(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+        : null
+      await setWorkerBoost(worker.id, boostedUntil)
+      setWorkers((prev) => prev.map((w) => (w.id === worker.id ? { ...w, boostedUntil } : w)))
+      notify(days ? `Profil mis en avant pour ${days} jours` : 'Mise en avant retirée', 'success')
+    } catch (e) {
+      notify('Erreur lors de la mise en avant', 'error')
+    }
+    setActioningId(null)
+  }
+
   const handleBulkCertify = async (certified) => {
     if (!canProcess) return
     const targets = filtered.filter((w) => selectedIds.has(w.id) && w.isCertified !== certified)
@@ -462,6 +505,7 @@ export default function WorkersPage() {
       setBlockModalOpen(true)
     },
     onToggleCertification: () => handleToggleCertification(worker),
+    onSetBoost: (days) => handleSetBoost(worker, days),
     onRecordPayment: () => {
       setPaymentTarget(worker)
       setPaymentModalOpen(true)
@@ -820,6 +864,15 @@ export default function WorkersPage() {
                                 >
                                   <RiShieldCheckFill className="h-3 w-3 text-blue-600" />
                                   Certifié
+                                </span>
+                              )}
+                              {isWorkerBoosted(worker) && (
+                                <span
+                                  className="inline-flex items-center gap-0.5 rounded-full border border-orange-200 bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700"
+                                  title={`Mis en avant jusqu'au ${firebaseDateFormat(worker.boostedUntil)}`}
+                                >
+                                  <RiRocketLine className="h-3 w-3" />
+                                  Jusqu&apos;au {firebaseDateFormat(worker.boostedUntil, 'd MMM')}
                                 </span>
                               )}
                             </div>
