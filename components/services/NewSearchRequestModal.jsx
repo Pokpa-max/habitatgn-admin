@@ -15,9 +15,9 @@ import { ANY_ZONE, BEDROOM_OPTIONS, CONAKRY_NEIGHBORHOODS, WANTED_FEATURES, bedr
  */
 
 const LEVELS = [
-  { value: 'classic', label: 'Recherche classique', price: 'Gratuit' },
-  { value: 'assisted', label: 'Recherche assistée', price: '50 000 GNF' },
-  { value: 'full', label: 'Accompagnement complet', price: '100 000 à 200 000 GNF' },
+  { value: 'classic', label: 'Essentiel', price: 'Gratuit' },
+  { value: 'assisted', label: 'Accompagné', price: '50 000 GNF' },
+  { value: 'full', label: 'Complet', price: '100 000 à 200 000 GNF' },
 ]
 
 const TYPES = [
