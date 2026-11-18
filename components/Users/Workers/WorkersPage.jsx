@@ -1,6 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useIsAdmin } from '@/hooks/useIsAdmin'
 import {
   RiCheckLine,
@@ -8,7 +6,6 @@ import {
   RiUserLine,
   RiPhoneLine,
   RiWhatsappLine,
-  RiMore2Fill,
   RiProfileLine,
   RiSearchLine,
   RiAddLine,
@@ -55,6 +52,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import { fetchWithPost } from '@/utils/fetch'
 import PendingDecisionButtons from '@/components/ui/PendingDecisionButtons'
 import Pagination from '@/components/ui/Pagination'
+import ActionMenu, { MenuItem, MenuSeparator } from '@/components/ui/ActionMenu'
 import CreateWorkerAccountModal from './CreateWorkerAccountModal'
 import { firebaseDateFormat } from '@/utils/date'
 import { useCanManage } from '@/hooks/useCanManage'
@@ -69,30 +67,9 @@ const STATUS_FILTERS = [
 
 const REVENUE_TAB = { value: 'revenue', label: 'Revenus' }
 
-function ActionRow({ as = 'a', icon: Icon, iconColor, iconBg, label, tone, ...props }) {
-  const Tag = as
-  const danger = tone === 'danger'
-  return (
-    <Tag
-      {...props}
-      role="menuitem"
-      type={as === 'button' ? 'button' : undefined}
-      className={`flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium ${
-        danger ? 'text-red-700 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'
-      }`}
-    >
-      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: danger ? undefined : iconColor }} />
-      {label}
-    </Tag>
-  )
-}
-
-
-function ActionsModal({
+/** Menu « ⋮ » d'un ouvrier (composant commun ActionMenu). */
+function WorkerMenu({
   worker,
-  open,
-  setOpen,
-  pos,
   onApprove,
   onReject,
   onToggleBlock,
@@ -106,161 +83,52 @@ function ActionsModal({
   isAdmin,
 }) {
   const colors = useColors()
-  const menuRef = useRef(null)
-
-  // Fermeture : clic à côté, Échap, défilement ou redimensionnement
-  useEffect(() => {
-    if (!open) return
-    const close = () => setOpen(false)
-    const onPointer = (event) => {
-      if (menuRef.current?.contains(event.target) || event.target.closest?.('[data-worker-menu-button]')) return
-      close()
-    }
-    const onKey = (event) => event.key === 'Escape' && close()
-    document.addEventListener('mousedown', onPointer)
-    document.addEventListener('keydown', onKey)
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
-    return () => {
-      document.removeEventListener('mousedown', onPointer)
-      document.removeEventListener('keydown', onKey)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
-    }
-  }, [open, setOpen])
-
-  if (!worker || !open || !pos) return null
   const status = worker.status || 'pending'
+  return (
+    <ActionMenu width="w-64">
+      <MenuItem icon={RiProfileLine} href={`/workers/${worker.id}`}>Voir détail (réalisations, avis)</MenuItem>
 
-  // Un clic sur une action ferme le menu (les actions ferment déjà de leur côté)
-  return createPortal(
-    <div
-      ref={menuRef}
-      role="menu"
-      onClick={(event) => event.target.closest('a,button') && setOpen(false)}
-      className="fixed z-[1300] w-64 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl"
-      style={pos}
-    >
-      <div>
-        <Link href={`/workers/${worker.id}`} passHref legacyBehavior>
-          <ActionRow
-            icon={RiProfileLine}
-            iconColor={colors.gray600}
-            iconBg={colors.gray100}
-            label="Voir détail (réalisations, avis)"
-          />
-        </Link>
+      {canProcess && status === 'pending' && (
+        <>
+          <MenuSeparator />
+          <MenuItem icon={RiCheckLine} iconColor={colors.primary} onClick={onApprove}>Approuver le profil</MenuItem>
+          <MenuItem icon={RiCloseLine} onClick={onReject}>Rejeter le profil</MenuItem>
+        </>
+      )}
 
-        {canProcess && status === 'pending' && (
-          <>
-            <ActionRow
-              as="button"
-              onClick={onApprove}
-              icon={RiCheckLine}
-              iconColor={colors.primary}
-              iconBg={colors.primaryVeryLight}
-              label="Approuver le profil"
-            />
-            <ActionRow
-              as="button"
-              onClick={onReject}
-              icon={RiCloseLine}
-              iconColor={colors.gray500}
-              iconBg={colors.gray100}
-              label="Rejeter le profil"
-              tone="danger"
-            />
-          </>
-        )}
+      <MenuSeparator />
+      {canProcess && status === 'approved' && (
+        <MenuItem icon={RiShieldCheckFill} iconColor={worker.isCertified ? undefined : '#2563EB'} onClick={onToggleCertification}>
+          {worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
+        </MenuItem>
+      )}
+      {canPayments && status === 'approved' && (
+        <MenuItem icon={RiMoneyDollarCircleLine} onClick={onRecordPayment}>Enregistrer un paiement</MenuItem>
+      )}
+      {canProcess && !worker.userId && (
+        <MenuItem icon={RiUserAddLine} onClick={onCreateAccount}>Créer son compte de connexion</MenuItem>
+      )}
+      {isAdmin && status === 'approved' && worker.userId && (
+        <MenuItem icon={RiLockPasswordLine} onClick={onResetPassword}>Modifier le mot de passe</MenuItem>
+      )}
 
-        {canProcess && status === 'approved' && (
-          <ActionRow
-            as="button"
-            onClick={onToggleCertification}
-            icon={RiShieldCheckFill}
-            iconColor={worker.isCertified ? colors.gray500 : '#2563EB'}
-            iconBg={worker.isCertified ? colors.gray100 : '#EFF6FF'}
-            label={worker.isCertified ? 'Retirer le badge certifié' : 'Accorder le badge certifié'}
-          />
-        )}
-
-        {canPayments && status === 'approved' && (
-          <ActionRow
-            as="button"
-            onClick={onRecordPayment}
-            icon={RiMoneyDollarCircleLine}
-            iconColor={colors.primary}
-            iconBg={colors.primaryVeryLight}
-            label="Enregistrer un paiement"
-          />
-        )}
-
-        {canProcess && (status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
-          <ActionRow
-            as="button"
-            onClick={onToggleBlock}
-            icon={worker.isAvailable ? RiForbidLine : RiLockUnlockLine}
-            iconColor={worker.isAvailable ? '#D97706' : colors.primary}
-            iconBg={worker.isAvailable ? '#FEF3C7' : colors.primaryVeryLight}
-            label={worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
-            tone={worker.isAvailable ? 'danger' : undefined}
-          />
-        )}
-
-        {canProcess && !worker.userId && (
-          <ActionRow
-            as="button"
-            onClick={onCreateAccount}
-            icon={RiUserAddLine}
-            iconColor={colors.primary}
-            iconBg={colors.primaryVeryLight}
-            label="Créer son compte de connexion"
-          />
-        )}
-
-        {canProcess && !worker.userId && (
-          <ActionRow
-            as="button"
-            onClick={onDelete}
-            icon={RiDeleteBinLine}
-            iconColor={colors.error}
-            iconBg="#FDECEC"
-            label="Supprimer l'ouvrier"
-            tone="danger"
-          />
-        )}
-
-        {isAdmin && status === 'approved' && worker.userId && (
-          <ActionRow
-            as="button"
-            onClick={onResetPassword}
-            icon={RiLockPasswordLine}
-            iconColor={colors.primary}
-            iconBg={colors.primaryVeryLight}
-            label="Modifier le mot de passe"
-          />
-        )}
-
-        {isAdmin && worker.userId && (
-          <ActionRow
-            as="button"
-            onClick={onDelete}
-            icon={RiDeleteBinLine}
-            iconColor={colors.error}
-            iconBg="#FDECEC"
-            label="Supprimer le compte"
-            tone="danger"
-          />
-        )}
-
-        {status === 'rejected' && !worker.suspendedByAdmin && (
-          <p className="px-3 py-2.5 text-sm text-gray-400">
-            Aucune action disponible
-          </p>
-        )}
-      </div>
-    </div>,
-    document.body
+      <MenuSeparator />
+      {canProcess && (status === 'approved' || worker.suspendedByAdmin) && worker.userId && (
+        <MenuItem
+          icon={worker.isAvailable ? RiForbidLine : RiLockUnlockLine}
+          iconColor={worker.isAvailable ? '#D97706' : colors.primary}
+          onClick={onToggleBlock}
+        >
+          {worker.isAvailable ? 'Bloquer le compte' : 'Débloquer le compte'}
+        </MenuItem>
+      )}
+      {canProcess && !worker.userId && (
+        <MenuItem icon={RiDeleteBinLine} danger onClick={onDelete}>Supprimer l'ouvrier</MenuItem>
+      )}
+      {isAdmin && worker.userId && (
+        <MenuItem icon={RiDeleteBinLine} danger onClick={onDelete}>Supprimer le compte</MenuItem>
+      )}
+    </ActionMenu>
   )
 }
 
@@ -276,9 +144,6 @@ export default function WorkersPage() {
   const [actioningId, setActioningId] = useState(null)
   const [blockTarget, setBlockTarget] = useState(null)
   const [blockModalOpen, setBlockModalOpen] = useState(false)
-  const [actionsTarget, setActionsTarget] = useState(null)
-  const [actionsModalOpen, setActionsModalOpen] = useState(false)
-  const [actionsPos, setActionsPos] = useState(null)
   const [passwordTarget, setPasswordTarget] = useState(null)
   const [accountTarget, setAccountTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -352,7 +217,6 @@ export default function WorkersPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setActionsModalOpen(false)
   }
 
   const handleReject = async (worker) => {
@@ -368,7 +232,6 @@ export default function WorkersPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setActionsModalOpen(false)
   }
 
   const setWorkerBlockedState = async (worker, blocked) => {
@@ -471,7 +334,6 @@ export default function WorkersPage() {
       notify('Une erreur est survenue', 'error')
     }
     setActioningId(null)
-    setActionsModalOpen(false)
   }
 
   const handleBulkCertify = async (certified) => {
@@ -591,6 +453,30 @@ export default function WorkersPage() {
     setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
   }
 
+  const menuProps = (worker) => ({
+    worker,
+    onApprove: () => handleApprove(worker),
+    onReject: () => handleReject(worker),
+    onToggleBlock: () => {
+      setBlockTarget(worker)
+      setBlockModalOpen(true)
+    },
+    onToggleCertification: () => handleToggleCertification(worker),
+    onRecordPayment: () => {
+      setPaymentTarget(worker)
+      setPaymentModalOpen(true)
+    },
+    onResetPassword: () => {
+      setPasswordTarget(worker)
+      setPasswordModalOpen(true)
+    },
+    onCreateAccount: () => setAccountTarget(worker),
+    onDelete: () => setDeleteTarget(worker),
+    canProcess,
+    canPayments,
+    isAdmin,
+  })
+
   return (
     <div>
       <DesableConfirmModal
@@ -604,42 +490,6 @@ export default function WorkersPage() {
         confirmFunction={handleToggleBlock}
         open={blockModalOpen}
         setOpen={setBlockModalOpen}
-      />
-
-      <ActionsModal
-        worker={actionsTarget}
-        open={actionsModalOpen}
-        setOpen={setActionsModalOpen}
-        pos={actionsPos}
-        onApprove={() => handleApprove(actionsTarget)}
-        onReject={() => handleReject(actionsTarget)}
-        onToggleBlock={() => {
-          setActionsModalOpen(false)
-          setBlockTarget(actionsTarget)
-          setBlockModalOpen(true)
-        }}
-        onToggleCertification={() => handleToggleCertification(actionsTarget)}
-        onRecordPayment={() => {
-          setActionsModalOpen(false)
-          setPaymentTarget(actionsTarget)
-          setPaymentModalOpen(true)
-        }}
-        onResetPassword={() => {
-          setActionsModalOpen(false)
-          setPasswordTarget(actionsTarget)
-          setPasswordModalOpen(true)
-        }}
-        onCreateAccount={() => {
-          setActionsModalOpen(false)
-          setAccountTarget(actionsTarget)
-        }}
-        onDelete={() => {
-          setActionsModalOpen(false)
-          setDeleteTarget(actionsTarget)
-        }}
-        canProcess={canProcess}
-        canPayments={canPayments}
-        isAdmin={isAdmin}
       />
 
       <ConfirmModal
@@ -1053,32 +903,7 @@ export default function WorkersPage() {
                                 onReject={() => handleReject(worker)}
                               />
                             )}
-                            <button
-                              type="button"
-                              data-worker-menu-button
-                              aria-haspopup="menu"
-                              aria-expanded={actionsModalOpen && actionsTarget?.id === worker.id}
-                              onClick={(event) => {
-                                if (actionsModalOpen && actionsTarget?.id === worker.id) {
-                                  setActionsModalOpen(false)
-                                  return
-                                }
-                                // Sous le bouton, ou au-dessus s'il manque de place en bas
-                                const rect = event.currentTarget.getBoundingClientRect()
-                                const right = Math.max(8, window.innerWidth - rect.right)
-                                setActionsPos(
-                                  rect.bottom + 340 > window.innerHeight
-                                    ? { bottom: window.innerHeight - rect.top + 6, right }
-                                    : { top: rect.bottom + 6, right }
-                                )
-                                setActionsTarget(worker)
-                                setActionsModalOpen(true)
-                              }}
-                              className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                              title="Autres actions"
-                            >
-                              <RiMore2Fill className="h-4 w-4" />
-                            </button>
+                            <WorkerMenu {...menuProps(worker)} />
                           </div>
                         )}
                       </td>

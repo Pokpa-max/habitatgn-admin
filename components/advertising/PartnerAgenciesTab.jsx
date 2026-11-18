@@ -9,11 +9,11 @@ import {
   RiImage2Fill,
   RiEyeLine,
   RiEyeOffLine,
-  RiMore2Fill,
 } from 'react-icons/ri'
 import { useColors } from '@/contexts/ColorContext'
 import { notify } from '@/utils/toast'
 import Loader from '@/components/Loader'
+import ActionMenu, { MenuItem, MenuSeparator } from '@/components/ui/ActionMenu'
 import DrawerForm from '@/components/DrawerForm'
 import PagePreview from './PagePreview'
 import { uploadToCloudinary } from '@/utils/cloudinary'
@@ -49,36 +49,6 @@ export default function PartnerAgenciesTab() {
   const [saving, setSaving] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
-  const [menuOpenId, setMenuOpenId] = useState(null)
-  const [menuAnchor, setMenuAnchor] = useState(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!menuOpenId) return
-      const target = event.target
-      if (target instanceof HTMLElement && !target.closest('[data-menu-root]')) {
-        setMenuOpenId(null)
-        setMenuAnchor(null)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [menuOpenId])
-
-  const openMenu = (event, agencyId) => {
-    event.stopPropagation()
-    if (menuOpenId === agencyId) {
-      setMenuOpenId(null)
-      setMenuAnchor(null)
-      return
-    }
-    const rect = event.currentTarget.getBoundingClientRect()
-    const left = Math.max(16, Math.min(rect.right - 224, window.innerWidth - 240 - 16))
-    const top = Math.min(rect.bottom + 8, window.innerHeight - 200 - 16)
-    setMenuOpenId(agencyId)
-    setMenuAnchor({ left, top })
-  }
-
   const {
     register,
     handleSubmit,
@@ -303,16 +273,20 @@ export default function PartnerAgenciesTab() {
                         </button>
                       </div>
                     ) : (
-                      <div data-menu-root>
-                        <button
-                          type="button"
-                          onClick={(event) => openMenu(event, agency.id)}
-                          className="inline-flex items-center justify-center rounded-full border border-gray-200 p-2 text-gray-500 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-700"
-                          title="Actions"
-                        >
-                          <RiMore2Fill className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <ActionMenu width="w-56">
+                        {canProcess && (
+                          <MenuItem icon={RiEditLine} onClick={() => openEdit(agency)}>Modifier</MenuItem>
+                        )}
+                        {canProcess && (
+                          <MenuItem icon={agency.active ? RiEyeOffLine : RiEyeLine} onClick={() => handleToggleActive(agency)}>
+                            {agency.active ? 'Masquer' : 'Publier'}
+                          </MenuItem>
+                        )}
+                        <MenuSeparator />
+                        {canDelete && (
+                          <MenuItem icon={RiDeleteBinLine} danger onClick={() => setDeleteConfirm(agency.id)}>Supprimer</MenuItem>
+                        )}
+                      </ActionMenu>
                     )}
                   </div>
                 </div>
@@ -327,65 +301,6 @@ export default function PartnerAgenciesTab() {
         />
       </div>
 
-      {menuOpenId && menuAnchor && (() => {
-        const agency = agencies.find((a) => a.id === menuOpenId)
-        if (!agency) return null
-        return (
-          <div
-            className="fixed z-[100] w-56 rounded-lg border border-gray-200 bg-white p-2 shadow-2xl"
-            style={{ left: menuAnchor.left, top: menuAnchor.top }}
-            data-menu-root
-          >
-            {canProcess && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpenId(null)
-                  setMenuAnchor(null)
-                  handleToggleActive(agency)
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                {agency.active ? (
-                  <RiEyeOffLine className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <RiEyeLine className="h-4 w-4 text-gray-400" />
-                )}
-                {agency.active ? 'Masquer' : 'Publier'}
-              </button>
-            )}
-            {canProcess && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpenId(null)
-                  setMenuAnchor(null)
-                  openEdit(agency)
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                <RiEditLine className="h-4 w-4 text-gray-400" />
-                Modifier
-              </button>
-            )}
-            {canDelete && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpenId(null)
-                  setMenuAnchor(null)
-                  setDeleteConfirm(agency.id)
-                }}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold hover:bg-red-50"
-                style={{ color: colors.error }}
-              >
-                <RiDeleteBinLine className="h-4 w-4" />
-                Supprimer
-              </button>
-            )}
-          </div>
-        )
-      })()}
 
       <DrawerForm
         open={drawerOpen}
